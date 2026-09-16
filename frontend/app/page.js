@@ -1,4 +1,5 @@
-import MenuItemCard from "./MenuItemCard";
+import MenuExperience from "../components/MealDeckApp";
+import demoStalls from "../data/demoMenu";
 
 // Server component: fetches the backend directly, same pattern
 // mealdeck_deployed/frontend documents (BACKEND_INTERNAL_URL). No client
@@ -13,38 +14,18 @@ async function getStalls() {
 
 export default async function MenuPage() {
   let stalls = [];
-  let error = null;
+  let demoMode = false;
 
   try {
     stalls = await getStalls();
-  } catch (err) {
-    error = err.message;
+  } catch {
+    // Keep the UI usable when someone is working on the frontend without
+    // starting the optional Java/MySQL service.
+    stalls = demoStalls;
+    demoMode = true;
   }
 
   return (
-    <>
-      <header className="header">
-        <span className="logo-mark">M</span>
-        <span className="brand">MealDeck</span>
-      </header>
-      <main>
-        <h1 className="page-title">Today&apos;s Menu</h1>
-        <p className="page-subtitle">Live availability, reported by students.</p>
-
-        {error && <p className="status-line">Couldn&apos;t reach the server: {error}</p>}
-        {!error && stalls.length === 0 && <p className="status-line">No stalls yet.</p>}
-
-        {stalls.map((stall) => (
-          <section className="stall-section" key={stall.id}>
-            <h2 className="stall-name">{stall.name}</h2>
-            <div className="item-grid">
-              {stall.items.map((item) => (
-                <MenuItemCard key={item.id} item={item} />
-              ))}
-            </div>
-          </section>
-        ))}
-      </main>
-    </>
+    <MenuExperience stalls={stalls} demoMode={demoMode} />
   );
 }
