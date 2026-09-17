@@ -16,7 +16,7 @@ export default function MenuExperience({ stalls, demoMode }) {
   }));
 
   const cartItems = useMemo(() => Object.values(cart), [cart]);
-  const itemCount = cartItems.reduce((count, entry) => count + entry.quantity, 1);
+  const itemCount = cartItems.reduce((count, entry) => count + entry.quantity, 0);
   const total = cartItems.reduce((sum, entry) => sum + entry.item.price * entry.quantity, 0);
 
   function addToCart(item) {
