@@ -39,12 +39,12 @@ public class MenuService {
                 .orElseThrow(() -> new IllegalArgumentException("No menu item " + menuItemId));
 
         reportRepository.save(new Report(item));
-        item.setReportCount(item.getReportCount() + 1);
+        menuItemRepository.incrementReportCount(menuItemId);
 
-        if (item.getReportCount() >= REPORT_THRESHOLD) {
-            item.setAvailable(false);
+        MenuItem updated = menuItemRepository.findById(menuItemId).orElseThrow();
+        if (updated.getReportCount() >= REPORT_THRESHOLD) {
+            updated.setAvailable(false);
+            menuItemRepository.save(updated);
         }
-
-        menuItemRepository.save(item);
     }
 }
