@@ -5,8 +5,10 @@ import com.mealdeck.model.Stall;
 import com.mealdeck.repository.MenuItemRepository;
 import com.mealdeck.repository.StallRepository;
 import java.math.BigDecimal;
+import java.util.List;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Seeds a couple of stalls once, on first boot, if the DB is empty. */
 @Component
@@ -21,22 +23,25 @@ public class DemoDataSeeder implements CommandLineRunner {
     }
 
     @Override
+    @Transactional
     public void run(String... args) {
         if (stallRepository.count() > 0) {
             return;
         }
 
-        Stall bistro = stallRepository.save(new Stall("Bistro / Kathi"));
-        menuItemRepository.save(new MenuItem(bistro, "Paneer Kathi Roll", new BigDecimal("129"), true));
-        menuItemRepository.save(new MenuItem(bistro, "Chicken Kathi Roll", new BigDecimal("149"), false));
-        menuItemRepository.save(new MenuItem(bistro, "Veg Sandwich", new BigDecimal("79"), true));
+        List<Stall> stalls = stallRepository.saveAll(
+                List.of(new Stall("Bistro / Kathi"), new Stall("SnapEats"), new Stall("Quench")));
+        Stall bistro = stalls.get(0);
+        Stall snapEats = stalls.get(1);
+        Stall quench = stalls.get(2);
 
-        Stall snapEats = stallRepository.save(new Stall("SnapEats"));
-        menuItemRepository.save(new MenuItem(snapEats, "Cold Coffee", new BigDecimal("69"), true));
-        menuItemRepository.save(new MenuItem(snapEats, "Chicken Burger", new BigDecimal("139"), false));
-
-        Stall quench = stallRepository.save(new Stall("Quench"));
-        menuItemRepository.save(new MenuItem(quench, "Fresh Lime Soda", new BigDecimal("59"), true));
-        menuItemRepository.save(new MenuItem(quench, "Oreo Shake", new BigDecimal("109"), true));
+        menuItemRepository.saveAll(List.of(
+                new MenuItem(bistro, "Paneer Kathi Roll", new BigDecimal("129"), true),
+                new MenuItem(bistro, "Chicken Kathi Roll", new BigDecimal("149"), false),
+                new MenuItem(bistro, "Veg Sandwich", new BigDecimal("79"), true),
+                new MenuItem(snapEats, "Cold Coffee", new BigDecimal("69"), true),
+                new MenuItem(snapEats, "Chicken Burger", new BigDecimal("139"), false),
+                new MenuItem(quench, "Fresh Lime Soda", new BigDecimal("59"), true),
+                new MenuItem(quench, "Oreo Shake", new BigDecimal("109"), true)));
     }
 }
