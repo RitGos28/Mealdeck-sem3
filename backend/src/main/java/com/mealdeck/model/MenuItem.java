@@ -79,4 +79,16 @@ public class MenuItem {
     public void setReportCount(int reportCount) {
         this.reportCount = reportCount;
     }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setPrice(BigDecimal price) {
+        this.price = price;
+    }
+
+    public void setVeg(boolean veg) {
+        this.veg = veg;
+    }
 }
