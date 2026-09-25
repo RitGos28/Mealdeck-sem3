@@ -3,12 +3,16 @@ package com.mealdeck.service;
 import com.mealdeck.model.MenuItem;
 import com.mealdeck.model.Report;
 import com.mealdeck.model.Stall;
+import com.mealdeck.model.Student;
 import com.mealdeck.repository.MenuItemRepository;
 import com.mealdeck.repository.ReportRepository;
 import com.mealdeck.repository.StallRepository;
+import com.mealdeck.repository.StudentRepository;
 import com.mealdeck.web.MenuItemRequests.CreateMenuItemRequest;
 import com.mealdeck.web.MenuItemRequests.UpdateMenuItemRequest;
 import com.mealdeck.web.MenuItemRequests.UpdateStallRequest;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -21,29 +25,44 @@ public class MenuService {
     /** Same threshold mealdeck_improved uses: 3 independent reports hides an item. */
     private static final int REPORT_THRESHOLD = 3;
 
+    /** A student can vote on the same item again after this long, so a
+     * genuinely still-out-of-stock item can keep collecting fresh votes
+     * even if the vendor never touches it. */
+    private static final int REPORT_COOLDOWN_HOURS = 4;
+
     private final StallRepository stallRepository;
     private final MenuItemRepository menuItemRepository;
     private final ReportRepository reportRepository;
+    private final StudentRepository studentRepository;
 
     public MenuService(
             StallRepository stallRepository,
             MenuItemRepository menuItemRepository,
-            ReportRepository reportRepository) {
+            ReportRepository reportRepository,
+            StudentRepository studentRepository) {
         this.stallRepository = stallRepository;
         this.menuItemRepository = menuItemRepository;
         this.reportRepository = reportRepository;
+        this.studentRepository = studentRepository;
     }
 
     public List<Stall> listStalls() {
         return stallRepository.findAllWithMenuItems();
     }
 
+    /** One vote per student per item per cooldown window. Three votes within
+     * that window hides the item. */
     @Transactional
-    public void reportOutOfStock(Long menuItemId) {
+    public void reportOutOfStock(Long menuItemId, Long studentId) {
         MenuItem item = menuItemRepository.findById(menuItemId)
-                .orElseThrow(() -> new IllegalArgumentException("No menu item " + menuItemId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No menu item " + menuItemId));
+        Instant cutoff = Instant.now().minus(REPORT_COOLDOWN_HOURS, ChronoUnit.HOURS);
+        if (reportRepository.existsByMenuItemIdAndStudentIdAndCreatedAtAfter(menuItemId, studentId, cutoff)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "You already reported this item recently");
+        }
+        Student student = studentRepository.getReferenceById(studentId);
 
-        reportRepository.save(new Report(item));
+        reportRepository.save(new Report(item, student));
         menuItemRepository.incrementReportCount(menuItemId);
 
         MenuItem updated = menuItemRepository.findById(menuItemId).orElseThrow();
@@ -51,6 +70,14 @@ public class MenuService {
             updated.setAvailable(false);
             menuItemRepository.save(updated);
         }
+    }
+
+    /** Every item comes back in stock overnight, votes cleared, so a stale
+     * "out of stock" from yesterday doesn't linger into a fresh day. */
+    @Transactional
+    public void resetDailyAvailability() {
+        menuItemRepository.resetAllAvailability();
+        reportRepository.deleteAll();
     }
 
     public Stall getStall(Long stallId) {
@@ -104,6 +131,9 @@ public class MenuService {
             item.setAvailable(request.available());
             if (request.available()) {
                 item.setReportCount(0);
+                // Restocking clears votes so students can report it again
+                // if it runs out a second time (three-strike system resets).
+                reportRepository.deleteByMenuItemId(item.getId());
             }
         }
         return menuItemRepository.save(item);

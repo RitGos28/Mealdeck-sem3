@@ -1,8 +1,10 @@
 package com.mealdeck.web;
 
 import com.mealdeck.repository.VendorRepository;
+import com.mealdeck.service.StudentService;
 import com.mealdeck.web.AuthDtos.LoginRequest;
 import com.mealdeck.web.AuthDtos.MeResponse;
+import com.mealdeck.web.StudentRequests.SignupRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -28,11 +30,13 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final VendorRepository vendorRepository;
+    private final StudentService studentService;
     private final SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
 
-    public AuthController(AuthenticationManager authenticationManager, VendorRepository vendorRepository) {
+    public AuthController(AuthenticationManager authenticationManager, VendorRepository vendorRepository, StudentService studentService) {
         this.authenticationManager = authenticationManager;
         this.vendorRepository = vendorRepository;
+        this.studentService = studentService;
     }
 
     @PostMapping("/vendor/login")
@@ -43,6 +47,17 @@ public class AuthController {
     @PostMapping("/admin/login")
     public MeResponse adminLogin(@RequestBody LoginRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
         return login(request, "ROLE_ADMIN", httpRequest, httpResponse);
+    }
+
+    @PostMapping("/student/signup")
+    public MeResponse studentSignup(@RequestBody SignupRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+        studentService.signup(request);
+        return login(new LoginRequest(request.email(), request.password()), "ROLE_STUDENT", httpRequest, httpResponse);
+    }
+
+    @PostMapping("/student/login")
+    public MeResponse studentLogin(@RequestBody LoginRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+        return login(request, "ROLE_STUDENT", httpRequest, httpResponse);
     }
 
     @PostMapping("/logout")

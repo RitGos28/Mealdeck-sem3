@@ -7,7 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 
 @Entity
-public class Admin {
+public class Student {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,17 +19,19 @@ public class Admin {
     @Column(nullable = false)
     private String passwordHash;
 
-    /** Same idea as Vendor.realEmail: email is a @mealdeck.in identity, this
-     * is the real inbox OTP delivery will send to once that's built. */
-    private String realEmail;
+    @Column(nullable = false)
+    private String name;
 
-    protected Admin() {
+    private String phone;
+
+    protected Student() {
     }
 
-    public Admin(String email, String passwordHash, String realEmail) {
+    public Student(String email, String passwordHash, String name, String phone) {
         this.email = email;
         this.passwordHash = passwordHash;
-        this.realEmail = realEmail;
+        this.name = name;
+        this.phone = phone;
     }
 
     public Long getId() {
@@ -44,7 +46,11 @@ public class Admin {
         return passwordHash;
     }
 
-    public String getRealEmail() {
-        return realEmail;
+    public String getName() {
+        return name;
+    }
+
+    public String getPhone() {
+        return phone;
     }
 }

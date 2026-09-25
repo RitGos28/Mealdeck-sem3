@@ -16,4 +16,10 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
     @Modifying(clearAutomatically = true)
     @Query("update MenuItem m set m.reportCount = m.reportCount + 1 where m.id = :id")
     void incrementReportCount(@Param("id") Long id);
+
+    // Daily reset: every item comes back in stock overnight and starts the
+    // day with a clean vote count.
+    @Modifying(clearAutomatically = true)
+    @Query("update MenuItem m set m.available = true, m.reportCount = 0")
+    void resetAllAvailability();
 }

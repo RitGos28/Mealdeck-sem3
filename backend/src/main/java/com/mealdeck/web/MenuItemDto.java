@@ -8,9 +8,9 @@ import java.math.BigDecimal;
  * is a circular reference Jackson can't handle, and it leaks persistence
  * fields the frontend has no business seeing. A DTO record is the fix.
  */
-public record MenuItemDto(Long id, String name, BigDecimal price, boolean veg, boolean available) {
+public record MenuItemDto(Long id, String name, BigDecimal price, boolean veg, boolean available, int reportCount) {
 
     public static MenuItemDto from(MenuItem item) {
-        return new MenuItemDto(item.getId(), item.getName(), item.getPrice(), item.isVeg(), item.isAvailable());
+        return new MenuItemDto(item.getId(), item.getName(), item.getPrice(), item.isVeg(), item.isAvailable(), item.getReportCount());
     }
 }

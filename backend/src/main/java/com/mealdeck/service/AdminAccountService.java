@@ -5,9 +5,11 @@ import com.mealdeck.model.Vendor;
 import com.mealdeck.repository.StallRepository;
 import com.mealdeck.repository.VendorRepository;
 import com.mealdeck.web.MenuItemRequests.CreateStallRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 /** Admin-only: creating a new stall also means creating the vendor login
  * that owns it, so that pairing lives here rather than in MenuService
@@ -27,8 +29,12 @@ public class AdminAccountService {
 
     @Transactional
     public Vendor createStallWithVendor(CreateStallRequest request) {
+        if (!EmailDomains.isStaffEmail(request.vendorEmail())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Vendor login email must be a " + EmailDomains.STAFF_DOMAIN + " address");
+        }
         Stall stall = stallRepository.save(new Stall(request.stallName()));
-        Vendor vendor = new Vendor(request.vendorEmail(), passwordEncoder.encode(request.vendorPassword()), stall);
+        Vendor vendor = new Vendor(request.vendorEmail(), passwordEncoder.encode(request.vendorPassword()), request.vendorRealEmail(), stall);
         return vendorRepository.save(vendor);
     }
 }

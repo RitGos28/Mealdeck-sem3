@@ -23,6 +23,11 @@ public class Vendor {
     @Column(nullable = false)
     private String passwordHash;
 
+    /** email is a @mealdeck.in identity; this is the vendor's real inbox
+     * (any domain) that OTP delivery will actually send to, once that's
+     * wired up. Not used for anything yet. */
+    private String realEmail;
+
     @OneToOne
     @JoinColumn(name = "stall_id", nullable = false, unique = true)
     private Stall stall;
@@ -30,9 +35,10 @@ public class Vendor {
     protected Vendor() {
     }
 
-    public Vendor(String email, String passwordHash, Stall stall) {
+    public Vendor(String email, String passwordHash, String realEmail, Stall stall) {
         this.email = email;
         this.passwordHash = passwordHash;
+        this.realEmail = realEmail;
         this.stall = stall;
     }
 
@@ -50,5 +56,9 @@ public class Vendor {
 
     public Stall getStall() {
         return stall;
+    }
+
+    public String getRealEmail() {
+        return realEmail;
     }
 }

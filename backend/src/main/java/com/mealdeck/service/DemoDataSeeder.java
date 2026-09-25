@@ -3,10 +3,12 @@ package com.mealdeck.service;
 import com.mealdeck.model.Admin;
 import com.mealdeck.model.MenuItem;
 import com.mealdeck.model.Stall;
+import com.mealdeck.model.Student;
 import com.mealdeck.model.Vendor;
 import com.mealdeck.repository.AdminRepository;
 import com.mealdeck.repository.MenuItemRepository;
 import com.mealdeck.repository.StallRepository;
+import com.mealdeck.repository.StudentRepository;
 import com.mealdeck.repository.VendorRepository;
 import java.math.BigDecimal;
 import java.time.LocalTime;
@@ -26,15 +28,23 @@ public class DemoDataSeeder implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DemoDataSeeder.class);
 
-    private static final String VENDOR_EMAIL = "bistro@mealdeck.demo";
+    // mealdeck.in addresses are login-only identities (see Vendor/Admin.realEmail);
+    // the "real inbox" values below are placeholders, not committed to a real
+    // person's address, since this seed data lives in a public repo.
+    private static final String VENDOR_EMAIL = "bistro@mealdeck.in";
+    private static final String VENDOR_REAL_EMAIL = "bistro.owner@example.com";
     private static final String VENDOR_PASSWORD = "vendor123";
-    private static final String ADMIN_EMAIL = "admin@mealdeck.demo";
+    private static final String ADMIN_EMAIL = "admin@mealdeck.in";
+    private static final String ADMIN_REAL_EMAIL = "admin.owner@example.com";
     private static final String ADMIN_PASSWORD = "admin123";
+    private static final String STUDENT_EMAIL = "student@bennett.edu.in";
+    private static final String STUDENT_PASSWORD = "student123";
 
     private final StallRepository stallRepository;
     private final MenuItemRepository menuItemRepository;
     private final VendorRepository vendorRepository;
     private final AdminRepository adminRepository;
+    private final StudentRepository studentRepository;
     private final PasswordEncoder passwordEncoder;
 
     public DemoDataSeeder(
@@ -42,11 +52,13 @@ public class DemoDataSeeder implements CommandLineRunner {
             MenuItemRepository menuItemRepository,
             VendorRepository vendorRepository,
             AdminRepository adminRepository,
+            StudentRepository studentRepository,
             PasswordEncoder passwordEncoder) {
         this.stallRepository = stallRepository;
         this.menuItemRepository = menuItemRepository;
         this.vendorRepository = vendorRepository;
         this.adminRepository = adminRepository;
+        this.studentRepository = studentRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -80,10 +92,11 @@ public class DemoDataSeeder implements CommandLineRunner {
                 new MenuItem(quench, "Fresh Lime Soda", new BigDecimal("59"), true),
                 new MenuItem(quench, "Oreo Shake", new BigDecimal("109"), true)));
 
-        vendorRepository.save(new Vendor(VENDOR_EMAIL, passwordEncoder.encode(VENDOR_PASSWORD), bistro));
-        adminRepository.save(new Admin(ADMIN_EMAIL, passwordEncoder.encode(ADMIN_PASSWORD)));
+        vendorRepository.save(new Vendor(VENDOR_EMAIL, passwordEncoder.encode(VENDOR_PASSWORD), VENDOR_REAL_EMAIL, bistro));
+        adminRepository.save(new Admin(ADMIN_EMAIL, passwordEncoder.encode(ADMIN_PASSWORD), ADMIN_REAL_EMAIL));
+        studentRepository.save(new Student(STUDENT_EMAIL, passwordEncoder.encode(STUDENT_PASSWORD), "Demo Student", null));
 
-        log.info("Seeded demo accounts -- vendor: {} / {} (Bistro / Kathi), admin: {} / {}",
-                VENDOR_EMAIL, VENDOR_PASSWORD, ADMIN_EMAIL, ADMIN_PASSWORD);
+        log.info("Seeded demo accounts -- vendor: {} / {} (Bistro / Kathi), admin: {} / {}, student: {} / {}",
+                VENDOR_EMAIL, VENDOR_PASSWORD, ADMIN_EMAIL, ADMIN_PASSWORD, STUDENT_EMAIL, STUDENT_PASSWORD);
     }
 }

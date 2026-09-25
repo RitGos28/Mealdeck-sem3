@@ -16,7 +16,7 @@ public class MenuItemRequests {
     public record UpdateStallRequest(java.time.LocalTime openTime, java.time.LocalTime closeTime, Boolean closedToday) {
     }
 
-    public record CreateStallRequest(String stallName, String vendorEmail, String vendorPassword) {
+    public record CreateStallRequest(String stallName, String vendorEmail, String vendorPassword, String vendorRealEmail) {
     }
 
     private MenuItemRequests() {
