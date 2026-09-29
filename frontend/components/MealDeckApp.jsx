@@ -11,6 +11,7 @@ export default function MenuExperience({ stalls, demoMode }) {
   const router = useRouter();
   const [cart, setCart] = useState({});
   const [checkingOut, setCheckingOut] = useState(false);
+  const [search, setSearch] = useState("");
   const menuStalls = stalls.map((stall) => ({
     ...stall,
     items: stall.items.map((item) => ({
@@ -22,6 +23,13 @@ export default function MenuExperience({ stalls, demoMode }) {
   const cartItems = useMemo(() => Object.values(cart), [cart]);
   const itemCount = cartItems.reduce((count, entry) => count + entry.quantity, 0);
   const total = cartItems.reduce((sum, entry) => sum + entry.item.price * entry.quantity, 0);
+  const visibleStalls = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return menuStalls;
+    return menuStalls
+      .map((stall) => ({ ...stall, items: stall.items.filter((item) => item.name.toLowerCase().includes(query)) }))
+      .filter((stall) => stall.items.length > 0);
+  }, [menuStalls, search]);
 
   function addToCart(item, stall) {
     setCart((current) => ({
@@ -70,12 +78,14 @@ export default function MenuExperience({ stalls, demoMode }) {
 
         <div className="mb-7 flex flex-wrap items-end justify-between gap-3"><div><h2 className="font-display text-2xl font-bold tracking-tight">Explore the stalls</h2><p className="mt-1 text-sm text-gray-500">Fresh picks from around campus.</p></div><p className="rounded-full border border-[#dce5d8] bg-white px-3 py-1.5 text-xs font-semibold text-[#477355]">{menuStalls.length} stalls open</p></div>
 
+        <label className="mb-7 flex max-w-md items-center gap-3 rounded-2xl border border-[#dce6d8] bg-white px-4 py-3 shadow-[0_10px_24px_-22px_rgba(21,55,33,.65)]"><span className="text-lg" aria-hidden="true">⌕</span><span className="sr-only">Search the menu</span><input className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-gray-400" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search dishes, snacks, or drinks" />{search && <button type="button" className="rounded-full px-2 py-1 text-xs font-semibold text-[#477355] hover:bg-[#f2f6ef]" onClick={() => setSearch("")} aria-label="Clear search">Clear</button>}</label>
         {demoMode && <p className="mb-6 rounded-xl border border-[#dbead6] bg-[#f5faf3] px-4 py-3 text-sm text-[#3f6b3a]">Showing sample menu data. Start the backend later to load live availability.</p>}
         {!demoMode && menuStalls.length === 0 && <p className="py-10 text-gray-500">No stalls yet.</p>}
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div>
-            {menuStalls.map((stall) => <MenuSection key={stall.id} stall={stall} demoMode={demoMode} onAddToCart={addToCart} />)}
+            {visibleStalls.map((stall) => <MenuSection key={stall.id} stall={stall} demoMode={demoMode} onAddToCart={addToCart} />)}
+            {visibleStalls.length === 0 && <div className="rounded-2xl border border-dashed border-[#cbdac6] bg-white px-6 py-12 text-center"><p className="font-display text-lg font-bold">No dishes found</p><p className="mt-1 text-sm text-gray-500">Try another search term or browse all stalls.</p><button className="mt-4 text-sm font-semibold text-[#356b42] underline underline-offset-4" onClick={() => setSearch("")}>Clear search</button></div>}
           </div>
           {checkingOut && cartItems.length > 0
             ? <Checkout cartItems={cartItems} total={total} onBack={() => setCheckingOut(false)} onPlaced={handlePlaced} />

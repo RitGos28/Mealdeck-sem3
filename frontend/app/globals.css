@@ -12,4 +12,8 @@
   }
 
   button, a, input { @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3d7b50]; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+  }
 }
