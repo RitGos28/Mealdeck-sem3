@@ -5,9 +5,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/** Runs the daily reset at midnight server time -- simplest thing that
- * matches "everything's back in stock in the morning" without pulling in a
- * timezone dependency this app doesn't otherwise need. */
+/** Runs the daily reset at campus midnight. Pinned to IST rather than the
+ * server's own zone: inside a container that's UTC, which would run the
+ * reset at 5:30 AM IST, after early stalls have opened. */
 @Component
 public class DailyResetScheduler {
 
@@ -19,7 +19,7 @@ public class DailyResetScheduler {
         this.menuService = menuService;
     }
 
-    @Scheduled(cron = "0 0 0 * * *")
+    @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Kolkata")
     public void resetDaily() {
         menuService.resetDailyAvailability();
         log.info("Daily reset: all menu items marked available, votes cleared");
