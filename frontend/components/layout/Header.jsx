@@ -17,14 +17,14 @@ export default function Header({ itemCount }) {
   }
 
   return (
-    <header className="bg-[radial-gradient(circle_at_top_left,_#0f2419_0%,_#0a1810_100%)] px-6 py-5 text-white">
+    <header className="border-b border-white/10 bg-[#10261b] px-5 py-4 sm:px-6 text-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
         <Link href="/" className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-[10px] bg-[#a9c9a1] text-lg font-bold text-[#0a1810]">M</span>
-          <span className="font-display text-xl font-bold">MealDeck</span>
+          <span className="flex size-10 items-center justify-center rounded-xl bg-[#d8f2b8] text-lg font-bold text-[#10261b] shadow-[0_0_0_5px_rgba(216,242,184,.1)]">M</span>
+          <span><span className="font-display block text-xl font-bold tracking-tight">MealDeck</span><span className="hidden text-[10px] font-semibold uppercase tracking-[.16em] text-[#b8d4bd] sm:block">Campus pre-orders</span></span>
         </Link>
         <div className="flex items-center gap-2 text-sm font-semibold">
-          {itemCount !== undefined && <span className="rounded-full bg-white/10 px-3 py-1.5">Cart: {itemCount}</span>}
+          {itemCount !== undefined && <span className="rounded-full bg-white/10 px-3 py-1.5">Bag <span className="ml-1 inline-flex size-5 items-center justify-center rounded-full bg-[#d8f2b8] text-xs text-[#10261b]">{itemCount}</span></span>}
           {user?.role === "VENDOR" && <Link href="/vendor" className="rounded-full bg-white/10 px-3 py-1.5 hover:bg-white/20">Orders</Link>}
           {user && <span className="hidden max-w-48 truncate text-white/70 sm:inline">{user.email}</span>}
           {user && <button className="rounded-full border border-white/25 px-3 py-1.5 hover:bg-white/10" onClick={logout}>Log out</button>}
