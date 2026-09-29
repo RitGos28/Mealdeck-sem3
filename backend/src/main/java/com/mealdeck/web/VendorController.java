@@ -73,7 +73,7 @@ public class VendorController {
 
     @GetMapping("/orders")
     public List<OrderDto> orders(Authentication authentication) {
-        return orderService.ordersForStall(ownStall(authentication).getId()).stream().map(OrderDto::from).toList();
+        return orderService.todaysOrdersForStall(ownStall(authentication).getId()).stream().map(OrderDto::from).toList();
     }
 
     @PatchMapping("/orders/{id}/status")

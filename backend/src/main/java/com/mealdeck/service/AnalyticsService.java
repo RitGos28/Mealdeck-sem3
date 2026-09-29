@@ -47,7 +47,8 @@ public class AnalyticsService {
     private StallStats stallStats(Stall stall, List<Order> allOrders) {
         List<Order> stallOrders = allOrders.stream()
                 .filter(order -> order.getStall().getId().equals(stall.getId()))
-                .filter(order -> order.getStatus() != OrderStatus.CANCELLED)
+                // Payment happens at pickup, so a no-show never paid either.
+                .filter(order -> order.getStatus() != OrderStatus.CANCELLED && order.getStatus() != OrderStatus.NO_SHOW)
                 .toList();
 
         BigDecimal revenue = stallOrders.stream()

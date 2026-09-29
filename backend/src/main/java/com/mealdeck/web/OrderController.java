@@ -1,7 +1,9 @@
 package com.mealdeck.web;
 
 import com.mealdeck.model.Order;
+import com.mealdeck.service.MenuService;
 import com.mealdeck.service.OrderService;
+import com.mealdeck.service.SlotService;
 import com.mealdeck.web.OrderRequests.CreateOrderRequest;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,9 +18,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class OrderController {
 
     private final OrderService orderService;
+    private final SlotService slotService;
+    private final MenuService menuService;
 
-    public OrderController(OrderService orderService) {
+    public OrderController(OrderService orderService, SlotService slotService, MenuService menuService) {
         this.orderService = orderService;
+        this.slotService = slotService;
+        this.menuService = menuService;
+    }
+
+    @GetMapping("/api/stalls/{id}/slots")
+    public List<SlotDto> slots(@PathVariable Long id) {
+        return slotService.upcomingSlots(menuService.getStall(id)).stream().map(SlotDto::new).toList();
     }
 
     @PostMapping("/api/orders")

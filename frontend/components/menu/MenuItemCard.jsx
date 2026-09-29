@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { api } from "../../lib/api";
 
 function VegDot({ veg }) {
   const color = veg ? "border-[#2f7d32] bg-[#2f7d32]" : "border-[#b3261e] bg-[#b3261e]";
@@ -13,6 +14,7 @@ export default function MenuItemCard({ item, demoMode, onAddToCart }) {
   const router = useRouter();
   const [reporting, setReporting] = useState(false);
   const [locallyUnavailable, setLocallyUnavailable] = useState(false);
+  const [reportMessage, setReportMessage] = useState(null);
   const available = item.available && !locallyUnavailable;
 
   async function handleReport() {
@@ -21,10 +23,18 @@ export default function MenuItemCard({ item, demoMode, onAddToCart }) {
       return;
     }
     setReporting(true);
+    setReportMessage(null);
     try {
-      const response = await fetch(`/api/menu-items/${item.id}/report`, { method: "POST" });
-      if (!response.ok) throw new Error(`Server returned ${response.status}`);
+      await api(`/api/menu-items/${item.id}/report`, { method: "POST" });
+      setReportMessage("Thanks, reported.");
       router.refresh();
+    } catch (err) {
+      // Reporting needs a student login; anyone else gets 401/403.
+      if (err.status === 401 || err.status === 403) {
+        router.push("/login?next=/");
+        return;
+      }
+      setReportMessage(err.message);
     } finally {
       setReporting(false);
     }
@@ -43,6 +53,7 @@ export default function MenuItemCard({ item, demoMode, onAddToCart }) {
           <button className="rounded-full bg-[#0f2419] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#1a3827]" onClick={() => onAddToCart(item)}>Add to cart</button>
           <button className="rounded-full border border-[#e5e7e0] bg-transparent px-3 py-1.5 text-xs font-semibold text-gray-500 transition-colors hover:border-[#12180f] hover:text-[#12180f] disabled:cursor-default disabled:opacity-50" disabled={reporting} onClick={handleReport}>{reporting ? "Reporting…" : "Report out of stock →"}</button>
         </div>}
+        {reportMessage && <p className="text-xs text-gray-500">{reportMessage}</p>}
       </div>
     </article>
   );

@@ -13,6 +13,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,16 +47,27 @@ public class Order {
     @Column(nullable = false)
     private Instant createdAt = Instant.now();
 
+    // Nullable only because orders placed before pickup slots existed have
+    // none; every new order gets both (see OrderService.checkout).
+    private LocalDate pickupDate;
+
+    private LocalTime pickupTime;
+
+    /** When the vendor marked it READY; the no-show countdown starts here. */
+    private Instant readyAt;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
 
     protected Order() {
     }
 
-    public Order(Stall stall, String customerName, String customerContact) {
+    public Order(Stall stall, String customerName, String customerContact, LocalDate pickupDate, LocalTime pickupTime) {
         this.stall = stall;
         this.customerName = customerName;
         this.customerContact = customerContact;
+        this.pickupDate = pickupDate;
+        this.pickupTime = pickupTime;
     }
 
     public Long getId() {
@@ -83,6 +96,22 @@ public class Order {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public LocalDate getPickupDate() {
+        return pickupDate;
+    }
+
+    public LocalTime getPickupTime() {
+        return pickupTime;
+    }
+
+    public Instant getReadyAt() {
+        return readyAt;
+    }
+
+    public void setReadyAt(Instant readyAt) {
+        this.readyAt = readyAt;
     }
 
     public List<OrderItem> getItems() {

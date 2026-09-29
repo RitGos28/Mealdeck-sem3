@@ -1,12 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Header from "../components/layout/Header";
 import MenuSection from "../components/menu/MenuSection";
 import Cart from "../components/cart/Cart";
+import Checkout from "../components/checkout/Checkout";
 
 export default function MenuExperience({ stalls, demoMode }) {
+  const router = useRouter();
   const [cart, setCart] = useState({});
+  const [checkingOut, setCheckingOut] = useState(false);
   const menuStalls = stalls.map((stall) => ({
     ...stall,
     items: stall.items.map((item) => ({
@@ -19,14 +23,22 @@ export default function MenuExperience({ stalls, demoMode }) {
   const itemCount = cartItems.reduce((count, entry) => count + entry.quantity, 0);
   const total = cartItems.reduce((sum, entry) => sum + entry.item.price * entry.quantity, 0);
 
-  function addToCart(item) {
+  function addToCart(item, stall) {
     setCart((current) => ({
       ...current,
       [item.id]: {
         item,
+        stallId: stall.id,
+        stallName: stall.name,
         quantity: (current[item.id]?.quantity ?? 0) + 1,
       },
     }));
+  }
+
+  function handlePlaced(orderIds) {
+    setCart({});
+    setCheckingOut(false);
+    router.push(`/orders?ids=${orderIds.join(",")}`);
   }
 
   function changeQuantity(itemId, change) {
@@ -60,7 +72,9 @@ export default function MenuExperience({ stalls, demoMode }) {
           <div>
             {menuStalls.map((stall) => <MenuSection key={stall.id} stall={stall} demoMode={demoMode} onAddToCart={addToCart} />)}
           </div>
-          <Cart cartItems={cartItems} itemCount={itemCount} total={total} changeQuantity={changeQuantity} />
+          {checkingOut && cartItems.length > 0
+            ? <Checkout cartItems={cartItems} total={total} onBack={() => setCheckingOut(false)} onPlaced={handlePlaced} />
+            : <Cart cartItems={cartItems} itemCount={itemCount} total={total} changeQuantity={changeQuantity} onCheckout={() => setCheckingOut(true)} demoMode={demoMode} />}
         </div>
       </main>
     </>

@@ -2,8 +2,12 @@ package com.mealdeck.web;
 
 import com.mealdeck.model.Order;
 import com.mealdeck.model.OrderItem;
+import com.mealdeck.model.OrderStatus;
+import com.mealdeck.service.OrderService;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 public record OrderDto(
@@ -14,6 +18,11 @@ public record OrderDto(
         String customerContact,
         String status,
         Instant createdAt,
+        LocalDate pickupDate,
+        LocalTime pickupTime,
+        Instant readyAt,
+        /** When a READY order turns NO_SHOW if nobody collects it. */
+        Instant noShowAt,
         BigDecimal total,
         List<Item> items) {
 
@@ -37,6 +46,12 @@ public record OrderDto(
                 order.getCustomerContact(),
                 order.getStatus().name(),
                 order.getCreatedAt(),
+                order.getPickupDate(),
+                order.getPickupTime(),
+                order.getReadyAt(),
+                order.getStatus() == OrderStatus.READY && order.getReadyAt() != null
+                        ? order.getReadyAt().plus(OrderService.NO_SHOW_AFTER)
+                        : null,
                 total,
                 items);
     }
