@@ -1,0 +1,31 @@
+name: Test ProLiant
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: self-hosted
+
+    steps:
+      - name: Show machine
+        run: |
+          echo "Running on:"
+          hostname
+          echo
+          echo "OS:"
+          uname -a
+          echo
+          echo "CPU:"
+          nproc
+          echo
+          echo "Memory:"
+          free -h
+          echo
+          echo "Disk:"
+          df -h
+
+      - name: Test Docker
+        run: docker --version
