@@ -9,4 +9,6 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
     boolean existsByMenuItemIdAndStudentIdAndCreatedAtAfter(Long menuItemId, Long studentId, Instant cutoff);
 
     void deleteByMenuItemId(Long menuItemId);
+
+    void deleteByStudentId(Long studentId);
 }

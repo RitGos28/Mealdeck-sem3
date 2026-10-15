@@ -12,7 +12,7 @@ export default function Header({ itemCount }) {
   async function logout() {
     await api("/api/auth/logout", { method: "POST" });
     setUser(null);
-    router.push(user?.role === "VENDOR" ? "/vendor/login" : "/");
+    router.push(user?.role === "VENDOR" ? "/vendor/login" : user?.role === "ADMIN" ? "/admin/login" : "/");
     router.refresh();
   }
 
@@ -26,6 +26,7 @@ export default function Header({ itemCount }) {
         <div className="flex items-center gap-2 text-sm font-semibold">
           {itemCount !== undefined && <span className="rounded-full bg-white/10 px-3 py-1.5">Bag <span className="ml-1 inline-flex size-5 items-center justify-center rounded-full bg-[#d8f2b8] text-xs text-[#10261b]">{itemCount}</span></span>}
           {user?.role === "VENDOR" && <Link href="/vendor" className="rounded-full bg-white/10 px-3 py-1.5 hover:bg-white/20">Orders</Link>}
+          {user?.role === "ADMIN" && <Link href="/admin" className="rounded-full bg-white/10 px-3 py-1.5 hover:bg-white/20">Dashboard</Link>}
           {user && <span className="hidden max-w-48 truncate text-white/70 sm:inline">{user.email}</span>}
           {user && <button className="rounded-full border border-white/25 px-3 py-1.5 hover:bg-white/10" onClick={logout}>Log out</button>}
           {user === null && <Link href="/login" className="rounded-full border border-white/25 px-3 py-1.5 hover:bg-white/10">Log in</Link>}
