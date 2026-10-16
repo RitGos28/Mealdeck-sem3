@@ -63,8 +63,30 @@ function Stalls({ stalls, vendors, onChange }) {
   async function updateItem(stallId, item, values) { try { await api(`/api/admin/stalls/${stallId}/menu-items/${item.id}`, { method: "PATCH", body: values }); await onChange(); } catch (err) { setError(err.message); } }
   async function deleteItem(stallId, item) { if (!window.confirm(`Delete ${item.name}?`)) return; try { await api(`/api/admin/stalls/${stallId}/menu-items/${item.id}`, { method: "DELETE" }); await onChange(); } catch (err) { setError(err.message); } }
   return <section><SectionTitle title="Stalls and menus" description="Create a stall with its vendor account, set availability, and curate every menu item." /><Notice error={error} />
-    <form onSubmit={submitStall} className="mb-7 grid gap-3 rounded-2xl border border-[#dce6d8] bg-[#f7faf5] p-5 md:grid-cols-4"><h3 className="md:col-span-4 font-display text-lg font-bold">Add a stall and vendor</h3><input className={input} required placeholder="Stall name" value={newStall.stallName} onChange={(e) => setNewStall({ ...newStall, stallName: e.target.value })} /><input className={input} required type="email" placeholder="Vendor login (@mealdeck.in)" value={newStall.vendorEmail} onChange={(e) => setNewStall({ ...newStall, vendorEmail: e.target.value })} /><input className={input} required minLength="6" type="password" placeholder="Temporary password" value={newStall.vendorPassword} onChange={(e) => setNewStall({ ...newStall, vendorPassword: e.target.value })} /><div className="flex gap-2"><input className={input} placeholder="Contact email (optional)" value={newStall.vendorRealEmail} onChange={(e) => setNewStall({ ...newStall, vendorRealEmail: e.target.value })} /><button className={button}>Create</button></div></form>
-    <div className="space-y-6">{stalls.map((stall) => <article key={stall.id} className="rounded-2xl border border-[#e1e8dd] bg-white p-5 shadow-sm"><div className="mb-4 flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-display text-xl font-bold">{stall.name}</h3><p className="text-sm text-gray-500">{vendors.find((vendor) => vendor.stallId === stall.id)?.email ?? "No vendor assigned"}</p></div><StallSettings stall={stall} onSave={updateStall} /></div><div className="space-y-2">{stall.items.map((item) => <ItemRow key={item.id} item={item} onSave={(values) => updateItem(stall.id, item, values)} onDelete={() => deleteItem(stall.id, item)} />)}</div><form onSubmit={(event) => addItem(event, stall.id)} className="mt-4 grid gap-2 border-t border-[#edf1ea] pt-4 sm:grid-cols-[1fr_110px_90px_auto]"><input className={input} required placeholder="New menu item" value={newItem[stall.id]?.name ?? ""} onChange={(e) => setNewItem({ ...newItem, [stall.id]: { ...newItem[stall.id], name: e.target.value } })} /><input className={input} required min="1" step="1" type="number" placeholder="Price" value={newItem[stall.id]?.price ?? ""} onChange={(e) => setNewItem({ ...newItem, [stall.id]: { ...newItem[stall.id], price: e.target.value } })} /><label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={newItem[stall.id]?.veg !== false} onChange={(e) => setNewItem({ ...newItem, [stall.id]: { ...newItem[stall.id], veg: e.target.checked } })} />Veg</label><button className={button}>Add item</button></form></article>)}</div>
+    
+    <form onSubmit={submitStall} className="mb-7 grid gap-3 rounded-2xl border border-[#dce6d8] bg-[#f7faf5] p-5 md:grid-cols-4">
+      <h3 className="md:col-span-4 font-display text-lg font-bold">Add a stall and vendor</h3>
+      <input className={input} required placeholder="Stall name" value={newStall.stallName} onChange={(e) => setNewStall({ ...newStall, stallName: e.target.value })} />
+      <input className={input} required type="email" placeholder="Vendor login (@mealdeck.in)" value={newStall.vendorEmail} onChange={(e) => setNewStall({ ...newStall, vendorEmail: e.target.value })} />
+      <input className={input} required minLength="6" type="password" placeholder="Temporary password" value={newStall.vendorPassword} onChange={(e) => setNewStall({ ...newStall, vendorPassword: e.target.value })} />
+      <div className="flex gap-2">
+        <input className={input} placeholder="Contact email (optional)" value={newStall.vendorRealEmail} onChange={(e) => setNewStall({ ...newStall, vendorRealEmail: e.target.value })} />
+        <button className={button}>Create</button></div></form>
+
+    <div className="space-y-6">{stalls.map((stall) => <article key={stall.id} className="rounded-2xl border border-[#e1e8dd] bg-white p-5 shadow-sm">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div><h3 className="font-display text-xl font-bold">{stall.name}</h3>
+        <p className="text-sm text-gray-500">
+          {vendors.find((vendor) => vendor.stallId === stall.id)?.email ?? "No vendor assigned"}</p>
+          </div><StallSettings stall={stall} onSave={updateStall} />
+          </div><div className="space-y-2">
+            {stall.items.map((item) => <ItemRow key={item.id} item={item} onSave={(values) => updateItem(stall.id, item, values)} onDelete={() => deleteItem(stall.id, item)} />)}</div>
+            <form onSubmit={(event) => addItem(event, stall.id)} className="mt-4 grid gap-2 border-t border-[#edf1ea] pt-4 sm:grid-cols-[1fr_110px_90px_auto]">
+              <input className={input} required placeholder="New menu item" value={newItem[stall.id]?.name ?? ""} onChange={(e) => setNewItem({ ...newItem, [stall.id]: { ...newItem[stall.id], name: e.target.value } })} />
+              <input className={input} required min="1" step="1" type="number" placeholder="Price" value={newItem[stall.id]?.price ?? ""} onChange={(e) => setNewItem({ ...newItem, [stall.id]: { ...newItem[stall.id], price: e.target.value } })} />
+              <label className="flex items-center gap-2 text-sm font-semibold">
+                <input type="checkbox" checked={newItem[stall.id]?.veg !== false} onChange={(e) => setNewItem({ ...newItem, [stall.id]: { ...newItem[stall.id], veg: e.target.checked } })} />
+                Veg</label><button className={button}>Add item</button></form></article>)}</div>
   </section>;
 }
 

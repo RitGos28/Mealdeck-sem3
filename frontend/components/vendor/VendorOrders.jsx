@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "../layout/Header";
+import VendorMenu from "./VendorMenu";
 import { api, formatInstant, formatTime } from "../../lib/api";
 import { LiveIndicator, useLiveTopic } from "../../lib/liveQueue";
 import { FINAL_STATUSES, StatusBadge } from "../../lib/orderStatus";
@@ -118,6 +119,7 @@ export default function VendorOrders() {
   const [orders, setOrders] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [showFinished, setShowFinished] = useState(false);
+  const [view, setView] = useState("orders");
 
   const load = useCallback(() => Promise.all([api("/api/vendor/stall"), api("/api/vendor/orders")]).then(
     ([stallData, orderData]) => {
@@ -148,6 +150,15 @@ export default function VendorOrders() {
     setOrders((current) => current.map((order) => (order.id === updated.id ? updated : order)));
   }
 
+  async function refreshStall() {
+    try {
+      setStall(await api("/api/vendor/stall"));
+      setLoadError(null);
+    } catch (err) {
+      setLoadError(err.message);
+    }
+  }
+
   const active = orders?.filter((order) => !FINAL_STATUSES.includes(order.status)) ?? [];
   const finished = orders?.filter((order) => FINAL_STATUSES.includes(order.status)) ?? [];
   const visible = showFinished ? orders ?? [] : active;
@@ -165,6 +176,13 @@ export default function VendorOrders() {
     <>
       <Header />
       <main className="mx-auto w-full max-w-4xl px-6 py-8 pb-16">
+        <nav className="mb-7 flex gap-2" aria-label="Vendor sections">
+          {[['orders', "Today's orders"], ['menu', "Manage menu"]].map(([id, label]) => (
+            <button key={id} onClick={() => setView(id)} className={`rounded-full px-4 py-2 text-sm font-semibold ${view === id ? "bg-[#173725] text-white" : "bg-white text-[#477355] ring-1 ring-[#dce6d8] hover:bg-[#f3f7f1]"}`}>{label}</button>
+          ))}
+        </nav>
+        {view === "menu" && stall && <VendorMenu stall={stall} onChanged={refreshStall} />}
+        {view === "orders" && <>
         <div className="mb-6">
           <h1 className="font-display mb-1 text-3xl font-bold tracking-tight">Today&apos;s orders</h1>
           <p className="text-gray-500">{stall ? stall.name : "Loading…"} · ready orders not collected within 15 minutes become no-shows</p>
@@ -205,6 +223,7 @@ export default function VendorOrders() {
             )}
           </>
         )}
+        </>}
       </main>
     </>
   );
