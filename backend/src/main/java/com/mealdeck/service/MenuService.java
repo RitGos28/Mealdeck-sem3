@@ -54,11 +54,15 @@ public class MenuService {
         return stallRepository.findAllWithMenuItems();
     }
 
-    /** One vote per student per item per cooldown window. Three votes within
-     * that window hides the item. */
+    /** One vote per student per item per cooldown window. Three different
+     * students hide the item: a repeat vote after the cooldown still adds to
+     * reportCount (the vendor's and analytics' total), but never counts
+     * twice towards hiding it. Votes reset on restock and at midnight. */
     @Transactional
     public void reportOutOfStock(Long menuItemId, Long studentId) {
-        MenuItem item = menuItemRepository.findById(menuItemId)
+        // Row lock until commit, so two students' votes are counted one
+        // after the other and the third can't miss the second's.
+        MenuItem item = menuItemRepository.findByIdForUpdate(menuItemId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No menu item " + menuItemId));
         Instant cutoff = Instant.now().minus(REPORT_COOLDOWN_HOURS, ChronoUnit.HOURS);
         if (reportRepository.existsByMenuItemIdAndStudentIdAndCreatedAtAfter(menuItemId, studentId, cutoff)) {
@@ -70,7 +74,7 @@ public class MenuService {
         menuItemRepository.incrementReportCount(menuItemId);
 
         MenuItem updated = menuItemRepository.findById(menuItemId).orElseThrow();
-        if (updated.getReportCount() >= REPORT_THRESHOLD) {
+        if (reportRepository.countDistinctStudentsByMenuItemId(menuItemId) >= REPORT_THRESHOLD) {
             updated.setAvailable(false);
             menuItemRepository.save(updated);
         }

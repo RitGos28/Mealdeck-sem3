@@ -1,7 +1,10 @@
 package com.mealdeck.repository;
 
 import com.mealdeck.model.MenuItem;
+import jakarta.persistence.LockModeType;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,6 +19,10 @@ public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
     @Modifying(clearAutomatically = true)
     @Query("update MenuItem m set m.reportCount = m.reportCount + 1 where m.id = :id")
     void incrementReportCount(@Param("id") Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select m from MenuItem m where m.id = :id")
+    Optional<MenuItem> findByIdForUpdate(@Param("id") Long id);
 
     // Daily reset: every item comes back in stock overnight and starts the
     // day with a clean vote count.
