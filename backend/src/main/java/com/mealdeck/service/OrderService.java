@@ -5,9 +5,11 @@ import com.mealdeck.model.Order;
 import com.mealdeck.model.OrderItem;
 import com.mealdeck.model.OrderStatus;
 import com.mealdeck.model.Stall;
+import com.mealdeck.model.Student;
 import com.mealdeck.repository.MenuItemRepository;
 import com.mealdeck.repository.OrderRepository;
 import com.mealdeck.repository.StallRepository;
+import com.mealdeck.repository.StudentRepository;
 import com.mealdeck.web.OrderRequests.CreateOrderRequest;
 import com.mealdeck.web.OrderRequests.OrderItemRequest;
 import java.time.Clock;
@@ -35,6 +37,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final MenuItemRepository menuItemRepository;
     private final StallRepository stallRepository;
+    private final StudentRepository studentRepository;
     private final SlotService slotService;
     private final ApplicationEventPublisher events;
     private final Clock clock;
@@ -43,11 +46,13 @@ public class OrderService {
             OrderRepository orderRepository,
             MenuItemRepository menuItemRepository,
             StallRepository stallRepository,
+            StudentRepository studentRepository,
             SlotService slotService,
             ApplicationEventPublisher events,
             Clock clock) {
         this.orderRepository = orderRepository;
         this.stallRepository = stallRepository;
+        this.studentRepository = studentRepository;
         this.events = events;
         this.menuItemRepository = menuItemRepository;
         this.slotService = slotService;
@@ -59,13 +64,12 @@ public class OrderService {
      * stall here and returns all of them together for one confirmation.
      * Each stall's order gets its own pickup slot, from pickupTimes. */
     @Transactional
-    public List<Order> checkout(CreateOrderRequest request) {
+    public List<Order> checkout(Long studentId, CreateOrderRequest request) {
         if (request.items() == null || request.items().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cart is empty");
         }
-        if (isBlank(request.customerName()) || isBlank(request.customerContact())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Name and contact are required");
-        }
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Log in as a student to order"));
         Map<Long, LocalTime> pickupTimes = request.pickupTimes() != null ? request.pickupTimes() : Map.of();
         LocalDate today = slotService.today();
 
@@ -83,7 +87,7 @@ public class OrderService {
             Order order = ordersByStall.computeIfAbsent(item.getStall().getId(), stallId -> {
                 LocalTime pickupTime = pickupTimes.get(stallId);
                 slotService.requireBookable(item.getStall(), pickupTime);
-                return new Order(item.getStall(), request.customerName().trim(), request.customerContact().trim(), today, pickupTime);
+                return new Order(item.getStall(), student, today, pickupTime);
             });
             order.addItem(new OrderItem(order, item, line.quantity(), item.getPrice()));
         }
@@ -124,10 +128,6 @@ public class OrderService {
     public Order getOrder(Long id) {
         return orderRepository.findByIdWithItems(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No order " + id));
-    }
-
-    private static boolean isBlank(String value) {
-        return value == null || value.isBlank();
     }
 
     @Transactional

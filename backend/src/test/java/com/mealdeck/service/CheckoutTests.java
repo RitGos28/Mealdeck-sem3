@@ -10,7 +10,9 @@ import com.mealdeck.model.Order;
 import com.mealdeck.model.OrderItem;
 import com.mealdeck.model.OrderStatus;
 import com.mealdeck.model.Stall;
+import com.mealdeck.model.Student;
 import com.mealdeck.repository.StallRepository;
+import com.mealdeck.repository.StudentRepository;
 import com.mealdeck.web.OrderRequests.CreateOrderRequest;
 import com.mealdeck.web.OrderRequests.OrderItemRequest;
 import java.time.LocalTime;
@@ -43,6 +45,17 @@ class CheckoutTests {
     @Autowired
     StallRepository stallRepository;
 
+    @Autowired
+    StudentRepository studentRepository;
+
+    @Autowired
+    StudentService studentService;
+
+    /** Orders are placed as the student DemoDataSeeder creates. */
+    private Long studentId() {
+        return studentRepository.findByEmail("student@bennett.edu.in").orElseThrow().getId();
+    }
+
     private Stall stall(String name) {
         return stallRepository.findAllWithMenuItems().stream()
                 .filter(s -> s.getName().equals(name)).findFirst().orElseThrow();
@@ -52,13 +65,13 @@ class CheckoutTests {
         return stall.getMenuItems().stream().filter(i -> i.getName().equals(name)).findFirst().orElseThrow();
     }
 
-    private List<Order> checkout(String name, String contact, List<OrderItemRequest> items, Map<Long, LocalTime> times) {
-        return orderService.checkout(new CreateOrderRequest(name, contact, items, times));
+    private List<Order> checkout(List<OrderItemRequest> items, Map<Long, LocalTime> times) {
+        return orderService.checkout(studentId(), new CreateOrderRequest(items, times));
     }
 
     private Long orderAt(Stall stall) {
         MenuItem item = stall.getMenuItems().getFirst();
-        return checkout("Test Student", "9999999999", List.of(new OrderItemRequest(item.getId(), 1)),
+        return checkout(List.of(new OrderItemRequest(item.getId(), 1)),
                 Map.of(stall.getId(), NOON)).getFirst().getId();
     }
 
@@ -75,8 +88,7 @@ class CheckoutTests {
         MenuItem sandwich = item(bistro, "Veg Sandwich");
         MenuItem coffee = item(snapEats, "Cold Coffee");
 
-        List<Order> orders = checkout("  Asha  ", " 9876543210 ",
-                List.of(new OrderItemRequest(roll.getId(), 2),
+        List<Order> orders = checkout(List.of(new OrderItemRequest(roll.getId(), 2),
                         new OrderItemRequest(coffee.getId(), 1),
                         new OrderItemRequest(sandwich.getId(), 1)),
                 Map.of(bistro.getId(), LocalTime.of(12, 30), snapEats.getId(), LocalTime.of(13, 0)));
@@ -95,8 +107,7 @@ class CheckoutTests {
 
         assertThat(orders).allSatisfy(order -> {
             assertThat(order.getStatus()).isEqualTo(OrderStatus.PLACED);
-            assertThat(order.getCustomerName()).isEqualTo("Asha");
-            assertThat(order.getCustomerContact()).isEqualTo("9876543210");
+            assertThat(order.getCustomerName()).isEqualTo("Demo Student");
         });
     }
 
@@ -105,8 +116,7 @@ class CheckoutTests {
         Stall bistro = stall("Bistro / Kathi");
         Stall snapEats = stall("SnapEats");
 
-        assertRejected(() -> checkout("Asha", "9876543210",
-                List.of(new OrderItemRequest(bistro.getMenuItems().getFirst().getId(), 1),
+        assertRejected(() -> checkout(List.of(new OrderItemRequest(bistro.getMenuItems().getFirst().getId(), 1),
                         new OrderItemRequest(snapEats.getMenuItems().getFirst().getId(), 1)),
                 Map.of(bistro.getId(), NOON)), HttpStatus.BAD_REQUEST);
     }
@@ -115,20 +125,48 @@ class CheckoutTests {
     void rejectsAnEmptyCart() {
         Long bistroId = stall("Bistro / Kathi").getId();
 
-        assertRejected(() -> checkout("Asha", "9876543210", List.of(), Map.of(bistroId, NOON)), HttpStatus.BAD_REQUEST);
-        assertRejected(() -> checkout("Asha", "9876543210", null, Map.of(bistroId, NOON)), HttpStatus.BAD_REQUEST);
+        assertRejected(() -> checkout(List.of(), Map.of(bistroId, NOON)), HttpStatus.BAD_REQUEST);
+        assertRejected(() -> checkout(null, Map.of(bistroId, NOON)), HttpStatus.BAD_REQUEST);
     }
 
     @Test
-    void requiresANameAndContact() {
+    void nameAndContactComeFromTheStudentsAccount() {
         Stall bistro = stall("Bistro / Kathi");
         List<OrderItemRequest> cart = List.of(new OrderItemRequest(bistro.getMenuItems().getFirst().getId(), 1));
-        Map<Long, LocalTime> times = Map.of(bistro.getId(), NOON);
 
-        assertRejected(() -> checkout("   ", "9876543210", cart, times), HttpStatus.BAD_REQUEST);
-        assertRejected(() -> checkout(null, "9876543210", cart, times), HttpStatus.BAD_REQUEST);
-        assertRejected(() -> checkout("Asha", "", cart, times), HttpStatus.BAD_REQUEST);
-        assertRejected(() -> checkout("Asha", null, cart, times), HttpStatus.BAD_REQUEST);
+        // No phone on the account: the Bennett email is the contact.
+        Order withoutPhone = checkout(cart, Map.of(bistro.getId(), NOON)).getFirst();
+        assertThat(withoutPhone.getCustomerName()).isEqualTo("Demo Student");
+        assertThat(withoutPhone.getCustomerContact()).isEqualTo("student@bennett.edu.in");
+        assertThat(withoutPhone.getStudent().getId()).isEqualTo(studentId());
+
+        Student withPhone = studentRepository.save(new Student("phone.owner@bennett.edu.in", "unused", "Phone Owner", "9876543210"));
+        Order order = orderService.checkout(withPhone.getId(), new CreateOrderRequest(cart, Map.of(bistro.getId(), NOON))).getFirst();
+        assertThat(order.getCustomerName()).isEqualTo("Phone Owner");
+        assertThat(order.getCustomerContact()).isEqualTo("9876543210");
+    }
+
+    @Test
+    void deletingAStudentKeepsTheirOrdersOnTheVendorsList() {
+        Stall bistro = stall("Bistro / Kathi");
+        Student leaver = studentRepository.save(new Student("leaver@bennett.edu.in", "unused", "Leaver", null));
+        Long orderId = orderService.checkout(leaver.getId(), new CreateOrderRequest(
+                List.of(new OrderItemRequest(bistro.getMenuItems().getFirst().getId(), 1)), Map.of(bistro.getId(), NOON))).getFirst().getId();
+
+        studentService.deleteByAdmin(leaver.getId());
+
+        Order kept = orderService.getOrder(orderId);
+        assertThat(kept.getStudent()).isNull();
+        assertThat(kept.getCustomerName()).isEqualTo("Leaver");
+    }
+
+    @Test
+    void anUnknownStudentCantOrder() {
+        Stall bistro = stall("Bistro / Kathi");
+
+        assertRejected(() -> orderService.checkout(-1L, new CreateOrderRequest(
+                List.of(new OrderItemRequest(bistro.getMenuItems().getFirst().getId(), 1)), Map.of(bistro.getId(), NOON))),
+                HttpStatus.FORBIDDEN);
     }
 
     @Test
@@ -137,8 +175,8 @@ class CheckoutTests {
         Long itemId = bistro.getMenuItems().getFirst().getId();
         Map<Long, LocalTime> times = Map.of(bistro.getId(), NOON);
 
-        assertRejected(() -> checkout("Asha", "9876543210", List.of(new OrderItemRequest(itemId, 0)), times), HttpStatus.BAD_REQUEST);
-        assertRejected(() -> checkout("Asha", "9876543210", List.of(new OrderItemRequest(itemId, -2)), times), HttpStatus.BAD_REQUEST);
+        assertRejected(() -> checkout(List.of(new OrderItemRequest(itemId, 0)), times), HttpStatus.BAD_REQUEST);
+        assertRejected(() -> checkout(List.of(new OrderItemRequest(itemId, -2)), times), HttpStatus.BAD_REQUEST);
     }
 
     @Test
@@ -147,10 +185,10 @@ class CheckoutTests {
         MenuItem roll = item(bistro, "Paneer Kathi Roll");
         Map<Long, LocalTime> times = Map.of(bistro.getId(), NOON);
 
-        assertRejected(() -> checkout("Asha", "9876543210", List.of(new OrderItemRequest(999_999L, 1)), times), HttpStatus.BAD_REQUEST);
+        assertRejected(() -> checkout(List.of(new OrderItemRequest(999_999L, 1)), times), HttpStatus.BAD_REQUEST);
 
         roll.setAvailable(false);
-        assertThatThrownBy(() -> checkout("Asha", "9876543210", List.of(new OrderItemRequest(roll.getId(), 1)), times))
+        assertThatThrownBy(() -> checkout(List.of(new OrderItemRequest(roll.getId(), 1)), times))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Paneer Kathi Roll is out of stock");
     }

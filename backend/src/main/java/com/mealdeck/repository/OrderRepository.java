@@ -34,6 +34,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             + "and o.status <> com.mealdeck.model.OrderStatus.CANCELLED group by o.pickupTime")
     List<Object[]> countActiveBySlot(@Param("stallId") Long stallId, @Param("date") LocalDate date);
 
+    /** Before deleting a student account: their orders stay on the vendor's
+     * history under the name/contact copied at checkout. */
+    @Modifying(clearAutomatically = true)
+    @Query("update Order o set o.student = null where o.student.id = :studentId")
+    void detachStudent(@Param("studentId") Long studentId);
+
     @Query("select distinct o.stall.id from Order o where o.pickupDate = :date")
     List<Long> findStallIdsWithOrdersOn(@Param("date") LocalDate date);
 

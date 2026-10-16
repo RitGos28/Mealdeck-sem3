@@ -11,6 +11,7 @@ import com.mealdeck.FixedClockConfig;
 import com.mealdeck.model.MenuItem;
 import com.mealdeck.model.Stall;
 import com.mealdeck.repository.StallRepository;
+import com.mealdeck.repository.StudentRepository;
 import com.mealdeck.service.OrderService;
 import com.mealdeck.web.OrderRequests.CreateOrderRequest;
 import com.mealdeck.web.OrderRequests.OrderItemRequest;
@@ -56,6 +57,9 @@ class SecurityRulesTests {
     @Autowired
     OrderService orderService;
 
+    @Autowired
+    StudentRepository studentRepository;
+
     MockMvc mvc;
 
     @BeforeEach
@@ -96,15 +100,22 @@ class SecurityRulesTests {
     }
 
     @Test
-    void guestsCanBrowseAndCheckOutWithoutLoggingIn() throws Exception {
+    void guestsCanBrowseButOnlyStudentsCanOrder() throws Exception {
         Long bistroId = stall("Bistro / Kathi").getId();
 
         mvc.perform(get("/api/stalls")).andExpect(status().isOk());
         mvc.perform(get("/api/stalls/" + bistroId + "/slots")).andExpect(status().isOk());
         mvc.perform(get("/api/stalls/" + bistroId + "/queue")).andExpect(status().isOk());
-        // Reaching checkout's own validation (not a 403) proves the route is open.
-        mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"customerName\":\"Asha\",\"customerContact\":\"98\",\"items\":[]}"))
+
+        String emptyCart = "{\"items\":[]}";
+        mvc.perform(post("/api/orders").contentType(MediaType.APPLICATION_JSON).content(emptyCart))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/orders").with(VENDOR).contentType(MediaType.APPLICATION_JSON).content(emptyCart))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/orders").with(ADMIN).contentType(MediaType.APPLICATION_JSON).content(emptyCart))
+                .andExpect(status().isForbidden());
+        // A student gets past security to checkout's own validation.
+        mvc.perform(post("/api/orders").with(STUDENT).contentType(MediaType.APPLICATION_JSON).content(emptyCart))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value("Cart is empty"));
     }
@@ -113,7 +124,8 @@ class SecurityRulesTests {
     void vendorEndpointsActOnlyOnTheCallersOwnStall() throws Exception {
         Stall snapEats = stall("SnapEats");
         MenuItem coffee = snapEats.getMenuItems().getFirst();
-        Long snapOrder = orderService.checkout(new CreateOrderRequest("Asha", "98",
+        Long studentId = studentRepository.findByEmail("student@bennett.edu.in").orElseThrow().getId();
+        Long snapOrder = orderService.checkout(studentId, new CreateOrderRequest(
                 List.of(new OrderItemRequest(coffee.getId(), 1)),
                 Map.of(snapEats.getId(), LocalTime.of(12, 0)))).getFirst().getId();
 

@@ -9,6 +9,7 @@ import com.mealdeck.model.MenuItem;
 import com.mealdeck.model.Stall;
 import com.mealdeck.repository.OrderRepository;
 import com.mealdeck.repository.StallRepository;
+import com.mealdeck.repository.StudentRepository;
 import com.mealdeck.web.OrderRequests.CreateOrderRequest;
 import com.mealdeck.web.OrderRequests.OrderItemRequest;
 import com.mealdeck.web.QueueBroadcaster;
@@ -54,6 +55,14 @@ class LiveQueueTests {
     @Autowired
     OrderRepository orderRepository;
 
+    @Autowired
+    StudentRepository studentRepository;
+
+    /** Orders are placed as the student DemoDataSeeder creates. */
+    private Long studentId() {
+        return studentRepository.findByEmail("student@bennett.edu.in").orElseThrow().getId();
+    }
+
     @AfterEach
     void cleanUp() {
         orderRepository.deleteAll();
@@ -69,8 +78,7 @@ class LiveQueueTests {
 
     private Long order(Stall stall, String time) {
         MenuItem item = stall.getMenuItems().getFirst();
-        return orderService.checkout(new CreateOrderRequest(
-                "Test Student", "9999999999",
+        return orderService.checkout(studentId(), new CreateOrderRequest(
                 List.of(new OrderItemRequest(item.getId(), 1)),
                 Map.of(stall.getId(), LocalTime.parse(time)))).getFirst().getId();
     }

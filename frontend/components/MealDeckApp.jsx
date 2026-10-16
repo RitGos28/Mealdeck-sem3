@@ -1,16 +1,50 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "../components/layout/Header";
 import MenuSection from "../components/menu/MenuSection";
 import Cart from "../components/cart/Cart";
 import Checkout from "../components/checkout/Checkout";
+import { useCurrentUser } from "../lib/useCurrentUser";
+
+// The bag survives the trip to /login and back (ordering needs a login),
+// but only for this tab. Storage can be unavailable (private mode, blocked
+// site data), so every access is guarded and the page works without it.
+const CART_KEY = "mealdeck.cart";
+
+function loadCart() {
+  try {
+    return JSON.parse(sessionStorage.getItem(CART_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveCart(cart) {
+  try {
+    sessionStorage.setItem(CART_KEY, JSON.stringify(cart));
+  } catch {
+    // Not saved; the bag just won't survive a reload.
+  }
+}
 
 export default function MenuExperience({ stalls, demoMode }) {
   const router = useRouter();
   const [cart, setCart] = useState({});
+  const [cartLoaded, setCartLoaded] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
+  const [user] = useCurrentUser();
+
+  // Read after mount, not in useState: the server render has no storage.
+  useEffect(() => {
+    setCart(loadCart()); // eslint-disable-line react-hooks/set-state-in-effect
+    setCartLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (cartLoaded) saveCart(cart);
+  }, [cart, cartLoaded]);
   const [search, setSearch] = useState("");
   const menuStalls = stalls.map((stall) => ({
     ...stall,
@@ -87,9 +121,9 @@ export default function MenuExperience({ stalls, demoMode }) {
             {visibleStalls.map((stall) => <MenuSection key={stall.id} stall={stall} demoMode={demoMode} onAddToCart={addToCart} />)}
             {visibleStalls.length === 0 && <div className="rounded-2xl border border-dashed border-[#cbdac6] bg-white px-6 py-12 text-center"><p className="font-display text-lg font-bold">No dishes found</p><p className="mt-1 text-sm text-gray-500">Try another search term or browse all stalls.</p><button className="mt-4 text-sm font-semibold text-[#356b42] underline underline-offset-4" onClick={() => setSearch("")}>Clear search</button></div>}
           </div>
-          {checkingOut && cartItems.length > 0
-            ? <Checkout cartItems={cartItems} total={total} onBack={() => setCheckingOut(false)} onPlaced={handlePlaced} />
-            : <Cart cartItems={cartItems} itemCount={itemCount} total={total} changeQuantity={changeQuantity} onCheckout={() => setCheckingOut(true)} demoMode={demoMode} />}
+          {checkingOut && cartItems.length > 0 && user?.role === "STUDENT"
+            ? <Checkout cartItems={cartItems} total={total} user={user} onBack={() => setCheckingOut(false)} onPlaced={handlePlaced} />
+            : <Cart cartItems={cartItems} itemCount={itemCount} total={total} changeQuantity={changeQuantity} onCheckout={() => setCheckingOut(true)} demoMode={demoMode} user={user} />}
         </div>
       </main>
     </>
