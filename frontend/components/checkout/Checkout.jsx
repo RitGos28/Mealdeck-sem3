@@ -31,10 +31,35 @@ function keepBookable(picked, slotsByStall) {
     slotsByStall[stallId]?.some((slot) => toSlotValue(slot.time) === time && !slot.full)));
 }
 
+// Why a pick was dropped, so it doesn't just silently disappear.
+function droppedReason(time, slots) {
+  const slot = slots?.find((s) => toSlotValue(s.time) === time);
+  return slot?.full
+    ? `${formatTime(time)} just filled up. Pick another time.`
+    : `${formatTime(time)} has passed. Pick another time.`;
+}
+
+// Drop a picked time that has since passed or filled, so it can't be
+// submitted, and say why next to that stall's slots.
+function dropUnbookable(slotsByStall, setPicked, setNotices) {
+  setPicked((current) => {
+    const kept = keepBookable(current, slotsByStall);
+    const dropped = Object.keys(current).filter((stallId) => !(stallId in kept));
+    if (dropped.length > 0) {
+      setNotices((existing) => ({
+        ...existing,
+        ...Object.fromEntries(dropped.map((stallId) => [stallId, droppedReason(current[stallId], slotsByStall[stallId])])),
+      }));
+    }
+    return kept;
+  });
+}
+
 export default function Checkout({ cartItems, total, onBack, onPlaced }) {
   const stalls = useMemo(() => groupByStall(cartItems), [cartItems]);
   const [slotsByStall, setSlotsByStall] = useState({});
   const [picked, setPicked] = useState({});
+  const [notices, setNotices] = useState({});
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState(null);
 
@@ -43,16 +68,20 @@ export default function Checkout({ cartItems, total, onBack, onPlaced }) {
   )).then((results) => {
     const next = Object.fromEntries(results);
     setSlotsByStall(next);
-    // Drop a picked time that has since passed or filled, so it can't be submitted.
-    setPicked((current) => keepBookable(current, next));
+    dropUnbookable(next, setPicked, setNotices);
   }), [stalls]);
 
   function updateSlots(stallId, slots) {
     setSlotsByStall((current) => {
       const next = { ...current, [stallId]: slots };
-      setPicked((picks) => keepBookable(picks, next));
+      dropUnbookable(next, setPicked, setNotices);
       return next;
     });
+  }
+
+  function pick(stallId, value) {
+    setPicked((current) => ({ ...current, [stallId]: value }));
+    setNotices(({ [stallId]: _cleared, ...rest }) => rest);
   }
 
   useEffect(() => {
@@ -101,6 +130,7 @@ export default function Checkout({ cartItems, total, onBack, onPlaced }) {
                 <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Pickup time</p>
                 <LiveSlots stallId={stallId} onSlots={updateSlots} onConnect={loadSlots} />
               </div>
+              {notices[stallId] && <p className="mb-2 rounded-lg bg-[#fbe9e7] px-3 py-2 text-xs font-semibold text-[#9a4a3f]" role="status">{notices[stallId]}</p>}
               {slots === undefined && <p className="text-sm text-gray-500">Loading slots…</p>}
               {slots === null && <p className="text-sm text-[#9a4a3f]">Couldn&apos;t load pickup slots.</p>}
               {slots?.length === 0 && <p className="rounded-xl bg-[#f4f6f2] px-3 py-2.5 text-sm text-gray-500">No pickup slots left today at {stallName}.</p>}
@@ -115,7 +145,7 @@ export default function Checkout({ cartItems, total, onBack, onPlaced }) {
                         type="button"
                         aria-pressed={selected}
                         disabled={slot.full}
-                        onClick={() => setPicked((current) => ({ ...current, [stallId]: value }))}
+                        onClick={() => pick(stallId, value)}
                         className={`rounded-lg border px-1 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:border-[#f0f0ee] disabled:bg-[#f4f6f2] disabled:text-gray-400 ${selected ? "border-[#0f2419] bg-[#0f2419] text-white" : "border-[#e5e7e0] hover:border-[#3f6b3a]"}`}
                       >
                         {formatTime(slot.time)}

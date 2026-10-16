@@ -109,6 +109,25 @@ class MenuServiceTests {
         assertThat(reload(item).getReportCount()).isEqualTo(2);
     }
 
+    @Test
+    void oneStudentVotingAgainAfterTheCooldownCantHideTheItemAlone() {
+        Long item = itemId("Bistro / Kathi");
+        Long student = newStudent("persistent");
+        for (int vote = 0; vote < 3; vote++) {
+            menuService.reportOutOfStock(item, student);
+            backdateReports(Duration.ofHours(5));
+        }
+
+        // Three votes on the total, but one student: still visible.
+        assertThat(reload(item).getReportCount()).isEqualTo(3);
+        assertThat(reload(item).isAvailable()).isTrue();
+
+        menuService.reportOutOfStock(item, newStudent("second"));
+        assertThat(reload(item).isAvailable()).isTrue();
+        menuService.reportOutOfStock(item, newStudent("third"));
+        assertThat(reload(item).isAvailable()).isFalse();
+    }
+
     private void backdateReports(Duration age) {
         jdbc.update("update report set created_at = ?", Timestamp.from(Instant.now().minus(age)));
     }

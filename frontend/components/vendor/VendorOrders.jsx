@@ -105,7 +105,7 @@ function SlotCapacity({ stall, onSaved }) {
   return (
     <form onSubmit={save} className="flex flex-wrap items-center gap-2 text-sm">
       <label htmlFor="slot-capacity" className="text-gray-500">Orders per 15-min slot</label>
-      <input id="slot-capacity" type="number" min="1" max="200" required value={value} onChange={(e) => setValue(e.target.value)} className="w-20 rounded-lg border border-[#e5e7e0] px-2 py-1.5 outline-none focus:border-[#3f6b3a]" />
+      <input id="slot-capacity" type="number" min="1" max="200" required value={value} onChange={(e) => setValue(e.target.value)} className="w-20 rounded-lg border border-[#c9d1c2] bg-white px-2 py-1.5 font-semibold outline-none focus:border-[#3f6b3a] focus:ring-2 focus:ring-[#dbead6]" />
       {changed && <button disabled={saving} className="rounded-full bg-[#0f2419] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1a3827] disabled:opacity-50">{saving ? "Saving…" : "Save"}</button>}
       {error && <span className="text-xs text-[#9a4a3f]" role="alert">{error}</span>}
     </form>
