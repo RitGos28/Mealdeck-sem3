@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, formatTime, toSlotValue } from "../../lib/api";
+import { LiveIndicator, useLiveTopic } from "../../lib/liveQueue";
 
 // A cart spanning stalls becomes one order per stall on the backend, each
 // with its own pickup slot -- so the slot picker is per stall too.
@@ -12,6 +13,22 @@ function groupByStall(cartItems) {
     groups.get(entry.stallId).entries.push(entry);
   }
   return [...groups.values()];
+}
+
+// Keeps one stall's slot list live: every queue push carries fresh fill
+// levels, so a slot someone else just filled greys out without a refresh.
+function LiveSlots({ stallId, onSlots, onConnect }) {
+  const connected = useLiveTopic(`/topic/stalls/${stallId}/queue`, {
+    onMessage: (snapshot) => onSlots(stallId, snapshot.slots),
+    onConnect,
+  });
+  return <LiveIndicator connected={connected} />;
+}
+
+// A picked time is only kept while it's still offered and has room.
+function keepBookable(picked, slotsByStall) {
+  return Object.fromEntries(Object.entries(picked).filter(([stallId, time]) =>
+    slotsByStall[stallId]?.some((slot) => toSlotValue(slot.time) === time && !slot.full)));
 }
 
 export default function Checkout({ cartItems, total, onBack, onPlaced }) {
@@ -26,10 +43,17 @@ export default function Checkout({ cartItems, total, onBack, onPlaced }) {
   )).then((results) => {
     const next = Object.fromEntries(results);
     setSlotsByStall(next);
-    // Drop a picked time that has since passed, so it can't be submitted.
-    setPicked((current) => Object.fromEntries(Object.entries(current).filter(([stallId, time]) =>
-      next[stallId]?.some((slot) => toSlotValue(slot.time) === time))));
+    // Drop a picked time that has since passed or filled, so it can't be submitted.
+    setPicked((current) => keepBookable(current, next));
   }), [stalls]);
+
+  function updateSlots(stallId, slots) {
+    setSlotsByStall((current) => {
+      const next = { ...current, [stallId]: slots };
+      setPicked((picks) => keepBookable(picks, next));
+      return next;
+    });
+  }
 
   useEffect(() => {
     loadSlots();
@@ -73,7 +97,10 @@ export default function Checkout({ cartItems, total, onBack, onPlaced }) {
             <section key={stallId}>
               <h3 className="text-sm font-bold">{stallName}</h3>
               <p className="mb-2 text-xs text-gray-500">{entries.map((e) => `${e.quantity}× ${e.item.name}`).join(", ")}</p>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Pickup time</p>
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Pickup time</p>
+                <LiveSlots stallId={stallId} onSlots={updateSlots} onConnect={loadSlots} />
+              </div>
               {slots === undefined && <p className="text-sm text-gray-500">Loading slots…</p>}
               {slots === null && <p className="text-sm text-[#9a4a3f]">Couldn&apos;t load pickup slots.</p>}
               {slots?.length === 0 && <p className="rounded-xl bg-[#f4f6f2] px-3 py-2.5 text-sm text-gray-500">No pickup slots left today at {stallName}.</p>}
@@ -87,10 +114,14 @@ export default function Checkout({ cartItems, total, onBack, onPlaced }) {
                         key={value}
                         type="button"
                         aria-pressed={selected}
+                        disabled={slot.full}
                         onClick={() => setPicked((current) => ({ ...current, [stallId]: value }))}
-                        className={`rounded-lg border px-1 py-2 text-xs font-semibold transition-colors ${selected ? "border-[#0f2419] bg-[#0f2419] text-white" : "border-[#e5e7e0] hover:border-[#3f6b3a]"}`}
+                        className={`rounded-lg border px-1 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:border-[#f0f0ee] disabled:bg-[#f4f6f2] disabled:text-gray-400 ${selected ? "border-[#0f2419] bg-[#0f2419] text-white" : "border-[#e5e7e0] hover:border-[#3f6b3a]"}`}
                       >
                         {formatTime(slot.time)}
+                        <span className={`block text-[10px] font-medium ${selected ? "text-white/70" : "text-gray-400"}`}>
+                          {slot.full ? "Full" : `${slot.booked}/${slot.capacity}`}
+                        </span>
                       </button>
                     );
                   })}

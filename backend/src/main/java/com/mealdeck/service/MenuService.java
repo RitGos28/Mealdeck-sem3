@@ -14,6 +14,7 @@ import com.mealdeck.web.MenuItemRequests.UpdateStallRequest;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,16 +35,19 @@ public class MenuService {
     private final MenuItemRepository menuItemRepository;
     private final ReportRepository reportRepository;
     private final StudentRepository studentRepository;
+    private final ApplicationEventPublisher events;
 
     public MenuService(
             StallRepository stallRepository,
             MenuItemRepository menuItemRepository,
             ReportRepository reportRepository,
-            StudentRepository studentRepository) {
+            StudentRepository studentRepository,
+            ApplicationEventPublisher events) {
         this.stallRepository = stallRepository;
         this.menuItemRepository = menuItemRepository;
         this.reportRepository = reportRepository;
         this.studentRepository = studentRepository;
+        this.events = events;
     }
 
     public List<Stall> listStalls() {
@@ -93,9 +97,18 @@ public class MenuService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No stall " + stallId));
     }
 
+    static final int MAX_SLOT_CAPACITY = 200;
+
     @Transactional
-    public Stall updateStallHours(Long stallId, UpdateStallRequest request) {
+    public Stall updateStall(Long stallId, UpdateStallRequest request) {
         Stall stall = getStall(stallId);
+        if (request.slotCapacity() != null) {
+            if (request.slotCapacity() < 1 || request.slotCapacity() > MAX_SLOT_CAPACITY) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Orders per slot must be between 1 and " + MAX_SLOT_CAPACITY);
+            }
+            stall.setSlotCapacity(request.slotCapacity());
+        }
         if (request.openTime() != null) {
             stall.setOpenTime(request.openTime());
         }
@@ -106,6 +119,8 @@ public class MenuService {
             stall.setClosedToday(request.closedToday());
         }
         stallRepository.save(stall);
+        // Capacity and closed-today both change which slots are bookable.
+        events.publishEvent(new QueueChangedEvent(stallId));
         return getStallWithItems(stallId);
     }
 

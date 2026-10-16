@@ -13,6 +13,8 @@ import java.util.List;
 @Entity
 public class Stall {
 
+    public static final int DEFAULT_SLOT_CAPACITY = 15;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -29,6 +31,11 @@ public class Stall {
 
     @Column(nullable = false)
     private boolean closedToday = false;
+
+    /** Most orders the stall takes for one pickup slot. Nullable, not an
+     * int column: ddl-auto=update would backfill existing rows with 0 and
+     * make every slot full; null reads as DEFAULT_SLOT_CAPACITY instead. */
+    private Integer slotCapacity;
 
     protected Stall() {
     }
@@ -71,6 +78,14 @@ public class Stall {
 
     public void setClosedToday(boolean closedToday) {
         this.closedToday = closedToday;
+    }
+
+    public int getSlotCapacity() {
+        return slotCapacity != null ? slotCapacity : DEFAULT_SLOT_CAPACITY;
+    }
+
+    public void setSlotCapacity(Integer slotCapacity) {
+        this.slotCapacity = slotCapacity;
     }
 
     /** No hours set means "always open" (today's early stalls don't set any). */
