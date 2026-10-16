@@ -16,7 +16,11 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      # 127.0.0.1, not localhost: localhost goes over the unix socket, which
+      # the entrypoint's temporary init server (started with networking off)
+      # also answers on, so a fresh volume reported healthy before the real
+      # server accepted TCP and the backend's first connect was refused.
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
       interval: 5s
       timeout: 5s
       retries: 20
