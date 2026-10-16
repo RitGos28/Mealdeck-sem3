@@ -11,6 +11,8 @@ import com.mealdeck.web.AdminUserRequests.UpdateVendorRequest;
 import com.mealdeck.web.MenuItemRequests.CreateStallRequest;
 import com.mealdeck.web.StudentRequests.SignupRequest;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
+import com.mealdeck.RecordingCodeMailer;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -41,13 +43,27 @@ class AccountRulesTests {
     @Autowired
     PasswordEncoder passwordEncoder;
 
+    @Autowired
+    SignupCodeService signupCodeService;
+
+    @Autowired
+    RecordingCodeMailer mailer;
+
     private static void assertRejected(ThrowingCallable call, HttpStatus status) {
         assertThatThrownBy(call).isInstanceOfSatisfying(ResponseStatusException.class,
                 e -> assertThat(e.getStatusCode().value()).isEqualTo(status.value()));
     }
 
-    private static SignupRequest signup(String email, String password, String confirm, String name) {
-        return new SignupRequest(email, password, confirm, name, null);
+    /** Asks for a code for the address, then signs up with whatever code
+     * was "emailed" (none for an address that already has an account). */
+    private SignupRequest signup(String email, String password, String confirm, String name) {
+        signupCodeService.requestCode(email);
+        return new SignupRequest(email, mailer.lastCodeFor(email), password, confirm, name, null);
+    }
+
+    @BeforeEach
+    void forgetSentCodes() {
+        mailer.clear();
     }
 
     @Test
@@ -61,21 +77,32 @@ class AccountRulesTests {
 
     @Test
     void studentSignupRejectsNonBennettEmails() {
-        assertRejected(() -> studentService.signup(signup("new@gmail.com", "secret1", "secret1", "New")), HttpStatus.BAD_REQUEST);
-        assertRejected(() -> studentService.signup(signup("new@mealdeck.in", "secret1", "secret1", "New")), HttpStatus.BAD_REQUEST);
+        // Turned away before any code is sent, and at signup too.
+        assertRejected(() -> signupCodeService.requestCode("new@gmail.com"), HttpStatus.BAD_REQUEST);
+        assertRejected(() -> signupCodeService.requestCode("new@mealdeck.in"), HttpStatus.BAD_REQUEST);
+        assertRejected(() -> studentService.signup(new SignupRequest("new@gmail.com", "123456", "secret1", "secret1", "New", null)), HttpStatus.BAD_REQUEST);
+        assertThat(mailer.sentTo("new@gmail.com")).isFalse();
     }
 
     @Test
     void studentSignupValidatesPasswordAndName() {
-        assertRejected(() -> studentService.signup(signup("new@bennett.edu.in", "12345", "12345", "New")), HttpStatus.BAD_REQUEST);
-        assertRejected(() -> studentService.signup(signup("new@bennett.edu.in", "secret1", "secret2", "New")), HttpStatus.BAD_REQUEST);
-        assertRejected(() -> studentService.signup(signup("new@bennett.edu.in", "secret1", "secret1", "  ")), HttpStatus.BAD_REQUEST);
+        SignupRequest valid = signup("new@bennett.edu.in", "secret1", "secret1", "New");
+        String code = valid.code();
+        assertRejected(() -> studentService.signup(new SignupRequest(valid.email(), code, "12345", "12345", "New", null)), HttpStatus.BAD_REQUEST);
+        assertRejected(() -> studentService.signup(new SignupRequest(valid.email(), code, "secret1", "secret2", "New", null)), HttpStatus.BAD_REQUEST);
+        assertRejected(() -> studentService.signup(new SignupRequest(valid.email(), code, "secret1", "secret1", "  ", null)), HttpStatus.BAD_REQUEST);
+        // Field errors don't use up the code.
+        assertThat(studentService.signup(valid).getId()).isNotNull();
     }
 
     @Test
-    void studentSignupRejectsAnEmailThatAlreadyHasAnAccount() {
-        // Seeded by DemoDataSeeder.
-        assertRejected(() -> studentService.signup(signup("student@bennett.edu.in", "secret1", "secret1", "Dup")), HttpStatus.CONFLICT);
+    void studentSignupCantTakeAnEmailThatAlreadyHasAnAccount() {
+        // Seeded by DemoDataSeeder. No code is ever sent to it, so signup
+        // fails on the code (same as any wrong code) rather than saying the
+        // account exists.
+        SignupRequest request = signup("student@bennett.edu.in", "secret1", "secret1", "Dup");
+        assertThat(mailer.sentTo("student@bennett.edu.in")).isFalse();
+        assertRejected(() -> studentService.signup(new SignupRequest(request.email(), "123456", "secret1", "secret1", "Dup", null)), HttpStatus.BAD_REQUEST);
     }
 
     @Test

@@ -10,6 +10,9 @@ public class AuthDtos {
     public record MeResponse(String role, String email, Long stallId) {
     }
 
+    public record MessageResponse(String message) {
+    }
+
     private AuthDtos() {
     }
 }

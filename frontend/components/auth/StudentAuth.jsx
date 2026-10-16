@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import AuthForm from "./AuthForm";
 import Field from "./Field";
+import StudentSignup from "./StudentSignup";
 
 export default function StudentAuth({ next }) {
   const [mode, setMode] = useState("login");
@@ -26,13 +27,7 @@ export default function StudentAuth({ next }) {
           <Field label="Password" name="password" type="password" autoComplete="current-password" required />
         </AuthForm>
       ) : (
-        <AuthForm key="signup" endpoint="/api/auth/student/signup" submitLabel="Create account" redirectTo={next}>
-          <Field label="Name" name="name" autoComplete="name" required />
-          <Field label="Bennett email" name="email" type="email" autoComplete="email" hint="Must end in @bennett.edu.in" required />
-          <Field label="Phone (optional)" name="phone" type="tel" autoComplete="tel" />
-          <Field label="Password" name="password" type="password" autoComplete="new-password" minLength={6} hint="At least 6 characters" required />
-          <Field label="Confirm password" name="confirmPassword" type="password" autoComplete="new-password" required />
-        </AuthForm>
+        <StudentSignup key="signup" redirectTo={next} />
       )}
       <p className="mt-5 text-center text-sm text-gray-500">Run a stall? <Link href="/vendor/login" className="font-semibold text-[#3f6b3a] hover:underline">Vendor login</Link></p>
     </>

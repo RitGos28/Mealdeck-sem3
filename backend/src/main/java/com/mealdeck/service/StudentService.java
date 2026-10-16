@@ -21,16 +21,24 @@ public class StudentService {
     private final StudentRepository studentRepository;
     private final PasswordEncoder passwordEncoder;
     private final ReportRepository reportRepository;
+    private final SignupCodeService signupCodeService;
 
-    public StudentService(StudentRepository studentRepository, PasswordEncoder passwordEncoder, ReportRepository reportRepository) {
+    public StudentService(StudentRepository studentRepository, PasswordEncoder passwordEncoder, ReportRepository reportRepository, SignupCodeService signupCodeService) {
         this.studentRepository = studentRepository;
         this.passwordEncoder = passwordEncoder;
         this.reportRepository = reportRepository;
+        this.signupCodeService = signupCodeService;
     }
 
-    @Transactional
+    /** Order matters: the emailed code is checked before "does this
+     * address already have an account", and existing accounts are never
+     * sent a code, so a guessed code can't reveal who has signed up.
+     * noRollbackFor keeps a wrong guess's attempt count (SignupCodeService
+     * .consume) even though the signup itself fails. */
+    @Transactional(noRollbackFor = ResponseStatusException.class)
     public Student signup(SignupRequest request) {
-        if (!EmailDomains.isStudentEmail(request.email())) {
+        String email = SignupCodeService.normalize(request.email());
+        if (!EmailDomains.isStudentEmail(email)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Only " + EmailDomains.STUDENT_DOMAIN + " emails are accepted");
         }
@@ -44,11 +52,12 @@ public class StudentService {
         if (request.name() == null || request.name().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Name is required");
         }
-        if (studentRepository.findByEmail(request.email()).isPresent()) {
+        signupCodeService.consume(email, request.code());
+        if (studentRepository.findByEmail(email).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "An account with that email already exists");
         }
 
-        Student student = new Student(request.email(), passwordEncoder.encode(request.password()), request.name(), request.phone());
+        Student student = new Student(email, passwordEncoder.encode(request.password()), request.name().trim(), blankToNull(request.phone()));
         return studentRepository.save(student);
     }
 
