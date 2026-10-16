@@ -1,9 +1,13 @@
 package com.mealdeck.web;
 
 import com.mealdeck.repository.VendorRepository;
+import com.mealdeck.model.Student;
+import com.mealdeck.service.SignupCodeService;
 import com.mealdeck.service.StudentService;
 import com.mealdeck.web.AuthDtos.LoginRequest;
 import com.mealdeck.web.AuthDtos.MeResponse;
+import com.mealdeck.web.AuthDtos.MessageResponse;
+import com.mealdeck.web.StudentRequests.SignupCodeRequest;
 import com.mealdeck.web.StudentRequests.SignupRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -31,12 +35,14 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final VendorRepository vendorRepository;
     private final StudentService studentService;
+    private final SignupCodeService signupCodeService;
     private final SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
 
-    public AuthController(AuthenticationManager authenticationManager, VendorRepository vendorRepository, StudentService studentService) {
+    public AuthController(AuthenticationManager authenticationManager, VendorRepository vendorRepository, StudentService studentService, SignupCodeService signupCodeService) {
         this.authenticationManager = authenticationManager;
         this.vendorRepository = vendorRepository;
         this.studentService = studentService;
+        this.signupCodeService = signupCodeService;
     }
 
     @PostMapping("/vendor/login")
@@ -49,10 +55,21 @@ public class AuthController {
         return login(request, "ROLE_ADMIN", httpRequest, httpResponse);
     }
 
+    /** Step 1 of signup: checks the address is @bennett.edu.in, then emails
+     * a code. The same answer whether or not the address already has an
+     * account (see SignupCodeService.requestCode). */
+    @PostMapping("/student/signup/code")
+    public MessageResponse requestSignupCode(@RequestBody SignupCodeRequest request) {
+        signupCodeService.requestCode(request.email());
+        return new MessageResponse("If that address can sign up, we've emailed it a 6-digit code. It expires in "
+                + SignupCodeService.CODE_TTL.toMinutes() + " minutes.");
+    }
+
+    /** Step 2: the emailed code plus the account details. */
     @PostMapping("/student/signup")
     public MeResponse studentSignup(@RequestBody SignupRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
-        studentService.signup(request);
-        return login(new LoginRequest(request.email(), request.password()), "ROLE_STUDENT", httpRequest, httpResponse);
+        Student student = studentService.signup(request);
+        return login(new LoginRequest(student.getEmail(), request.password()), "ROLE_STUDENT", httpRequest, httpResponse);
     }
 
     @PostMapping("/student/login")
