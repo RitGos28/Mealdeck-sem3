@@ -41,10 +41,12 @@ public class QueueService {
             booked.put((LocalTime) row[0], (Long) row[1]);
         }
         int capacity = stall.getSlotCapacity();
+        // A paused stall's slots all read as full: nothing can be booked.
+        boolean paused = stall.isOrdersPaused();
         return slotService.upcomingSlots(stall).stream()
                 .map(time -> {
                     long count = booked.getOrDefault(time, 0L);
-                    return new SlotDto(time, count, capacity, count >= capacity);
+                    return new SlotDto(time, count, capacity, paused || count >= capacity);
                 })
                 .toList();
     }
@@ -70,6 +72,7 @@ public class QueueService {
                     ahead));
             ahead++;
         }
-        return new QueueSnapshot(stallId, slots, orders);
+        boolean paused = stallRepository.findById(stallId).map(Stall::isOrdersPaused).orElse(false);
+        return new QueueSnapshot(stallId, paused, slots, orders);
     }
 }

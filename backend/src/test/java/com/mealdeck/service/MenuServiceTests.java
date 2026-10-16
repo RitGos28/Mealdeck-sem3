@@ -128,6 +128,21 @@ class MenuServiceTests {
         assertThat(reload(item).isAvailable()).isFalse();
     }
 
+    @Test
+    void midnightResetLiftsThePauseButKeepsClosedUntilTurnedOff() {
+        Long bistro = stall("Bistro / Kathi").getId();
+        menuService.updateStall(bistro, new UpdateStallRequest(null, null, true, null, true));
+
+        menuService.resetDailyAvailability();
+
+        Stall afterMidnight = stallRepository.findById(bistro).orElseThrow();
+        assertThat(afterMidnight.isOrdersPaused()).isFalse();
+        assertThat(afterMidnight.isClosedToday()).isTrue();
+
+        menuService.updateStall(bistro, new UpdateStallRequest(null, null, false, null, null));
+        assertThat(stallRepository.findById(bistro).orElseThrow().isClosedToday()).isFalse();
+    }
+
     private void backdateReports(Duration age) {
         jdbc.update("update report set created_at = ?", Timestamp.from(Instant.now().minus(age)));
     }
@@ -208,20 +223,20 @@ class MenuServiceTests {
     void slotCapacityMustBeBetweenOneAndTwoHundred() {
         Long bistro = stall("Bistro / Kathi").getId();
 
-        assertRejected(() -> menuService.updateStall(bistro, new UpdateStallRequest(null, null, null, 0)), HttpStatus.BAD_REQUEST);
-        assertRejected(() -> menuService.updateStall(bistro, new UpdateStallRequest(null, null, null, 201)), HttpStatus.BAD_REQUEST);
+        assertRejected(() -> menuService.updateStall(bistro, new UpdateStallRequest(null, null, null, 0, null)), HttpStatus.BAD_REQUEST);
+        assertRejected(() -> menuService.updateStall(bistro, new UpdateStallRequest(null, null, null, 201, null)), HttpStatus.BAD_REQUEST);
         assertThat(menuService.getStall(bistro).getSlotCapacity()).isEqualTo(Stall.DEFAULT_SLOT_CAPACITY);
 
-        assertThat(menuService.updateStall(bistro, new UpdateStallRequest(null, null, null, 1)).getSlotCapacity()).isEqualTo(1);
-        assertThat(menuService.updateStall(bistro, new UpdateStallRequest(null, null, null, 200)).getSlotCapacity()).isEqualTo(200);
+        assertThat(menuService.updateStall(bistro, new UpdateStallRequest(null, null, null, 1, null)).getSlotCapacity()).isEqualTo(1);
+        assertThat(menuService.updateStall(bistro, new UpdateStallRequest(null, null, null, 200, null)).getSlotCapacity()).isEqualTo(200);
     }
 
     @Test
     void stallUpdateLeavesNullFieldsUnchanged() {
         Long bistro = stall("Bistro / Kathi").getId();
-        menuService.updateStall(bistro, new UpdateStallRequest(null, null, null, 40));
+        menuService.updateStall(bistro, new UpdateStallRequest(null, null, null, 40, null));
 
-        Stall updated = menuService.updateStall(bistro, new UpdateStallRequest(null, LocalTime.of(21, 0), true, null));
+        Stall updated = menuService.updateStall(bistro, new UpdateStallRequest(null, LocalTime.of(21, 0), true, null, null));
 
         assertThat(updated.getSlotCapacity()).isEqualTo(40);
         assertThat(updated.getOpenTime()).isEqualTo(LocalTime.of(8, 0));

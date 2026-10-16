@@ -22,6 +22,6 @@ public class DailyResetScheduler {
     @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Kolkata")
     public void resetDaily() {
         menuService.resetDailyAvailability();
-        log.info("Daily reset: all menu items marked available, votes cleared");
+        log.info("Daily reset: all menu items marked available, votes cleared, order pauses lifted");
     }
 }
