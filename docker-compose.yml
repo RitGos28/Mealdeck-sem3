@@ -58,7 +58,11 @@ services:
     ports:
       - "${HOST_PORT:-80}:80"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # The folder, not the single file: a file bind mount pins the inode it
+      # started with, so a deploy that rewrites nginx.conf left nginx on the
+      # old config. A folder mount sees the new file; the deploy job then
+      # reloads nginx (see .github/workflows/deploy.yml).
+      - ./nginx:/etc/nginx/conf.d:ro
     depends_on:
       frontend:
         condition: service_healthy

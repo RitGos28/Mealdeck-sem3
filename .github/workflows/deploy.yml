@@ -88,8 +88,34 @@ jobs:
           docker compose -p mealdeck --env-file "$ENV_FILE" up -d --build \
             --remove-orphans --wait --wait-timeout 300
 
+      - name: Reload nginx config
+        # `up` only recreates containers whose image or compose settings
+        # changed; nginx's config is a mounted file, so pick up edits to it
+        # with a zero-downtime reload (after checking it parses).
+        run: |
+          docker compose -p mealdeck --env-file "$ENV_FILE" exec -T nginx nginx -t
+          docker compose -p mealdeck --env-file "$ENV_FILE" exec -T nginx nginx -s reload
+
       - name: Smoke test
-        run: curl -fsS "http://localhost:$HOST_PORT/api/stalls" > /dev/null
+        # The API answers, and /api/ws still upgrades to a WebSocket through
+        # nginx (101), so a proxy change that breaks the live queue fails
+        # the deploy instead of passing silently. curl holds the upgraded
+        # connection open, hence the short timeout; the retries give the
+        # reload above a moment to hand over to the new nginx workers.
+        run: |
+          curl -fsS "http://localhost:$HOST_PORT/api/stalls" > /dev/null
+          for attempt in 1 2 3 4 5; do
+            code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 \
+              -H "Origin: http://localhost:$HOST_PORT" -H "Connection: Upgrade" -H "Upgrade: websocket" \
+              -H "Sec-WebSocket-Version: 13" -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" \
+              "http://localhost:$HOST_PORT/api/ws" || true)"
+            [ "$code" = "101" ] && break
+            sleep 1
+          done
+          if [ "$code" != "101" ]; then
+            echo "::error::WebSocket upgrade on /api/ws returned $code, expected 101"
+            exit 1
+          fi
 
       - name: Show logs on failure
         if: failure()
