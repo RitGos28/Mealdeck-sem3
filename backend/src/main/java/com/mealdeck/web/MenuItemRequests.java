@@ -13,7 +13,7 @@ public class MenuItemRequests {
     public record UpdateMenuItemRequest(String name, BigDecimal price, Boolean veg, Boolean available) {
     }
 
-    public record UpdateStallRequest(java.time.LocalTime openTime, java.time.LocalTime closeTime, Boolean closedToday) {
+    public record UpdateStallRequest(java.time.LocalTime openTime, java.time.LocalTime closeTime, Boolean closedToday, Integer slotCapacity) {
     }
 
     public record CreateStallRequest(String stallName, String vendorEmail, String vendorPassword, String vendorRealEmail) {

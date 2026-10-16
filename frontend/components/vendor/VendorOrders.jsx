@@ -4,9 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "../layout/Header";
 import { api, formatInstant, formatTime } from "../../lib/api";
+import { LiveIndicator, useLiveTopic } from "../../lib/liveQueue";
 import { FINAL_STATUSES, StatusBadge } from "../../lib/orderStatus";
 
-const REFRESH_MS = 15000;
+// New orders arrive over the live socket; this slow refresh only covers a
+// socket that can't connect at all.
+const REFRESH_MS = 60000;
 
 // The next step(s) a vendor can take from each status; mirrors
 // OrderStatus.canTransitionTo on the backend.
@@ -79,6 +82,36 @@ function OrderCard({ order, onUpdated }) {
   );
 }
 
+// How many orders one pickup slot takes before checkout turns students away.
+function SlotCapacity({ stall, onSaved }) {
+  const [value, setValue] = useState(String(stall.slotCapacity));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const changed = Number(value) !== stall.slotCapacity;
+
+  async function save(event) {
+    event.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      onSaved(await api("/api/vendor/stall", { method: "PATCH", body: { slotCapacity: Number(value) } }));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={save} className="flex flex-wrap items-center gap-2 text-sm">
+      <label htmlFor="slot-capacity" className="text-gray-500">Orders per 15-min slot</label>
+      <input id="slot-capacity" type="number" min="1" max="200" required value={value} onChange={(e) => setValue(e.target.value)} className="w-20 rounded-lg border border-[#e5e7e0] px-2 py-1.5 outline-none focus:border-[#3f6b3a]" />
+      {changed && <button disabled={saving} className="rounded-full bg-[#0f2419] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1a3827] disabled:opacity-50">{saving ? "Saving…" : "Save"}</button>}
+      {error && <span className="text-xs text-[#9a4a3f]" role="alert">{error}</span>}
+    </form>
+  );
+}
+
 export default function VendorOrders() {
   const router = useRouter();
   const [stall, setStall] = useState(null);
@@ -107,6 +140,10 @@ export default function VendorOrders() {
     return () => clearInterval(timer);
   }, [load]);
 
+  // The public queue topic carries no names or phone numbers, so a push is
+  // only a cue to reload the full list through the logged-in vendor API.
+  const connected = useLiveTopic(stall ? `/topic/stalls/${stall.id}/queue` : null, { onMessage: load, onConnect: load });
+
   function handleUpdated(updated) {
     setOrders((current) => current.map((order) => (order.id === updated.id ? updated : order)));
   }
@@ -130,7 +167,11 @@ export default function VendorOrders() {
       <main className="mx-auto w-full max-w-4xl px-6 py-8 pb-16">
         <div className="mb-6">
           <h1 className="font-display mb-1 text-3xl font-bold tracking-tight">Today&apos;s orders</h1>
-          <p className="text-gray-500">{stall ? stall.name : "Loading…"} · refreshes every 15 seconds · ready orders not collected within 15 minutes become no-shows</p>
+          <p className="text-gray-500">{stall ? stall.name : "Loading…"} · ready orders not collected within 15 minutes become no-shows</p>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            {stall && <SlotCapacity key={stall.slotCapacity} stall={stall} onSaved={setStall} />}
+            {stall && <LiveIndicator connected={connected} />}
+          </div>
         </div>
 
         {loadError && <p className="mb-6 rounded-xl bg-[#fbe9e7] px-4 py-3 text-sm text-[#9a4a3f]">{loadError}</p>}

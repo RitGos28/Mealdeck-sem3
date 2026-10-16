@@ -11,6 +11,7 @@ public record StallDto(
         LocalTime openTime,
         LocalTime closeTime,
         boolean closedToday,
+        int slotCapacity,
         List<MenuItemDto> items) {
 
     public static StallDto from(Stall stall) {
@@ -21,6 +22,7 @@ public record StallDto(
                 stall.getOpenTime(),
                 stall.getCloseTime(),
                 stall.isClosedToday(),
+                stall.getSlotCapacity(),
                 stall.getMenuItems().stream().map(MenuItemDto::from).toList());
     }
 }

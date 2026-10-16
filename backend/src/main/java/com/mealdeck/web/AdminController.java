@@ -62,7 +62,7 @@ public class AdminController {
 
     @PatchMapping("/stalls/{id}")
     public StallDto updateStall(@PathVariable Long id, @RequestBody UpdateStallRequest request) {
-        return StallDto.from(menuService.updateStallHours(id, request));
+        return StallDto.from(menuService.updateStall(id, request));
     }
 
     @PostMapping("/stalls/{stallId}/menu-items")

@@ -7,6 +7,7 @@ import com.mealdeck.model.OrderStatus;
 import com.mealdeck.model.Stall;
 import com.mealdeck.repository.MenuItemRepository;
 import com.mealdeck.repository.OrderRepository;
+import com.mealdeck.repository.StallRepository;
 import com.mealdeck.web.OrderRequests.CreateOrderRequest;
 import com.mealdeck.web.OrderRequests.OrderItemRequest;
 import java.time.Clock;
@@ -18,6 +19,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,15 +34,21 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final MenuItemRepository menuItemRepository;
+    private final StallRepository stallRepository;
     private final SlotService slotService;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
     public OrderService(
             OrderRepository orderRepository,
             MenuItemRepository menuItemRepository,
+            StallRepository stallRepository,
             SlotService slotService,
+            ApplicationEventPublisher events,
             Clock clock) {
         this.orderRepository = orderRepository;
+        this.stallRepository = stallRepository;
+        this.events = events;
         this.menuItemRepository = menuItemRepository;
         this.slotService = slotService;
         this.clock = clock;
@@ -79,8 +88,28 @@ public class OrderService {
             order.addItem(new OrderItem(order, item, line.quantity(), item.getPrice()));
         }
 
-        List<Order> orders = new ArrayList<>(ordersByStall.values());
-        return orderRepository.saveAll(orders);
+        // Lock in ascending stall id, so two carts spanning the same stalls
+        // can't each hold one lock while waiting on the other's.
+        for (Long stallId : new TreeSet<>(ordersByStall.keySet())) {
+            requireRoomInSlot(stallId, ordersByStall.get(stallId).getPickupTime(), today);
+        }
+
+        List<Order> orders = orderRepository.saveAll(new ArrayList<>(ordersByStall.values()));
+        ordersByStall.keySet().forEach(stallId -> events.publishEvent(new QueueChangedEvent(stallId)));
+        return orders;
+    }
+
+    /** The stall row stays locked until checkout commits, so the count and
+     * the insert can't interleave with another checkout for the same stall:
+     * of two students racing for the last spot, the second one sees it
+     * taken. */
+    private void requireRoomInSlot(Long stallId, LocalTime pickupTime, LocalDate date) {
+        Stall stall = stallRepository.findByIdForUpdate(stallId).orElseThrow();
+        long booked = orderRepository.countActiveInSlot(stallId, date, pickupTime);
+        if (booked >= stall.getSlotCapacity()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "The " + pickupTime + " slot at " + stall.getName() + " just filled up, pick another time");
+        }
     }
 
     /** The vendor's working list: today's orders, in pickup-slot order. */
@@ -115,6 +144,7 @@ public class OrderService {
         if (next == OrderStatus.READY) {
             order.setReadyAt(Instant.now(clock));
         }
+        events.publishEvent(new QueueChangedEvent(stallId));
         return order;
     }
 
@@ -122,6 +152,13 @@ public class OrderService {
      * how many were changed. Run by NoShowScheduler. */
     @Transactional
     public int expireUncollected() {
-        return orderRepository.markUncollectedAsNoShow(Instant.now(clock).minus(NO_SHOW_AFTER));
+        int expired = orderRepository.markUncollectedAsNoShow(Instant.now(clock).minus(NO_SHOW_AFTER));
+        if (expired > 0) {
+            // The bulk UPDATE doesn't say which stalls it touched; there are
+            // only a handful, so refresh every stall with orders today.
+            orderRepository.findStallIdsWithOrdersOn(slotService.today())
+                    .forEach(stallId -> events.publishEvent(new QueueChangedEvent(stallId)));
+        }
+        return expired;
     }
 }

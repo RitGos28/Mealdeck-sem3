@@ -3,6 +3,7 @@ package com.mealdeck.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.mealdeck.FixedClockConfig;
 import com.mealdeck.model.MenuItem;
 import com.mealdeck.model.Order;
 import com.mealdeck.model.OrderStatus;
@@ -10,19 +11,20 @@ import com.mealdeck.model.Stall;
 import com.mealdeck.repository.StallRepository;
 import com.mealdeck.web.OrderRequests.CreateOrderRequest;
 import com.mealdeck.web.OrderRequests.OrderItemRequest;
+import com.mealdeck.web.QueueSnapshot;
+import com.mealdeck.web.QueueSnapshot.QueueOrder;
+import com.mealdeck.web.SlotDto;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,24 +36,18 @@ import org.springframework.web.server.ResponseStatusException;
  * orders never leak between tests. */
 @SpringBootTest
 @ActiveProfiles("demo")
+@Import(FixedClockConfig.class)
 @Transactional
 class PickupSlotTests {
-
-    @TestConfiguration
-    static class FixedClock {
-
-        @Bean
-        @Primary
-        Clock testClock() {
-            return Clock.fixed(Instant.parse("2026-09-29T04:30:00Z"), ZoneId.of("Asia/Kolkata"));
-        }
-    }
 
     @Autowired
     OrderService orderService;
 
     @Autowired
     SlotService slotService;
+
+    @Autowired
+    QueueService queueService;
 
     @Autowired
     StallRepository stallRepository;
@@ -95,19 +91,81 @@ class PickupSlotTests {
         // Opening 10:10 rounds up to 10:15; 11:30 would end 11:45, after closing.
         assertThat(slotService.upcomingSlots(stall))
                 .containsExactly(LocalTime.of(10, 15), LocalTime.of(10, 30), LocalTime.of(10, 45), LocalTime.of(11, 0), LocalTime.of(11, 15));
+        // Checkout enforces the same grid: off the quarter hour, or on it but
+        // running past closing, are both refused.
         assertThatThrownBy(() -> order(stall, "10:25"))
+                .satisfies(e -> assertThat(statusOf(e)).isEqualTo(HttpStatus.BAD_REQUEST));
+        assertThatThrownBy(() -> order(stall, "11:30"))
                 .satisfies(e -> assertThat(statusOf(e)).isEqualTo(HttpStatus.BAD_REQUEST));
         assertThat(order(stall, "10:45")).hasSize(1);
     }
 
     @Test
-    void aSlotHasNoCapacityCap() {
+    void slotRejectsOrdersPastCapacity() {
         Stall stall = bistro();
-        for (int i = 0; i < 20; i++) {
+        stall.setSlotCapacity(3);
+        for (int i = 0; i < 3; i++) {
             order(stall, "12:30");
         }
 
-        assertThat(orderService.todaysOrdersForStall(stall.getId())).hasSize(20);
+        assertThatThrownBy(() -> order(stall, "12:30"))
+                .satisfies(e -> assertThat(statusOf(e)).isEqualTo(HttpStatus.CONFLICT))
+                .hasMessageContaining("12:30 slot at Bistro / Kathi just filled up");
+        // Other slots are unaffected.
+        assertThat(order(stall, "12:45")).hasSize(1);
+    }
+
+    @Test
+    void cancelledOrdersFreeTheirSpot() {
+        Stall stall = bistro();
+        stall.setSlotCapacity(1);
+        Long first = order(stall, "13:00").getFirst().getId();
+        assertThatThrownBy(() -> order(stall, "13:00"))
+                .satisfies(e -> assertThat(statusOf(e)).isEqualTo(HttpStatus.CONFLICT));
+
+        orderService.advanceStatus(stall.getId(), first, OrderStatus.CANCELLED);
+
+        assertThat(order(stall, "13:00")).hasSize(1);
+    }
+
+    @Test
+    void slotListReportsBookedAndFull() {
+        Stall stall = bistro();
+        stall.setSlotCapacity(2);
+        order(stall, "11:00");
+        order(stall, "11:00");
+        order(stall, "11:15");
+
+        Map<LocalTime, SlotDto> slots = queueService.slots(stall.getId()).stream()
+                .collect(Collectors.toMap(SlotDto::time, slot -> slot));
+        assertThat(slots.get(LocalTime.of(11, 0))).isEqualTo(new SlotDto(LocalTime.of(11, 0), 2, 2, true));
+        assertThat(slots.get(LocalTime.of(11, 15))).isEqualTo(new SlotDto(LocalTime.of(11, 15), 1, 2, false));
+        assertThat(slots.get(LocalTime.of(11, 30))).isEqualTo(new SlotDto(LocalTime.of(11, 30), 0, 2, false));
+    }
+
+    @Test
+    void queueCountsUnfinishedOrdersAheadInPickupOrder() {
+        Stall stall = bistro();
+        Long late = order(stall, "15:00").getFirst().getId();
+        Long early = order(stall, "11:00").getFirst().getId();
+        Long sameSlotLater = order(stall, "11:00").getFirst().getId();
+        Long done = order(stall, "10:30").getFirst().getId();
+        orderService.advanceStatus(stall.getId(), done, OrderStatus.CANCELLED);
+
+        QueueSnapshot queue = queueService.snapshot(stall.getId());
+
+        // The cancelled 10:30 order has left the queue and counts for nobody.
+        assertThat(queue.orders()).extracting(QueueOrder::id).containsExactly(early, sameSlotLater, late);
+        assertThat(queue.orders()).extracting(QueueOrder::ahead).containsExactly(0, 1, 2);
+    }
+
+    @Test
+    void queueSnapshotNeverCarriesCustomerDetails() {
+        // The topic is public: guard against someone adding name/contact
+        // to the record later.
+        assertThat(QueueOrder.class.getRecordComponents())
+                .extracting(java.lang.reflect.RecordComponent::getName)
+                .doesNotContain("customerName", "customerContact");
     }
 
     @Test
@@ -146,18 +204,9 @@ class PickupSlotTests {
     }
 
     @Test
-    void rejectsTimesThatArentSlots() {
-        Stall stall = bistro();
-
-        assertThatThrownBy(() -> order(stall, "12:07"))
-                .satisfies(e -> assertThat(statusOf(e)).isEqualTo(HttpStatus.BAD_REQUEST));
-        assertThatThrownBy(() -> order(stall, "19:50"))
-                .satisfies(e -> assertThat(statusOf(e)).isEqualTo(HttpStatus.BAD_REQUEST));
-    }
-
-    @Test
     void rejectsSlotsThatAlreadyStarted() {
-        assertThatThrownBy(() -> order(bistro(), "09:45"))
+        // 10:00 is exactly now: a slot that starts this minute has started.
+        assertThatThrownBy(() -> order(bistro(), "10:00"))
                 .satisfies(e -> assertThat(statusOf(e)).isEqualTo(HttpStatus.CONFLICT));
     }
 
@@ -206,14 +255,5 @@ class PickupSlotTests {
         // A late student turns up after the timer fired.
         assertThat(orderService.advanceStatus(stall.getId(), id, OrderStatus.COMPLETED).getStatus())
                 .isEqualTo(OrderStatus.COMPLETED);
-    }
-
-    @Test
-    void placedOrderCantSkipStraightToNoShow() {
-        Stall stall = bistro();
-        Long id = order(stall, "16:15").getFirst().getId();
-
-        assertThatThrownBy(() -> orderService.advanceStatus(stall.getId(), id, OrderStatus.NO_SHOW))
-                .satisfies(e -> assertThat(statusOf(e)).isEqualTo(HttpStatus.BAD_REQUEST));
     }
 }

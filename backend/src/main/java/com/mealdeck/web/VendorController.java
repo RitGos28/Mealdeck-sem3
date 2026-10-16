@@ -51,7 +51,7 @@ public class VendorController {
     @PatchMapping("/stall")
     public StallDto updateStall(Authentication authentication, @RequestBody UpdateStallRequest request) {
         Stall stall = ownStall(authentication);
-        return StallDto.from(menuService.updateStallHours(stall.getId(), request));
+        return StallDto.from(menuService.updateStall(stall.getId(), request));
     }
 
     @PostMapping("/menu-items")

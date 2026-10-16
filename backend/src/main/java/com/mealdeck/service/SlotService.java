@@ -12,9 +12,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 /** Today's pickup times for a stall: every quarter hour on the clock
  * (:00, :15, :30, :45) between opening and closing, the same grid for every
- * stall. Not stored anywhere -- derived from the stall's hours. No
- * per-slot cap; instead an order left uncollected 15 minutes after it's
- * ready becomes a no-show (see OrderService.expireUncollected). */
+ * stall. Not stored anywhere -- derived from the stall's hours. Each slot
+ * takes at most Stall.getSlotCapacity() orders, enforced at checkout (see
+ * OrderService.requireRoomInSlot). */
 @Service
 public class SlotService {
 

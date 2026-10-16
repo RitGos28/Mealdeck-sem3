@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Header from "../../components/layout/Header";
-import { formatInstant, formatTime } from "../../lib/api";
-import { StatusBadge } from "../../lib/orderStatus";
+import LiveOrderCard from "../../components/orders/LiveOrderCard";
 
 export const metadata = { title: "Your pre-order · MealDeck" };
 
@@ -38,36 +37,7 @@ export default async function OrdersPage({ searchParams }) {
         {!failed && orders.length === 0 && <p className="py-6 text-gray-500">No orders found.</p>}
 
         <div className="space-y-4">
-          {orders.map((order) => (
-            <article key={order.id} className="rounded-2xl border border-[#e5e7e0] bg-white p-5 shadow-sm">
-              <div className="mb-4 flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm text-gray-500">{order.stallName}</p>
-                  <p className="font-display text-2xl font-bold">Order #{order.id}</p>
-                </div>
-                <StatusBadge status={order.status} />
-              </div>
-              {order.noShowAt && (
-                <p className="mb-4 rounded-xl bg-[#dbead6] px-4 py-3 font-semibold text-[#3f6b3a]">
-                  Ready now! Collect by {formatInstant(order.noShowAt)} or it&apos;s marked a no-show.
-                </p>
-              )}
-              {order.pickupTime && !order.noShowAt && (
-                <p className="mb-4 rounded-xl bg-[#f5faf3] px-4 py-3 text-[#3f6b3a]">
-                  Pick up at <span className="font-bold">{formatTime(order.pickupTime)}</span> today
-                </p>
-              )}
-              <ul className="space-y-1.5 text-sm">
-                {order.items.map((item) => (
-                  <li key={item.menuItemId} className="flex justify-between gap-3">
-                    <span>{item.quantity}× {item.menuItemName}</span>
-                    <span className="text-gray-500">₹{item.priceAtOrder * item.quantity}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-3 flex justify-between border-t border-[#e5e7e0] pt-3 font-bold"><span>Total</span><span>₹{order.total}</span></div>
-            </article>
-          ))}
+          {orders.map((order) => <LiveOrderCard key={order.id} initialOrder={order} />)}
         </div>
 
         <Link href="/" className="mt-8 inline-block text-sm font-semibold text-[#3f6b3a] hover:underline">← Back to menu</Link>
