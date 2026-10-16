@@ -61,4 +61,8 @@ public class Vendor {
     public String getRealEmail() {
         return realEmail;
     }
+
+    public void setEmail(String email) { this.email = email; }
+    public void setRealEmail(String realEmail) { this.realEmail = realEmail; }
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
 }

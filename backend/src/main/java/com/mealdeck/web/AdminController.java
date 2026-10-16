@@ -7,6 +7,10 @@ import com.mealdeck.service.AdminAccountService;
 import com.mealdeck.service.AnalyticsService;
 import com.mealdeck.service.MenuService;
 import com.mealdeck.service.OrderService;
+import com.mealdeck.service.StudentService;
+import com.mealdeck.web.AdminUserRequests.CreateStudentRequest;
+import com.mealdeck.web.AdminUserRequests.UpdateStudentRequest;
+import com.mealdeck.web.AdminUserRequests.UpdateVendorRequest;
 import com.mealdeck.web.MenuItemRequests.CreateMenuItemRequest;
 import com.mealdeck.web.MenuItemRequests.CreateStallRequest;
 import com.mealdeck.web.MenuItemRequests.UpdateMenuItemRequest;
@@ -35,12 +39,14 @@ public class AdminController {
     private final OrderService orderService;
     private final AnalyticsService analyticsService;
     private final AdminAccountService adminAccountService;
+    private final StudentService studentService;
 
-    public AdminController(MenuService menuService, OrderService orderService, AnalyticsService analyticsService, AdminAccountService adminAccountService) {
+    public AdminController(MenuService menuService, OrderService orderService, AnalyticsService analyticsService, AdminAccountService adminAccountService, StudentService studentService) {
         this.menuService = menuService;
         this.orderService = orderService;
         this.analyticsService = analyticsService;
         this.adminAccountService = adminAccountService;
+        this.studentService = studentService;
     }
 
     @GetMapping("/stalls")
@@ -92,6 +98,27 @@ public class AdminController {
     public AnalyticsDto analytics() {
         return analyticsService.summarize();
     }
+
+    @GetMapping("/vendors")
+    public List<VendorAccountDto> vendors() { return adminAccountService.listVendors().stream().map(VendorAccountDto::from).toList(); }
+
+    @PatchMapping("/vendors/{id}")
+    public VendorAccountDto updateVendor(@PathVariable Long id, @RequestBody UpdateVendorRequest request) { return VendorAccountDto.from(adminAccountService.updateVendor(id, request)); }
+
+    @DeleteMapping("/vendors/{id}")
+    public void deleteVendor(@PathVariable Long id) { adminAccountService.deleteVendor(id); }
+
+    @GetMapping("/students")
+    public List<StudentAccountDto> students() { return studentService.list().stream().map(StudentAccountDto::from).toList(); }
+
+    @PostMapping("/students")
+    public StudentAccountDto createStudent(@RequestBody CreateStudentRequest request) { return StudentAccountDto.from(studentService.createByAdmin(request)); }
+
+    @PatchMapping("/students/{id}")
+    public StudentAccountDto updateStudent(@PathVariable Long id, @RequestBody UpdateStudentRequest request) { return StudentAccountDto.from(studentService.updateByAdmin(id, request)); }
+
+    @DeleteMapping("/students/{id}")
+    public void deleteStudent(@PathVariable Long id) { studentService.deleteByAdmin(id); }
 
     private OrderStatus parseStatus(String value) {
         try {
