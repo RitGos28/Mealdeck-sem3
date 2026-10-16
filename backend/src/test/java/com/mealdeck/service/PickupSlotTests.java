@@ -9,6 +9,7 @@ import com.mealdeck.model.Order;
 import com.mealdeck.model.OrderStatus;
 import com.mealdeck.model.Stall;
 import com.mealdeck.repository.StallRepository;
+import com.mealdeck.repository.StudentRepository;
 import com.mealdeck.web.OrderRequests.CreateOrderRequest;
 import com.mealdeck.web.OrderRequests.OrderItemRequest;
 import com.mealdeck.web.QueueSnapshot;
@@ -53,6 +54,14 @@ class PickupSlotTests {
     StallRepository stallRepository;
 
     @Autowired
+    StudentRepository studentRepository;
+
+    /** Orders are placed as the student DemoDataSeeder creates. */
+    private Long studentId() {
+        return studentRepository.findByEmail("student@bennett.edu.in").orElseThrow().getId();
+    }
+
+    @Autowired
     Clock clock;
 
     private Stall bistro() {
@@ -62,8 +71,7 @@ class PickupSlotTests {
 
     private List<Order> order(Stall stall, String time) {
         MenuItem item = stall.getMenuItems().getFirst();
-        return orderService.checkout(new CreateOrderRequest(
-                "Test Student", "9999999999",
+        return orderService.checkout(studentId(), new CreateOrderRequest(
                 List.of(new OrderItemRequest(item.getId(), 1)),
                 Map.of(stall.getId(), LocalTime.parse(time))));
     }
@@ -215,8 +223,8 @@ class PickupSlotTests {
         Stall stall = bistro();
         MenuItem item = stall.getMenuItems().getFirst();
 
-        assertThatThrownBy(() -> orderService.checkout(new CreateOrderRequest(
-                "Test Student", "9999999999", List.of(new OrderItemRequest(item.getId(), 1)), Map.of())))
+        assertThatThrownBy(() -> orderService.checkout(studentId(), new CreateOrderRequest(
+                List.of(new OrderItemRequest(item.getId(), 1)), Map.of())))
                 .satisfies(e -> assertThat(statusOf(e)).isEqualTo(HttpStatus.BAD_REQUEST));
     }
 

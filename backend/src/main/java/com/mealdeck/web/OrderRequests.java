@@ -10,10 +10,9 @@ public class OrderRequests {
     }
 
     /** pickupTimes maps each stall id in the cart to its chosen slot start
-     * ("12:30"), since a multi-stall cart becomes one order per stall. */
+     * ("12:30"), since a multi-stall cart becomes one order per stall. No
+     * name or contact: they come from the logged-in student's account. */
     public record CreateOrderRequest(
-            String customerName,
-            String customerContact,
             List<OrderItemRequest> items,
             Map<Long, LocalTime> pickupTimes) {
     }

@@ -1,6 +1,7 @@
 package com.mealdeck.service;
 
 import com.mealdeck.model.Student;
+import com.mealdeck.repository.OrderRepository;
 import com.mealdeck.repository.StudentRepository;
 import com.mealdeck.repository.ReportRepository;
 import com.mealdeck.web.StudentRequests.SignupRequest;
@@ -22,8 +23,10 @@ public class StudentService {
     private final PasswordEncoder passwordEncoder;
     private final ReportRepository reportRepository;
     private final SignupCodeService signupCodeService;
+    private final OrderRepository orderRepository;
 
-    public StudentService(StudentRepository studentRepository, PasswordEncoder passwordEncoder, ReportRepository reportRepository, SignupCodeService signupCodeService) {
+    public StudentService(StudentRepository studentRepository, PasswordEncoder passwordEncoder, ReportRepository reportRepository, SignupCodeService signupCodeService, OrderRepository orderRepository) {
+        this.orderRepository = orderRepository;
         this.studentRepository = studentRepository;
         this.passwordEncoder = passwordEncoder;
         this.reportRepository = reportRepository;
@@ -85,6 +88,7 @@ public class StudentService {
     public void deleteByAdmin(Long id) {
         Student student = get(id);
         reportRepository.deleteByStudentId(id);
+        orderRepository.detachStudent(id);
         studentRepository.delete(student);
     }
 

@@ -34,6 +34,14 @@ public class Order {
     @JoinColumn(name = "stall_id", nullable = false)
     private Stall stall;
 
+    /** Who placed it. Nullable only for orders from before ordering needed
+     * a login; customerName/customerContact are a copy taken at checkout,
+     * so the vendor's list doesn't change if the student edits their
+     * account later. */
+    @ManyToOne
+    @JoinColumn(name = "student_id")
+    private Student student;
+
     @Column(nullable = false)
     private String customerName;
 
@@ -62,10 +70,12 @@ public class Order {
     protected Order() {
     }
 
-    public Order(Stall stall, String customerName, String customerContact, LocalDate pickupDate, LocalTime pickupTime) {
+    public Order(Stall stall, Student student, LocalDate pickupDate, LocalTime pickupTime) {
         this.stall = stall;
-        this.customerName = customerName;
-        this.customerContact = customerContact;
+        this.student = student;
+        this.customerName = student.getName();
+        // Phone is optional at sign-up; the Bennett email always works.
+        this.customerContact = student.getPhone() != null ? student.getPhone() : student.getEmail();
         this.pickupDate = pickupDate;
         this.pickupTime = pickupTime;
     }
@@ -76,6 +86,10 @@ public class Order {
 
     public Stall getStall() {
         return stall;
+    }
+
+    public Student getStudent() {
+        return student;
     }
 
     public String getCustomerName() {

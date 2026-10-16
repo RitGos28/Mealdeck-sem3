@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api, formatTime, toSlotValue } from "../../lib/api";
 import { LiveIndicator, useLiveTopic } from "../../lib/liveQueue";
 
@@ -55,7 +56,8 @@ function dropUnbookable(slotsByStall, setPicked, setNotices) {
   });
 }
 
-export default function Checkout({ cartItems, total, onBack, onPlaced }) {
+export default function Checkout({ cartItems, total, user, onBack, onPlaced }) {
+  const router = useRouter();
   const stalls = useMemo(() => groupByStall(cartItems), [cartItems]);
   const [slotsByStall, setSlotsByStall] = useState({});
   const [picked, setPicked] = useState({});
@@ -92,21 +94,23 @@ export default function Checkout({ cartItems, total, onBack, onPlaced }) {
 
   async function placeOrder(event) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
     setPlacing(true);
     setError(null);
     try {
       const orders = await api("/api/orders", {
         method: "POST",
         body: {
-          customerName: form.get("customerName"),
-          customerContact: form.get("customerContact"),
           items: cartItems.map((entry) => ({ menuItemId: entry.item.id, quantity: entry.quantity })),
           pickupTimes: picked,
         },
       });
       onPlaced(orders.map((order) => order.id));
     } catch (err) {
+      // Session expired mid-checkout: log in again, the bag is kept.
+      if (err.status === 401 || err.status === 403) {
+        router.push("/login?next=/");
+        return;
+      }
       setError(err.message);
       setPlacing(false);
       if (err.status === 409) loadSlots();
@@ -161,10 +165,9 @@ export default function Checkout({ cartItems, total, onBack, onPlaced }) {
           );
         })}
 
-        <div className="space-y-3 border-t border-[#e5e7e0] pt-4">
-          <input name="customerName" required placeholder="Your name" autoComplete="name" className="w-full rounded-xl border border-[#e5e7e0] px-3 py-2.5 text-sm outline-none focus:border-[#3f6b3a]" />
-          <input name="customerContact" required placeholder="Phone number" type="tel" autoComplete="tel" className="w-full rounded-xl border border-[#e5e7e0] px-3 py-2.5 text-sm outline-none focus:border-[#3f6b3a]" />
-        </div>
+        <p className="border-t border-[#e5e7e0] pt-4 text-sm text-gray-500">
+          Ordering as <span className="font-semibold text-[#12180f]">{user.email}</span>. The stall sees your name and your phone number, or your email if you didn&apos;t add one.
+        </p>
 
         {error && <p className="rounded-xl bg-[#fbe9e7] px-3 py-2.5 text-sm text-[#9a4a3f]" role="alert">{error}</p>}
 
