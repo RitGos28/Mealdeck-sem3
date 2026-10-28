@@ -61,8 +61,8 @@ function OrderCard({ order, onUpdated }) {
             disabled={busy}
             onClick={() => moveTo(action.to)}
             className={action.subtle
-              ? "rounded-full border border-[#e5e7e0] px-3 py-1.5 text-xs font-semibold text-[#9a4a3f] hover:border-[#9a4a3f] disabled:opacity-50"
-              : "rounded-full bg-[#0f2419] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1a3827] disabled:opacity-50"}
+              ? "rounded-full border border-[#e5e7e0] px-3 py-2 text-xs font-semibold text-[#9a4a3f] hover:border-[#9a4a3f] disabled:opacity-50"
+              : "rounded-full bg-[#0f2419] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1a3827] disabled:opacity-50"}
           >
             {action.label}
           </button>
@@ -70,11 +70,11 @@ function OrderCard({ order, onUpdated }) {
         {!final && (confirmingCancel ? (
           <>
             <span className="text-xs text-gray-500">Cancel this order?</span>
-            <button disabled={busy} onClick={() => moveTo("CANCELLED")} className="rounded-full bg-[#9a4a3f] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">Yes, cancel</button>
-            <button disabled={busy} onClick={() => setConfirmingCancel(false)} className="rounded-full border border-[#e5e7e0] px-3 py-1.5 text-xs font-semibold">Keep</button>
+            <button disabled={busy} onClick={() => moveTo("CANCELLED")} className="rounded-full bg-[#9a4a3f] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">Yes, cancel</button>
+            <button disabled={busy} onClick={() => setConfirmingCancel(false)} className="rounded-full border border-[#e5e7e0] px-3 py-2 text-xs font-semibold">Keep</button>
           </>
         ) : (
-          <button disabled={busy} onClick={() => setConfirmingCancel(true)} className="px-2 py-1.5 text-xs font-semibold text-gray-400 hover:text-[#9a4a3f]">Cancel</button>
+          <button disabled={busy} onClick={() => setConfirmingCancel(true)} className="px-2 py-2 text-xs font-semibold text-gray-400 hover:text-[#9a4a3f]">Cancel</button>
         ))}
       </div>
       {error && <p className="mt-2 text-xs text-[#9a4a3f]" role="alert">{error}</p>}
@@ -164,7 +164,7 @@ export default function VendorOrders() {
   return (
     <>
       <Header />
-      <main className="mx-auto w-full max-w-4xl px-6 py-8 pb-16">
+      <main className="mx-auto w-full max-w-4xl px-4 py-8 pb-16 sm:px-6">
         <div className="mb-6">
           <h1 className="font-display mb-1 text-3xl font-bold tracking-tight">Today&apos;s orders</h1>
           <p className="text-gray-500">{stall ? stall.name : "Loading…"} · ready orders not collected within 15 minutes become no-shows</p>
@@ -178,9 +178,9 @@ export default function VendorOrders() {
 
         {orders && (
           <>
-            <div className="mb-6 grid grid-cols-3 gap-3">
+            <div className="mb-6 grid grid-cols-3 gap-2 sm:gap-3">
               {[["To accept", count("PLACED")], ["Preparing", count("ACCEPTED")], ["Ready", count("READY")]].map(([label, value]) => (
-                <div key={label} className="rounded-2xl border border-[#e5e7e0] bg-white p-4">
+                <div key={label} className="rounded-2xl border border-[#e5e7e0] bg-white p-3 sm:p-4">
                   <p className="font-display text-2xl font-bold">{value}</p>
                   <p className="text-sm text-gray-500">{label}</p>
                 </div>

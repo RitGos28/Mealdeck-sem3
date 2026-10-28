@@ -6,6 +6,8 @@
 }
 
 @layer base {
+  html { scroll-behavior: smooth; }
+
   body {
     @apply min-h-screen bg-[#f7f8f4] text-[#13231b] antialiased;
     background-image: radial-gradient(circle at 100% 0%, rgba(197, 226, 181, .42), transparent 30rem);
@@ -16,4 +18,10 @@
   @media (prefers-reduced-motion: reduce) {
     *, ::before, ::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
   }
+}
+
+/* iOS Safari zooms the page into any focused field under 16px. Unlayered so
+   it beats text-sm and friends, but only on phone widths. */
+@media (max-width: 639px) {
+  input, select, textarea { font-size: 16px; }
 }

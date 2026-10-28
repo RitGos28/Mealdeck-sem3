@@ -29,7 +29,7 @@ export default async function OrdersPage({ searchParams }) {
   return (
     <>
       <Header />
-      <main className="mx-auto w-full max-w-2xl px-6 py-8 pb-16">
+      <main className="mx-auto w-full max-w-2xl px-4 py-8 pb-16 sm:px-6">
         <h1 className="font-display mb-1 text-3xl font-bold tracking-tight">{orders.length > 1 ? "Your pre-orders" : "Your pre-order"}</h1>
         <p className="mb-6 text-gray-500">Show the order number at the counter. Pay when you pick up (cash or UPI).</p>
 
