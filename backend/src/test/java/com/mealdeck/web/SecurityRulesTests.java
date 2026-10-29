@@ -11,6 +11,7 @@ import com.mealdeck.FixedClockConfig;
 import com.mealdeck.model.MenuItem;
 import com.mealdeck.model.Order;
 import com.mealdeck.model.Stall;
+import com.mealdeck.model.Student;
 import com.mealdeck.model.Vendor;
 import com.mealdeck.repository.StallRepository;
 import com.mealdeck.repository.StudentRepository;
@@ -175,6 +176,25 @@ class SecurityRulesTests {
         mvc.perform(get("/api/orders/ZZZZZZZZZZZZ").with(STUDENT)).andExpect(status().isNotFound());
         // The sequential id no longer opens an order, even for its owner.
         mvc.perform(get("/api/orders/" + order.getId()).with(STUDENT)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void myOrdersListsOnlyTheLoggedInStudentsOwnOrders() throws Exception {
+        Stall bistro = stall("Bistro / Kathi");
+        Long studentId = studentRepository.findByEmail("student@bennett.edu.in").orElseThrow().getId();
+        Long otherId = studentRepository.save(new Student("other.student@bennett.edu.in", "unused", "Other Student", null)).getId();
+        CreateOrderRequest oneRoll = new CreateOrderRequest(
+                List.of(new OrderItemRequest(bistro.getMenuItems().getFirst().getId(), 1)), Map.of(bistro.getId(), LocalTime.of(12, 0)));
+        Order mine = orderService.checkout(studentId, oneRoll).getFirst();
+        Order theirs = orderService.checkout(otherId, oneRoll).getFirst();
+
+        mvc.perform(get("/api/orders")).andExpect(status().isForbidden());
+        mvc.perform(get("/api/orders").with(VENDOR)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/orders").with(ADMIN)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/orders").with(STUDENT))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.code == '" + mine.getPublicCode() + "')]").isNotEmpty())
+                .andExpect(jsonPath("$[?(@.code == '" + theirs.getPublicCode() + "')]").isEmpty());
     }
 
     @Test

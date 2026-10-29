@@ -146,6 +146,10 @@ public class OrderService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No order " + id));
     }
 
+    public List<Order> ordersForStudent(Long studentId) {
+        return orderRepository.findByStudentIdWithItems(studentId);
+    }
+
     @Transactional
     public int fillMissingCodes() {
         List<Order> missing = orderRepository.findByPublicCodeIsNull();
