@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "../components/layout/Header";
 import MenuSection from "../components/menu/MenuSection";
@@ -60,12 +60,27 @@ function imageForDish(item) {
     ?? "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=800&q=80";
 }
 
+// True while the element is on screen, so the phone's "View bag" bar can
+// step aside once the bag itself is visible.
+function useOnScreen(ref) {
+  const [onScreen, setOnScreen] = useState(false);
+  useEffect(() => {
+    if (!ref.current || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => setOnScreen(entry.isIntersecting));
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [ref]);
+  return onScreen;
+}
+
 export default function MenuExperience({ stalls, demoMode }) {
   const router = useRouter();
   const [cart, setCart] = useState({});
   const [cartLoaded, setCartLoaded] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
   const [user] = useCurrentUser();
+  const bagRef = useRef(null);
+  const bagOnScreen = useOnScreen(bagRef);
 
   // Read after mount, not in useState: the server render has no storage.
   useEffect(() => {
@@ -130,15 +145,15 @@ export default function MenuExperience({ stalls, demoMode }) {
   return (
     <>
       <Header itemCount={itemCount} />
-      <main className="mx-auto w-full max-w-6xl px-5 py-7 pb-16 sm:px-6 sm:py-10">
-        <section className="relative mb-8 overflow-hidden rounded-3xl bg-[#173725] px-6 py-8 text-white shadow-[0_20px_55px_-28px_rgba(17,55,35,.7)] sm:px-9 sm:py-10">
+      <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-28 sm:px-6 sm:py-10 lg:pb-16">
+        <section className="relative mb-8 overflow-hidden rounded-3xl bg-[#173725] px-5 py-7 text-white shadow-[0_20px_55px_-28px_rgba(17,55,35,.7)] sm:px-9 sm:py-10">
           <div className="absolute -right-12 -top-20 size-64 rounded-full bg-[#a8dc78]/20 blur-2xl" />
           <div className="relative max-w-xl">
             <p className="mb-3 text-xs font-bold uppercase tracking-[.18em] text-[#c9e8a9]">Campus food, without the wait</p>
             <h1 className="font-display mb-3 text-4xl font-bold tracking-tight sm:text-5xl">Today&apos;s menu,<br />ready when you are.</h1>
             <p className="max-w-md text-sm leading-6 text-white/75 sm:text-base">See what&apos;s available, order ahead, and pick up at the time that suits you.</p>
           </div>
-          <div className="relative mt-7 flex flex-wrap gap-2 text-xs font-semibold text-[#d9edcb]"><span className="rounded-full border border-white/15 bg-white/10 px-3 py-2">● Live availability</span><span className="rounded-full border border-white/15 bg-white/10 px-3 py-2">◷ Quick pickup</span></div>
+          <div className="relative mt-5 flex flex-wrap sm:mt-7 gap-2 text-xs font-semibold text-[#d9edcb]"><span className="rounded-full border border-white/15 bg-white/10 px-3 py-2">● Live availability</span><span className="rounded-full border border-white/15 bg-white/10 px-3 py-2">◷ Quick pickup</span></div>
         </section>
 
         <div className="mb-7 flex flex-wrap items-end justify-between gap-3"><div><h2 className="font-display text-2xl font-bold tracking-tight">Explore the stalls</h2><p className="mt-1 text-sm text-gray-500">Fresh picks from around campus.</p></div><p className="rounded-full border border-[#dce5d8] bg-white px-3 py-1.5 text-xs font-semibold text-[#477355]">{menuStalls.length} stalls open</p></div>
@@ -152,13 +167,23 @@ export default function MenuExperience({ stalls, demoMode }) {
             {visibleStalls.map((stall) => <MenuSection key={stall.id} stall={stall} demoMode={demoMode} onAddToCart={addToCart} />)}
             {visibleStalls.length === 0 && <div className="rounded-2xl border border-dashed border-[#cbdac6] bg-white px-6 py-12 text-center"><p className="font-display text-lg font-bold">No dishes found</p><p className="mt-1 text-sm text-gray-500">Try another search term or browse all stalls.</p><button className="mt-4 text-sm font-semibold text-[#356b42] underline underline-offset-4" onClick={() => setSearch("")}>Clear search</button></div>}
           </div>
-          <div className="lg:mt-[61px]">
+          <div id="bag" ref={bagRef} className="scroll-mt-4 lg:mt-[61px]">
             {checkingOut && cartItems.length > 0 && user?.role === "STUDENT"
               ? <Checkout cartItems={cartItems} total={total} user={user} onBack={() => setCheckingOut(false)} onPlaced={handlePlaced} />
               : <Cart cartItems={cartItems} itemCount={itemCount} total={total} changeQuantity={changeQuantity} onCheckout={() => setCheckingOut(true)} demoMode={demoMode} user={user} />}
           </div>
         </div>
       </main>
+
+      {/* On a phone the bag sits below every menu, so this keeps it one tap away. */}
+      {itemCount > 0 && !bagOnScreen && (
+        <div className="fixed inset-x-0 bottom-0 z-10 border-t border-[#dce6d8] bg-white/95 px-4 pt-3 pb-[max(.75rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
+          <a href="#bag" className="mx-auto flex max-w-xl items-center justify-between rounded-xl bg-[#0f2419] px-4 py-3 text-sm font-semibold text-white">
+            <span>View bag · {itemCount} item{itemCount === 1 ? "" : "s"}</span>
+            <span>₹{total} <span aria-hidden="true">→</span></span>
+          </a>
+        </div>
+      )}
     </>
   );
 }

@@ -41,17 +41,17 @@ export default function MenuItemCard({ item, demoMode, onAddToCart }) {
   }
 
   return (
-    <article className={`group overflow-hidden rounded-2xl border border-[#e1e8de] bg-white shadow-[0_12px_30px_-24px_rgba(21,55,33,.7)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_-22px_rgba(21,55,33,.45)] ${available ? "" : "opacity-60"}`}>
-      <div className="relative h-44 overflow-hidden bg-[#e8eee5]"><Image src={item.image} alt={item.name} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 280px" className="object-cover transition duration-500 group-hover:scale-105" /><span className={available ? "absolute left-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-bold text-[#347042] shadow-sm" : "absolute left-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-bold text-[#aa5043] shadow-sm"}>{available ? "● Available" : "● Sold out"}</span></div>
-      <div className="flex flex-col gap-3 p-4">
+    <article className={`group flex overflow-hidden rounded-2xl border border-[#e1e8de] bg-white shadow-[0_12px_30px_-24px_rgba(21,55,33,.7)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_-22px_rgba(21,55,33,.45)] sm:block ${available ? "" : "opacity-60"}`}>
+      <div className="relative min-h-32 w-28 shrink-0 overflow-hidden bg-[#e8eee5] sm:h-44 sm:min-h-0 sm:w-auto"><Image src={item.image} alt={item.name} fill sizes="(max-width: 640px) 112px, (max-width: 1024px) 50vw, 280px" className="object-cover transition duration-500 group-hover:scale-105" /><span className={available ? "absolute left-2 top-2 rounded-full bg-white/95 px-2 py-1 text-[11px] font-bold text-[#347042] shadow-sm sm:left-3 sm:top-3 sm:px-2.5" : "absolute left-2 top-2 rounded-full bg-white/95 px-2 py-1 text-[11px] font-bold text-[#aa5043] shadow-sm sm:left-3 sm:top-3 sm:px-2.5"}>{available ? "● Available" : "● Sold out"}</span></div>
+      <div className="flex min-w-0 flex-1 flex-col gap-3 p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2"><VegDot veg={item.veg} /><span className="font-semibold">{item.name}</span></div>
           <span className="whitespace-nowrap font-semibold">₹{item.price}</span>
         </div>
 
         {available && <div className="flex flex-wrap gap-2">
-          <button className="rounded-full bg-[#173725] px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#28573a]" onClick={() => onAddToCart(item)}>Add to bag +</button>
-          <button className="rounded-full border border-[#e5e7e0] bg-transparent px-3 py-1.5 text-xs font-semibold text-gray-500 transition-colors hover:border-[#12180f] hover:text-[#12180f] disabled:cursor-default disabled:opacity-50" disabled={reporting} onClick={handleReport}>{reporting ? "Reporting…" : "Report out of stock →"}</button>
+          <button className="rounded-full bg-[#173725] px-3.5 py-2.5 text-xs sm:py-2 font-semibold text-white transition-colors hover:bg-[#28573a]" onClick={() => onAddToCart(item)}>Add to bag +</button>
+          <button className="rounded-full border border-[#e5e7e0] bg-transparent px-3 py-2 text-xs sm:py-1.5 font-semibold text-gray-500 transition-colors hover:border-[#12180f] hover:text-[#12180f] disabled:cursor-default disabled:opacity-50" disabled={reporting} onClick={handleReport}>{reporting ? "Reporting…" : "Report out of stock →"}</button>
         </div>}
         {reportMessage && <p className="text-xs text-gray-500">{reportMessage}</p>}
       </div>

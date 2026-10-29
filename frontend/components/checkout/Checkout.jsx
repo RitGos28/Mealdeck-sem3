@@ -139,7 +139,7 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced }) {
               {slots === null && <p className="text-sm text-[#9a4a3f]">Couldn&apos;t load pickup slots.</p>}
               {slots?.length === 0 && <p className="rounded-xl bg-[#f4f6f2] px-3 py-2.5 text-sm text-gray-500">No pickup slots left today at {stallName}.</p>}
               {slots?.length > 0 && (
-                <div className="grid max-h-52 grid-cols-3 gap-1.5 overflow-y-auto pr-1">
+                <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 lg:max-h-52 lg:grid-cols-3 lg:overflow-y-auto lg:pr-1">
                   {slots.map((slot) => {
                     const value = toSlotValue(slot.time);
                     const selected = picked[stallId] === value;
@@ -150,7 +150,7 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced }) {
                         aria-pressed={selected}
                         disabled={slot.full}
                         onClick={() => pick(stallId, value)}
-                        className={`rounded-lg border px-1 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:border-[#f0f0ee] disabled:bg-[#f4f6f2] disabled:text-gray-400 ${selected ? "border-[#0f2419] bg-[#0f2419] text-white" : "border-[#e5e7e0] hover:border-[#3f6b3a]"}`}
+                        className={`rounded-lg border px-1 py-2.5 text-xs lg:py-1.5 font-semibold transition-colors disabled:cursor-not-allowed disabled:border-[#f0f0ee] disabled:bg-[#f4f6f2] disabled:text-gray-400 ${selected ? "border-[#0f2419] bg-[#0f2419] text-white" : "border-[#e5e7e0] hover:border-[#3f6b3a]"}`}
                       >
                         {formatTime(slot.time)}
                         <span className={`block text-[10px] font-medium ${selected ? "text-white/70" : "text-gray-400"}`}>

@@ -18,6 +18,11 @@ export const metadata = {
   description: "Live campus food availability, reported by students.",
 };
 
+// Tints the mobile browser's toolbar to match the header.
+export const viewport = {
+  themeColor: "#10261b",
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${inter.variable}`}>
