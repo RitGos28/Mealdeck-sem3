@@ -34,6 +34,8 @@ public class MenuItem {
     @Column(nullable = false)
     private int reportCount = 0;
 
+    private String image;
+
     protected MenuItem() {
     }
 
@@ -90,5 +92,13 @@ public class MenuItem {
 
     public void setVeg(boolean veg) {
         this.veg = veg;
+    }
+
+    public String getImage() {
+        return image;
+    }
+
+    public void setImage(String image) {
+        this.image = image;
     }
 }

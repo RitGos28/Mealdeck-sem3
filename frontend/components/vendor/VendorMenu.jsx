@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { api } from "../../lib/api";
 
 const inputClass = "w-full rounded-xl border border-[#dbe5d8] bg-white px-3 py-2 text-sm outline-none focus:border-[#477355] focus:ring-2 focus:ring-[#dbead6]";
@@ -11,6 +12,7 @@ function MenuItemEditor({ item, onChanged }) {
   const [price, setPrice] = useState(String(item.price));
   const [veg, setVeg] = useState(item.veg);
   const [available, setAvailable] = useState(item.available);
+  const [imageFile, setImageFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -23,6 +25,12 @@ function MenuItemEditor({ item, onChanged }) {
         method: "PATCH",
         body: { name, price: Number(price), veg, available },
       });
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("image", imageFile);
+        await api(`/api/vendor/menu-items/${item.id}/image`, { method: "POST", formData });
+        setImageFile(null);
+      }
       await onChanged();
     } catch (err) {
       setError(err.message);
@@ -33,6 +41,15 @@ function MenuItemEditor({ item, onChanged }) {
 
   return (
     <form onSubmit={save} className="rounded-2xl border border-[#e1e8dd] bg-white p-4 shadow-sm">
+      <div className="mb-4 flex items-center gap-3">
+        <div className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-[#e8eee5]">
+          {item.image ? <Image src={item.image} alt="" fill sizes="64px" className="object-cover" /> : <span className="flex size-full items-center justify-center text-xl" aria-hidden="true">🍽️</span>}
+        </div>
+        <label className="min-w-0 text-xs font-bold uppercase tracking-wide text-gray-500">Dish image
+          <input className="mt-1 block w-full max-w-xs text-sm font-normal normal-case tracking-normal file:mr-3 file:rounded-lg file:border-0 file:bg-[#e8f2e3] file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-[#315c3d]" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setImageFile(event.target.files?.[0] ?? null)} />
+          <span className="mt-1 block text-[11px] font-normal normal-case tracking-normal text-gray-500">JPEG, PNG, or WebP · up to 5 MB</span>
+        </label>
+      </div>
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_110px]">
         <label className="text-xs font-bold uppercase tracking-wide text-gray-500">Item name
           <input className={`${inputClass} mt-1`} required value={name} onChange={(event) => setName(event.target.value)} />
@@ -56,7 +73,7 @@ function MenuItemEditor({ item, onChanged }) {
 }
 
 export default function VendorMenu({ stall, onChanged }) {
-  const [newItem, setNewItem] = useState({ name: "", price: "", veg: true });
+  const [newItem, setNewItem] = useState({ name: "", price: "", veg: true, imageFile: null });
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState(null);
 
@@ -65,11 +82,16 @@ export default function VendorMenu({ stall, onChanged }) {
     setAdding(true);
     setError(null);
     try {
-      await api("/api/vendor/menu-items", {
+      const created = await api("/api/vendor/menu-items", {
         method: "POST",
-        body: { ...newItem, price: Number(newItem.price) },
+        body: { name: newItem.name, price: Number(newItem.price), veg: newItem.veg },
       });
-      setNewItem({ name: "", price: "", veg: true });
+      if (newItem.imageFile) {
+        const formData = new FormData();
+        formData.append("image", newItem.imageFile);
+        await api(`/api/vendor/menu-items/${created.id}/image`, { method: "POST", formData });
+      }
+      setNewItem({ name: "", price: "", veg: true, imageFile: null });
       await onChanged();
     } catch (err) {
       setError(err.message);
@@ -93,6 +115,10 @@ export default function VendorMenu({ stall, onChanged }) {
           <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={newItem.veg} onChange={(event) => setNewItem({ ...newItem, veg: event.target.checked })} /> Vegetarian</label>
           <button className={primaryButton} disabled={adding}>{adding ? "Adding…" : "Add item"}</button>
         </div>
+        <label className="mt-3 block text-sm font-semibold text-[#315c3d]">Dish image <span className="font-normal text-gray-500">(optional)</span>
+          <input className="mt-1 block w-full text-sm font-normal file:mr-3 file:rounded-lg file:border-0 file:bg-[#e8f2e3] file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-[#315c3d]" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setNewItem({ ...newItem, imageFile: event.target.files?.[0] ?? null })} />
+          <span className="mt-1 block text-xs font-normal text-gray-500">JPEG, PNG, or WebP · maximum 5 MB</span>
+        </label>
         {error && <p className="mt-3 rounded-xl bg-[#fbe9e7] px-3 py-2 text-sm text-[#9a4a3f]" role="alert">{error}</p>}
       </form>
 
