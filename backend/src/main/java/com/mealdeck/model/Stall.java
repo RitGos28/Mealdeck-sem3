@@ -37,6 +37,13 @@ public class Stall {
      * make every slot full; null reads as DEFAULT_SLOT_CAPACITY instead. */
     private Integer slotCapacity;
 
+    /** Vendor's "pause orders" switch: the stall stays open and keeps
+     * working through orders it has, but takes no new ones. Nullable for
+     * the same ddl-auto=update reason as slotCapacity; null means not
+     * paused. Cleared at midnight; closedToday is not, it stays until
+     * turned off by hand. */
+    private Boolean ordersPaused;
+
     protected Stall() {
     }
 
@@ -86,6 +93,14 @@ public class Stall {
 
     public void setSlotCapacity(Integer slotCapacity) {
         this.slotCapacity = slotCapacity;
+    }
+
+    public boolean isOrdersPaused() {
+        return Boolean.TRUE.equals(ordersPaused);
+    }
+
+    public void setOrdersPaused(boolean ordersPaused) {
+        this.ordersPaused = ordersPaused;
     }
 
     /** No hours set means "always open" (today's early stalls don't set any). */

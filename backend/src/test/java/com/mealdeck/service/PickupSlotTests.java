@@ -124,6 +124,25 @@ class PickupSlotTests {
     }
 
     @Test
+    void pausedStallTakesNoNewOrdersButShowsItsSlotsAsFull() {
+        Stall stall = bistro();
+        Long placed = order(stall, "12:00").getFirst().getId();
+        stall.setOrdersPaused(true);
+
+        assertThatThrownBy(() -> order(stall, "12:15"))
+                .satisfies(e -> assertThat(statusOf(e)).isEqualTo(HttpStatus.CONFLICT))
+                .hasMessageContaining("Bistro / Kathi has paused pre-orders");
+        QueueSnapshot queue = queueService.snapshot(stall.getId());
+        assertThat(queue.ordersPaused()).isTrue();
+        assertThat(queue.slots()).isNotEmpty().allSatisfy(slot -> assertThat(slot.full()).isTrue());
+        // Orders already placed carry on as normal.
+        assertThat(orderService.advanceStatus(stall.getId(), placed, OrderStatus.ACCEPTED).getStatus()).isEqualTo(OrderStatus.ACCEPTED);
+
+        stall.setOrdersPaused(false);
+        assertThat(order(stall, "12:15")).hasSize(1);
+    }
+
+    @Test
     void cancelledOrdersFreeTheirSpot() {
         Stall stall = bistro();
         stall.setSlotCapacity(1);
