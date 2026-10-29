@@ -86,6 +86,9 @@ public class MenuService {
     public void resetDailyAvailability() {
         menuItemRepository.resetAllAvailability();
         reportRepository.deleteAll();
+        // A pause is for a rush, so it ends with the day. "Closed today"
+        // stays until it's turned off by hand.
+        stallRepository.unpauseAll();
     }
 
     public Stall getStall(Long stallId) {
@@ -121,6 +124,9 @@ public class MenuService {
         }
         if (request.closedToday() != null) {
             stall.setClosedToday(request.closedToday());
+        }
+        if (request.ordersPaused() != null) {
+            stall.setOrdersPaused(request.ordersPaused());
         }
         stallRepository.save(stall);
         // Capacity and closed-today both change which slots are bookable.

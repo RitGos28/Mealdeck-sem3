@@ -21,11 +21,13 @@ const ACTIONS = {
   NO_SHOW: [{ to: "COMPLETED", label: "Picked up late" }],
 };
 
-function OrderCard({ order, onUpdated }) {
+function OrderCard({ order, onUpdated, readOnly }) {
   const [busy, setBusy] = useState(false);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [error, setError] = useState(null);
   const final = FINAL_STATUSES.includes(order.status);
+  // Past days are history; only today's orders can still be moved along.
+  const locked = final || readOnly;
 
   async function moveTo(status) {
     setBusy(true);
@@ -55,7 +57,7 @@ function OrderCard({ order, onUpdated }) {
       {order.noShowAt && <p className="mb-3 text-xs font-semibold text-[#9a4a3f]">Auto no-show at {formatInstant(order.noShowAt)} if not collected</p>}
       <div className="flex flex-wrap items-center gap-2">
         <span className="mr-auto text-sm font-semibold">₹{order.total}</span>
-        {!confirmingCancel && (ACTIONS[order.status] ?? []).map((action) => (
+        {!confirmingCancel && !readOnly && (ACTIONS[order.status] ?? []).map((action) => (
           <button
             key={action.to}
             disabled={busy}
@@ -67,7 +69,7 @@ function OrderCard({ order, onUpdated }) {
             {action.label}
           </button>
         ))}
-        {!final && (confirmingCancel ? (
+        {!locked && (confirmingCancel ? (
           <>
             <span className="text-xs text-gray-500">Cancel this order?</span>
             <button disabled={busy} onClick={() => moveTo("CANCELLED")} className="rounded-full bg-[#9a4a3f] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">Yes, cancel</button>
@@ -112,14 +114,79 @@ function SlotCapacity({ stall, onSaved }) {
   );
 }
 
+// The "pause orders" switch: the stall stays open and keeps working through
+// the orders it has, but students can't place new ones until it's resumed
+// (or midnight, when it resets).
+function PauseOrders({ stall, onSaved }) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function toggle() {
+    setSaving(true);
+    setError(null);
+    try {
+      onSaved(await api("/api/vendor/stall", { method: "PATCH", body: { ordersPaused: !stall.ordersPaused } }));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={stall.ordersPaused}
+        disabled={saving}
+        onClick={toggle}
+        className={`rounded-full px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${stall.ordersPaused ? "bg-[#9a4a3f] text-white hover:bg-[#843f35]" : "border border-[#c9d1c2] bg-white text-[#12180f] hover:border-[#9a4a3f]"}`}
+      >
+        {stall.ordersPaused ? "Orders paused · Resume" : "Pause new orders"}
+      </button>
+      {stall.ordersPaused && <span className="text-xs text-[#9a4a3f]">Students can&apos;t place new orders. Resets at midnight.</span>}
+      {error && <span className="text-xs text-[#9a4a3f]" role="alert">{error}</span>}
+    </div>
+  );
+}
+
+// Campus date as YYYY-MM-DD, the format <input type="date"> and the API use.
+function campusToday() {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+}
+
+// A past day at a glance: how it went, and what was actually collected.
+function DaySummary({ orders }) {
+  const by = (status) => orders.filter((order) => order.status === status);
+  const collected = by("COMPLETED");
+  const revenue = collected.reduce((sum, order) => sum + Number(order.total), 0);
+  const tiles = [["Orders", orders.length], ["Picked up", collected.length], ["No-shows", by("NO_SHOW").length], ["Cancelled", by("CANCELLED").length], ["Collected", `₹${revenue}`]];
+  return (
+    <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
+      {tiles.map(([label, value]) => (
+        <div key={label} className="rounded-2xl border border-[#e5e7e0] bg-white p-4">
+          <p className="font-display text-2xl font-bold">{value}</p>
+          <p className="text-sm text-gray-500">{label}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function VendorOrders() {
   const router = useRouter();
   const [stall, setStall] = useState(null);
   const [orders, setOrders] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [showFinished, setShowFinished] = useState(false);
+  const [date, setDate] = useState(campusToday);
+  const viewingToday = date === campusToday();
 
-  const load = useCallback(() => Promise.all([api("/api/vendor/stall"), api("/api/vendor/orders")]).then(
+  const load = useCallback(() => Promise.all([
+    api("/api/vendor/stall"),
+    api(date === campusToday() ? "/api/vendor/orders" : `/api/vendor/orders?date=${date}`),
+  ]).then(
     ([stallData, orderData]) => {
       setStall(stallData);
       setOrders(orderData);
@@ -132,7 +199,7 @@ export default function VendorOrders() {
       }
       setLoadError(err.message);
     },
-  ), [router]);
+  ), [router, date]);
 
   useEffect(() => {
     load();
@@ -142,7 +209,7 @@ export default function VendorOrders() {
 
   // The public queue topic carries no names or phone numbers, so a push is
   // only a cue to reload the full list through the logged-in vendor API.
-  const connected = useLiveTopic(stall ? `/topic/stalls/${stall.id}/queue` : null, { onMessage: load, onConnect: load });
+  const connected = useLiveTopic(stall && viewingToday ? `/topic/stalls/${stall.id}/queue` : null, { onMessage: load, onConnect: load });
 
   function handleUpdated(updated) {
     setOrders((current) => current.map((order) => (order.id === updated.id ? updated : order)));
@@ -150,7 +217,8 @@ export default function VendorOrders() {
 
   const active = orders?.filter((order) => !FINAL_STATUSES.includes(order.status)) ?? [];
   const finished = orders?.filter((order) => FINAL_STATUSES.includes(order.status)) ?? [];
-  const visible = showFinished ? orders ?? [] : active;
+  // A past day is history: show everything, read-only.
+  const visible = showFinished || !viewingToday ? orders ?? [] : active;
 
   const bySlot = new Map();
   for (const order of visible) {
@@ -166,39 +234,52 @@ export default function VendorOrders() {
       <Header />
       <main className="mx-auto w-full max-w-4xl px-6 py-8 pb-16">
         <div className="mb-6">
-          <h1 className="font-display mb-1 text-3xl font-bold tracking-tight">Today&apos;s orders</h1>
-          <p className="text-gray-500">{stall ? stall.name : "Loading…"} · ready orders not collected within 15 minutes become no-shows</p>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-            {stall && <SlotCapacity key={stall.slotCapacity} stall={stall} onSaved={setStall} />}
-            {stall && <LiveIndicator connected={connected} />}
+          <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
+            <h1 className="font-display text-3xl font-bold tracking-tight">{viewingToday ? "Today's orders" : `Orders on ${new Date(`${date}T12:00:00`).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}`}</h1>
+            <label className="flex items-center gap-2 text-sm text-gray-500">
+              <span>Day</span>
+              <input type="date" value={date} max={campusToday()} onChange={(e) => e.target.value && setDate(e.target.value)} className="rounded-lg border border-[#c9d1c2] bg-white px-2 py-1.5 text-[#12180f] outline-none focus:border-[#3f6b3a]" />
+              {!viewingToday && <button type="button" className="font-semibold text-[#3f6b3a] hover:underline" onClick={() => setDate(campusToday())}>Back to today</button>}
+            </label>
           </div>
+          <p className="text-gray-500">{stall ? stall.name : "Loading…"} · ready orders not collected within 15 minutes become no-shows</p>
+          {viewingToday && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-4">
+                {stall && <SlotCapacity key={stall.slotCapacity} stall={stall} onSaved={setStall} />}
+                {stall && <PauseOrders stall={stall} onSaved={setStall} />}
+              </div>
+              {stall && <LiveIndicator connected={connected} />}
+            </div>
+          )}
         </div>
 
         {loadError && <p className="mb-6 rounded-xl bg-[#fbe9e7] px-4 py-3 text-sm text-[#9a4a3f]">{loadError}</p>}
 
         {orders && (
           <>
-            <div className="mb-6 grid grid-cols-3 gap-3">
+            {!viewingToday && <DaySummary orders={orders} />}
+            {viewingToday && <div className="mb-6 grid grid-cols-3 gap-3">
               {[["To accept", count("PLACED")], ["Preparing", count("ACCEPTED")], ["Ready", count("READY")]].map(([label, value]) => (
                 <div key={label} className="rounded-2xl border border-[#e5e7e0] bg-white p-4">
                   <p className="font-display text-2xl font-bold">{value}</p>
                   <p className="text-sm text-gray-500">{label}</p>
                 </div>
               ))}
-            </div>
+            </div>}
 
-            {visible.length === 0 && <p className="rounded-2xl bg-white px-4 py-8 text-center text-gray-500">{orders.length === 0 ? "No pre-orders yet today." : "All caught up. No open orders."}</p>}
+            {visible.length === 0 && <p className="rounded-2xl bg-white px-4 py-8 text-center text-gray-500">{orders.length === 0 ? (viewingToday ? "No pre-orders yet today." : "No orders that day.") : "All caught up. No open orders."}</p>}
 
             {[...bySlot.entries()].map(([time, slotOrders]) => (
               <section key={time} className="mb-6">
                 <h2 className="font-display mb-2 text-lg font-bold">{time === "none" ? "No pickup time" : `Pickup ${formatTime(time)}`}</h2>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {slotOrders.map((order) => <OrderCard key={order.id} order={order} onUpdated={handleUpdated} />)}
+                  {slotOrders.map((order) => <OrderCard key={order.id} order={order} onUpdated={handleUpdated} readOnly={!viewingToday} />)}
                 </div>
               </section>
             ))}
 
-            {finished.length > 0 && (
+            {viewingToday && finished.length > 0 && (
               <button className="text-sm font-semibold text-[#3f6b3a] hover:underline" onClick={() => setShowFinished((value) => !value)}>
                 {showFinished ? "Hide finished orders" : `Show ${finished.length} finished order${finished.length === 1 ? "" : "s"}`}
               </button>

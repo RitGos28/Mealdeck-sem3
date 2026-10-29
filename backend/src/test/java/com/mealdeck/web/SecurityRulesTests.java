@@ -143,6 +143,17 @@ class SecurityRulesTests {
     }
 
     @Test
+    void vendorOrderHistoryTakesADate() throws Exception {
+        mvc.perform(get("/api/vendor/orders").param("date", "2026-09-28").with(VENDOR))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+        mvc.perform(get("/api/vendor/orders").param("date", "2026-09-30").with(VENDOR))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/vendor/orders").param("date", "yesterday").with(VENDOR))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void unknownOrderStatusIsABadRequest() throws Exception {
         mvc.perform(patch("/api/vendor/orders/1/status").with(VENDOR)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"EATEN\"}"))

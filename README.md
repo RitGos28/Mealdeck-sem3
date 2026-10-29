@@ -18,6 +18,10 @@ Pre-order food from Bennett University's campus stalls, pick a pickup slot, and 
 - Today's orders, grouped by pickup slot, appear instantly as they're placed.
 - Move orders along: accept, ready, picked up. A ready order not collected within 15 minutes becomes a no-show automatically.
 - Set **orders per slot** (1-200, default 15), opening hours and "closed today", and manage menu items.
+- **Pause new orders** during a rush. The stall stays open and keeps working through its existing orders, while students see "Pre-orders paused" and the slots grey out live. The pause lifts itself at midnight; "closed today" stays on until it's turned off by hand.
+- **Order history:** pick any past day to see its orders, read-only, with a summary of orders, pickups, no-shows, cancellations and money collected.
+
+A no-show keeps its place in its slot's count. The kitchen made that food, and by the time an order becomes a no-show (15 minutes after it was ready), its slot has already started and can't be booked anyway. So freeing the place wouldn't give anyone a usable slot.
 
 **Admins**
 - Manage all stalls, vendors and students, and see report analytics.

@@ -18,9 +18,9 @@ function groupByStall(cartItems) {
 
 // Keeps one stall's slot list live: every queue push carries fresh fill
 // levels, so a slot someone else just filled greys out without a refresh.
-function LiveSlots({ stallId, onSlots, onConnect }) {
+function LiveSlots({ stallId, onSnapshot, onConnect }) {
   const connected = useLiveTopic(`/topic/stalls/${stallId}/queue`, {
-    onMessage: (snapshot) => onSlots(stallId, snapshot.slots),
+    onMessage: (snapshot) => onSnapshot(stallId, snapshot),
     onConnect,
   });
   return <LiveIndicator connected={connected} />;
@@ -62,20 +62,25 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced }) {
   const [slotsByStall, setSlotsByStall] = useState({});
   const [picked, setPicked] = useState({});
   const [notices, setNotices] = useState({});
+  const [pausedStalls, setPausedStalls] = useState({});
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState(null);
 
+  // The queue snapshot, not just /slots: it also says whether the stall has
+  // paused orders, so a row of "Full" slots can be explained.
   const loadSlots = useCallback(() => Promise.all(stalls.map(({ stallId }) =>
-    api(`/api/stalls/${stallId}/slots`).then((slots) => [stallId, slots], () => [stallId, null]),
+    api(`/api/stalls/${stallId}/queue`).then((snapshot) => [stallId, snapshot], () => [stallId, null]),
   )).then((results) => {
-    const next = Object.fromEntries(results);
+    const next = Object.fromEntries(results.map(([stallId, snapshot]) => [stallId, snapshot?.slots ?? null]));
+    setPausedStalls(Object.fromEntries(results.map(([stallId, snapshot]) => [stallId, Boolean(snapshot?.ordersPaused)])));
     setSlotsByStall(next);
     dropUnbookable(next, setPicked, setNotices);
   }), [stalls]);
 
-  function updateSlots(stallId, slots) {
+  function updateFromSnapshot(stallId, snapshot) {
+    setPausedStalls((current) => ({ ...current, [stallId]: snapshot.ordersPaused }));
     setSlotsByStall((current) => {
-      const next = { ...current, [stallId]: slots };
+      const next = { ...current, [stallId]: snapshot.slots };
       dropUnbookable(next, setPicked, setNotices);
       return next;
     });
@@ -132,9 +137,10 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced }) {
               <p className="mb-2 text-xs text-gray-500">{entries.map((e) => `${e.quantity}× ${e.item.name}`).join(", ")}</p>
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Pickup time</p>
-                <LiveSlots stallId={stallId} onSlots={updateSlots} onConnect={loadSlots} />
+                <LiveSlots stallId={stallId} onSnapshot={updateFromSnapshot} onConnect={loadSlots} />
               </div>
-              {notices[stallId] && <p className="mb-2 rounded-lg bg-[#fbe9e7] px-3 py-2 text-xs font-semibold text-[#9a4a3f]" role="status">{notices[stallId]}</p>}
+              {pausedStalls[stallId] && <p className="mb-2 rounded-lg bg-[#fbe9e7] px-3 py-2 text-xs font-semibold text-[#9a4a3f]" role="status">{stallName} has paused new orders for now. This updates live when they resume.</p>}
+              {notices[stallId] && !pausedStalls[stallId] && <p className="mb-2 rounded-lg bg-[#fbe9e7] px-3 py-2 text-xs font-semibold text-[#9a4a3f]" role="status">{notices[stallId]}</p>}
               {slots === undefined && <p className="text-sm text-gray-500">Loading slots…</p>}
               {slots === null && <p className="text-sm text-[#9a4a3f]">Couldn&apos;t load pickup slots.</p>}
               {slots?.length === 0 && <p className="rounded-xl bg-[#f4f6f2] px-3 py-2.5 text-sm text-gray-500">No pickup slots left today at {stallName}.</p>}
@@ -154,7 +160,7 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced }) {
                       >
                         {formatTime(slot.time)}
                         <span className={`block text-[10px] font-medium ${selected ? "text-white/70" : "text-gray-400"}`}>
-                          {slot.full ? "Full" : `${slot.booked}/${slot.capacity}`}
+                          {pausedStalls[stallId] ? "Paused" : slot.full ? "Full" : `${slot.booked}/${slot.capacity}`}
                         </span>
                       </button>
                     );
