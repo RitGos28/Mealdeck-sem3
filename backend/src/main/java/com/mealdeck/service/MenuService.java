@@ -165,6 +165,10 @@ public class MenuService {
         return menuItemRepository.save(item);
     }
 
+    public MenuItem getItemOnStall(Long stallId, Long itemId) {
+        return requireItemOnStall(stallId, itemId);
+    }
+
     @Transactional
     public void deleteItem(Long stallId, Long itemId) {
         MenuItem item = requireItemOnStall(stallId, itemId);

@@ -74,7 +74,10 @@ public class VendorController {
     @PostMapping(value = "/menu-items/{id}/image", consumes = "multipart/form-data")
     public MenuItemDto uploadItemImage(Authentication authentication, @PathVariable Long id, @RequestParam("image") MultipartFile image) {
         Stall stall = ownStall(authentication);
+        MenuItem existing = menuService.getItemOnStall(stall.getId(), id);
+        String oldImage = existing.getImage();
         MenuItem updated = menuService.updateItemImage(stall.getId(), id, imageStorageService.store(image));
+        imageStorageService.delete(oldImage);
         return MenuItemDto.from(updated);
     }
 

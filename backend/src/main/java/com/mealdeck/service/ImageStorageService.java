@@ -47,4 +47,13 @@ public class ImageStorageService {
         }
         return "/uploads/" + filename;
     }
+
+    public void delete(String imageUrl) {
+        if (imageUrl == null || !imageUrl.startsWith("/uploads/")) return;
+        try {
+            Files.deleteIfExists(uploadDirectory.resolve(imageUrl.substring("/uploads/".length())).normalize());
+        } catch (IOException ignored) {
+            // The new upload is already safe; an old orphan can be cleaned later.
+        }
+    }
 }
