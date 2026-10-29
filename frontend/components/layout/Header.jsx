@@ -24,7 +24,7 @@ export default function Header({ itemCount }) {
           <span><span className="font-display block text-xl font-bold tracking-tight">MealDeck</span><span className="hidden text-[10px] font-semibold uppercase tracking-[.16em] text-[#b8d4bd] sm:block">Campus pre-orders</span></span>
         </Link>
         <div className="flex items-center gap-2 text-sm font-semibold">
-          {itemCount !== undefined && <span className="rounded-full bg-white/10 px-3 py-1.5">Bag <span className="ml-1 inline-flex size-5 items-center justify-center rounded-full bg-[#d8f2b8] text-xs text-[#10261b]">{itemCount}</span></span>}
+          {itemCount !== undefined && <a href="#bag" className="rounded-full bg-white/10 px-3 py-1.5 hover:bg-white/20">Bag <span className="ml-1 inline-flex size-5 items-center justify-center rounded-full bg-[#d8f2b8] text-xs text-[#10261b]">{itemCount}</span></a>}
           {user?.role === "VENDOR" && <Link href="/vendor" className="rounded-full bg-white/10 px-3 py-1.5 hover:bg-white/20">Orders</Link>}
           {user?.role === "ADMIN" && <Link href="/admin" className="rounded-full bg-white/10 px-3 py-1.5 hover:bg-white/20">Dashboard</Link>}
           {user && <span className="hidden max-w-48 truncate text-white/70 sm:inline">{user.email}</span>}
