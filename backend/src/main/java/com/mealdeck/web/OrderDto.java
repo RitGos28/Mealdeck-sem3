@@ -10,8 +10,11 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
+/** id is the order number shown at the counter; code is the order's key in
+ * links and API calls (see OrderCode). */
 public record OrderDto(
         Long id,
+        String code,
         Long stallId,
         String stallName,
         String customerName,
@@ -40,6 +43,7 @@ public record OrderDto(
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         return new OrderDto(
                 order.getId(),
+                order.getPublicCode(),
                 order.getStall().getId(),
                 order.getStall().getName(),
                 order.getCustomerName(),

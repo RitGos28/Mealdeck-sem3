@@ -87,10 +87,10 @@ public class AdminController {
         return orderService.allOrders().stream().map(OrderDto::from).toList();
     }
 
-    @PatchMapping("/stalls/{stallId}/orders/{id}/status")
-    public OrderDto updateOrderStatus(@PathVariable Long stallId, @PathVariable Long id, @RequestBody UpdateOrderStatusRequest request) {
+    @PatchMapping("/stalls/{stallId}/orders/{code}/status")
+    public OrderDto updateOrderStatus(@PathVariable Long stallId, @PathVariable String code, @RequestBody UpdateOrderStatusRequest request) {
         OrderStatus next = parseStatus(request.status());
-        Order order = orderService.advanceStatus(stallId, id, next);
+        Order order = orderService.advanceStatus(stallId, orderService.getOrderByCode(code).getId(), next);
         return OrderDto.from(order);
     }
 

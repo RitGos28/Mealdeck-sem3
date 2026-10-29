@@ -30,6 +30,12 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Nullable in the schema only so ddl-auto=update can add the column to
+     * a table that already has rows; OrderCodeBackfill fills those in at
+     * startup, and every new order gets one in its constructor. */
+    @Column(name = "public_code", length = OrderCode.LENGTH, unique = true)
+    private String publicCode;
+
     @ManyToOne
     @JoinColumn(name = "stall_id", nullable = false)
     private Stall stall;
@@ -71,6 +77,7 @@ public class Order {
     }
 
     public Order(Stall stall, Student student, LocalDate pickupDate, LocalTime pickupTime) {
+        this.publicCode = OrderCode.next();
         this.stall = stall;
         this.student = student;
         this.customerName = student.getName();
@@ -82,6 +89,14 @@ public class Order {
 
     public Long getId() {
         return id;
+    }
+
+    public String getPublicCode() {
+        return publicCode;
+    }
+
+    public void setPublicCode(String publicCode) {
+        this.publicCode = publicCode;
     }
 
     public Stall getStall() {

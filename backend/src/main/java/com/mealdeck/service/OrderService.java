@@ -2,6 +2,7 @@ package com.mealdeck.service;
 
 import com.mealdeck.model.MenuItem;
 import com.mealdeck.model.Order;
+import com.mealdeck.model.OrderCode;
 import com.mealdeck.model.OrderItem;
 import com.mealdeck.model.OrderStatus;
 import com.mealdeck.model.Stall;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeSet;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
@@ -142,6 +144,19 @@ public class OrderService {
     public Order getOrder(Long id) {
         return orderRepository.findByIdWithItems(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No order " + id));
+    }
+
+    @Transactional
+    public int fillMissingCodes() {
+        List<Order> missing = orderRepository.findByPublicCodeIsNull();
+        missing.forEach(order -> order.setPublicCode(OrderCode.next()));
+        return missing.size();
+    }
+
+    /** Links and API calls name an order by its public code, not its id. */
+    public Order getOrderByCode(String code) {
+        return (OrderCode.looksValid(code) ? orderRepository.findByPublicCodeWithItems(code) : Optional.<Order>empty())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No such order"));
     }
 
     @Transactional
