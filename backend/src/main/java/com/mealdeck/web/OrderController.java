@@ -51,11 +51,20 @@ public class OrderController {
 
     @PostMapping("/api/orders")
     public List<OrderDto> checkout(Authentication authentication, @RequestBody CreateOrderRequest request) {
-        Long studentId = studentRepository.findByEmail(authentication.getName())
+        List<Order> orders = orderService.checkout(studentId(authentication), request);
+        return orders.stream().map(OrderDto::from).toList();
+    }
+
+    /** The logged-in student's own orders, newest first ("My orders"). */
+    @GetMapping("/api/orders")
+    public List<OrderDto> myOrders(Authentication authentication) {
+        return orderService.ordersForStudent(studentId(authentication)).stream().map(OrderDto::from).toList();
+    }
+
+    private Long studentId(Authentication authentication) {
+        return studentRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Log in as a student to order"))
                 .getId();
-        List<Order> orders = orderService.checkout(studentId, request);
-        return orders.stream().map(OrderDto::from).toList();
     }
 
     /** Looked up by the order's public code, not its id. Someone else's

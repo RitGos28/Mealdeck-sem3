@@ -67,4 +67,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<Order> findByPublicCodeWithItems(@Param("code") String code);
 
     List<Order> findByPublicCodeIsNull();
+
+    /** A student's "My orders": newest first. */
+    @Query("select distinct o from Order o "
+            + "left join fetch o.items i left join fetch i.menuItem "
+            + "left join fetch o.stall where o.student.id = :studentId order by o.createdAt desc")
+    List<Order> findByStudentIdWithItems(@Param("studentId") Long studentId);
 }
