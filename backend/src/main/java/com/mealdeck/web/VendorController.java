@@ -83,10 +83,10 @@ public class VendorController {
         return orders.stream().map(OrderDto::from).toList();
     }
 
-    @PatchMapping("/orders/{id}/status")
-    public OrderDto updateOrderStatus(Authentication authentication, @PathVariable Long id, @RequestBody UpdateOrderStatusRequest request) {
+    @PatchMapping("/orders/{code}/status")
+    public OrderDto updateOrderStatus(Authentication authentication, @PathVariable String code, @RequestBody UpdateOrderStatusRequest request) {
         OrderStatus next = parseStatus(request.status());
-        Order order = orderService.advanceStatus(ownStall(authentication).getId(), id, next);
+        Order order = orderService.advanceStatus(ownStall(authentication).getId(), orderService.getOrderByCode(code).getId(), next);
         return OrderDto.from(order);
     }
 

@@ -92,10 +92,10 @@ export default function MenuExperience({ stalls, demoMode }) {
     }));
   }
 
-  function handlePlaced(orderIds) {
+  function handlePlaced(orderCodes) {
     setCart({});
     setCheckingOut(false);
-    router.push(`/orders?ids=${orderIds.join(",")}`);
+    router.push(`/orders?codes=${orderCodes.join(",")}`);
   }
 
   function changeQuantity(itemId, change) {

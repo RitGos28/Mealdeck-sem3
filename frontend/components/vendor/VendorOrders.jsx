@@ -33,7 +33,7 @@ function OrderCard({ order, onUpdated, readOnly }) {
     setBusy(true);
     setError(null);
     try {
-      onUpdated(await api(`/api/vendor/orders/${order.id}/status`, { method: "PATCH", body: { status } }));
+      onUpdated(await api(`/api/vendor/orders/${order.code}/status`, { method: "PATCH", body: { status } }));
     } catch (err) {
       setError(err.message);
     } finally {

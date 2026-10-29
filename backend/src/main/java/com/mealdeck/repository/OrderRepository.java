@@ -60,4 +60,11 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             + "left join fetch o.items i left join fetch i.menuItem "
             + "left join fetch o.stall where o.id = :id")
     Optional<Order> findByIdWithItems(@Param("id") Long id);
+
+    @Query("select o from Order o "
+            + "left join fetch o.items i left join fetch i.menuItem "
+            + "left join fetch o.stall where o.publicCode = :code")
+    Optional<Order> findByPublicCodeWithItems(@Param("code") String code);
+
+    List<Order> findByPublicCodeIsNull();
 }

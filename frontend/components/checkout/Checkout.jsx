@@ -109,7 +109,7 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced }) {
           pickupTimes: picked,
         },
       });
-      onPlaced(orders.map((order) => order.id));
+      onPlaced(orders.map((order) => order.code));
     } catch (err) {
       // Session expired mid-checkout: log in again, the bag is kept.
       if (err.status === 401 || err.status === 403) {

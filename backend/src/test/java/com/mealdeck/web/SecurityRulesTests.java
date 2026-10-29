@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.mealdeck.FixedClockConfig;
 import com.mealdeck.model.MenuItem;
+import com.mealdeck.model.Order;
 import com.mealdeck.model.Stall;
 import com.mealdeck.model.Vendor;
 import com.mealdeck.repository.StallRepository;
@@ -130,9 +131,9 @@ class SecurityRulesTests {
         Stall snapEats = stall("SnapEats");
         MenuItem coffee = snapEats.getMenuItems().getFirst();
         Long studentId = studentRepository.findByEmail("student@bennett.edu.in").orElseThrow().getId();
-        Long snapOrder = orderService.checkout(studentId, new CreateOrderRequest(
+        String snapOrder = orderService.checkout(studentId, new CreateOrderRequest(
                 List.of(new OrderItemRequest(coffee.getId(), 1)),
-                Map.of(snapEats.getId(), LocalTime.of(12, 0)))).getFirst().getId();
+                Map.of(snapEats.getId(), LocalTime.of(12, 0)))).getFirst().getPublicCode();
 
         mvc.perform(patch("/api/vendor/menu-items/" + coffee.getId()).with(VENDOR)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"available\":false}"))
@@ -144,22 +145,24 @@ class SecurityRulesTests {
                 .andExpect(jsonPath("$.detail").value("That order belongs to another stall"));
         mvc.perform(get("/api/vendor/orders").with(VENDOR))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.id == " + snapOrder + ")]").isEmpty());
+                .andExpect(jsonPath("$[?(@.code == '" + snapOrder + "')]").isEmpty());
     }
 
     @Test
     void orderDetailsOnlyShowToTheStudentTheStallAndAdmins() throws Exception {
         Stall bistro = stall("Bistro / Kathi");
         Long studentId = studentRepository.findByEmail("student@bennett.edu.in").orElseThrow().getId();
-        Long orderId = orderService.checkout(studentId, new CreateOrderRequest(
+        Order order = orderService.checkout(studentId, new CreateOrderRequest(
                 List.of(new OrderItemRequest(bistro.getMenuItems().getFirst().getId(), 1)),
-                Map.of(bistro.getId(), LocalTime.of(12, 0)))).getFirst().getId();
-        String url = "/api/orders/" + orderId;
+                Map.of(bistro.getId(), LocalTime.of(12, 0)))).getFirst();
+        String url = "/api/orders/" + order.getPublicCode();
         vendorRepository.save(new Vendor("snapeats@mealdeck.in", "unused", "snapeats@example.com", stall("SnapEats")));
 
         mvc.perform(get(url)).andExpect(status().isForbidden());
         mvc.perform(get(url).with(STUDENT))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(order.getId()))
+                .andExpect(jsonPath("$.code").value(order.getPublicCode()))
                 .andExpect(jsonPath("$.customerName").value("Demo Student"));
         mvc.perform(get(url).with(VENDOR)).andExpect(status().isOk());
         mvc.perform(get(url).with(ADMIN)).andExpect(status().isOk());
@@ -169,7 +172,9 @@ class SecurityRulesTests {
                 .andExpect(status().isNotFound());
         mvc.perform(get(url).with(user("snapeats@mealdeck.in").roles("VENDOR")))
                 .andExpect(status().isNotFound());
-        mvc.perform(get("/api/orders/999999").with(STUDENT)).andExpect(status().isNotFound());
+        mvc.perform(get("/api/orders/ZZZZZZZZZZZZ").with(STUDENT)).andExpect(status().isNotFound());
+        // The sequential id no longer opens an order, even for its owner.
+        mvc.perform(get("/api/orders/" + order.getId()).with(STUDENT)).andExpect(status().isNotFound());
     }
 
     @Test
@@ -185,7 +190,7 @@ class SecurityRulesTests {
 
     @Test
     void unknownOrderStatusIsABadRequest() throws Exception {
-        mvc.perform(patch("/api/vendor/orders/1/status").with(VENDOR)
+        mvc.perform(patch("/api/vendor/orders/ZZZZZZZZZZZZ/status").with(VENDOR)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"EATEN\"}"))
                 .andExpect(status().isBadRequest());
     }

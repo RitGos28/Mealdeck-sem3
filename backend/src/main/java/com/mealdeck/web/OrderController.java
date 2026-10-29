@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** Placing a pre-order needs a student login (SecurityConfig); the order
  * takes its name and contact from that account. Looking an order up by
- * number needs a login too, and only shows the order to the student who
+ * code needs a login too, and only shows the order to the student who
  * placed it, that stall's vendor, or an admin: ids are sequential and the
  * order carries the student's name and contact. */
 @RestController
@@ -58,13 +58,14 @@ public class OrderController {
         return orders.stream().map(OrderDto::from).toList();
     }
 
-    /** Someone else's order answers 404, same as a missing one, so the
-     * endpoint doesn't confirm which order numbers exist. */
-    @GetMapping("/api/orders/{id}")
-    public OrderDto getOrder(Authentication authentication, @PathVariable Long id) {
-        Order order = orderService.getOrder(id);
+    /** Looked up by the order's public code, not its id. Someone else's
+     * order answers 404, same as a missing one, so the endpoint doesn't
+     * confirm which codes exist. */
+    @GetMapping("/api/orders/{code}")
+    public OrderDto getOrder(Authentication authentication, @PathVariable String code) {
+        Order order = orderService.getOrderByCode(code);
         if (!canSee(authentication, order)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No order " + id);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No such order");
         }
         return OrderDto.from(order);
     }

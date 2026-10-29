@@ -20,7 +20,7 @@ export default function LiveOrderCard({ initialOrder }) {
       setAhead(entry.ahead);
     } else {
       setAhead(null);
-      api(`/api/orders/${order.id}`).then(setOrder, () => {});
+      api(`/api/orders/${order.code}`).then(setOrder, () => {});
     }
   }
 

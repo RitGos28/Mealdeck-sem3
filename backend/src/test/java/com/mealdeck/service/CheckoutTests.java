@@ -169,6 +169,29 @@ class CheckoutTests {
     }
 
     @Test
+    void eachOrderGetsItsOwnTwelveCharacterCode() {
+        Order first = orderService.getOrder(orderAt(stall("Bistro / Kathi")));
+        Order second = orderService.getOrder(orderAt(stall("Bistro / Kathi")));
+
+        assertThat(first.getPublicCode()).matches("[2-9A-HJKMNP-Z]{12}");
+        assertThat(second.getPublicCode()).matches("[2-9A-HJKMNP-Z]{12}").isNotEqualTo(first.getPublicCode());
+        assertThat(orderService.getOrderByCode(first.getPublicCode()).getId()).isEqualTo(first.getId());
+        assertRejected(() -> orderService.getOrderByCode("ZZZZZZZZZZZZ"), HttpStatus.NOT_FOUND);
+        assertRejected(() -> orderService.getOrderByCode(String.valueOf(first.getId())), HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void ordersFromBeforeCodesGetOneAtStartup() {
+        Order old = orderService.getOrder(orderAt(stall("Bistro / Kathi")));
+        old.setPublicCode(null);
+        orderRepository.saveAndFlush(old);
+
+        assertThat(orderService.fillMissingCodes()).isEqualTo(1);
+        assertThat(orderService.getOrder(old.getId()).getPublicCode()).matches("[2-9A-HJKMNP-Z]{12}");
+        assertThat(orderService.fillMissingCodes()).isZero();
+    }
+
+    @Test
     void orderHistoryShowsOneDayAtATimeForTheVendorsOwnStall() {
         Stall bistro = stall("Bistro / Kathi");
         Stall snapEats = stall("SnapEats");
