@@ -2,19 +2,25 @@ package com.mealdeck.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import java.time.Instant;
 import java.time.LocalDate;
 
-/** The current sign-up code for one email address, plus how often one has
- * been sent. One row per address, overwritten on each new code. Only a hash
- * of the code is stored. A row also exists (with no code) for addresses
- * that already have an account, so they hit the same send limits and a
- * caller can't tell the two apart. */
+/** The current emailed code for one address (sign-up or password reset),
+ * plus how often one has been sent. One row per address, overwritten on
+ * each new code, so both kinds share the send limits. Only a hash of the
+ * code is stored. A row also exists (with no code) when a send was asked
+ * for but skipped -- sign-up for an address that has an account, reset for
+ * one that doesn't -- so a caller can't tell the cases apart. */
 @Entity
 public class EmailCode {
+
+    /** What a code was sent for; a code only works for that. */
+    public enum Purpose { SIGNUP, PASSWORD_RESET }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,6 +30,9 @@ public class EmailCode {
     private String email;
 
     private String codeHash;
+
+    @Enumerated(EnumType.STRING)
+    private Purpose purpose;
 
     private Instant expiresAt;
 
@@ -53,6 +62,10 @@ public class EmailCode {
         return codeHash;
     }
 
+    public Purpose getPurpose() {
+        return purpose;
+    }
+
     public Instant getExpiresAt() {
         return expiresAt;
     }
@@ -73,9 +86,10 @@ public class EmailCode {
         return sendsToday;
     }
 
-    /** A new code (or none, for an existing account) replaces the old one
+    /** A new code (or none, when the send was skipped) replaces the old one
      * and resets the wrong-guess count. */
-    public void issue(String codeHash, Instant expiresAt, Instant now, LocalDate today) {
+    public void issue(Purpose purpose, String codeHash, Instant expiresAt, Instant now, LocalDate today) {
+        this.purpose = purpose;
         this.codeHash = codeHash;
         this.expiresAt = expiresAt;
         this.attempts = 0;

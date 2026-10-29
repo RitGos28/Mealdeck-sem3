@@ -1,6 +1,7 @@
 package com.mealdeck.service;
 
 import com.mealdeck.model.EmailCode;
+import com.mealdeck.model.EmailCode.Purpose;
 import com.mealdeck.repository.EmailCodeRepository;
 import com.mealdeck.repository.StudentRepository;
 import java.nio.charset.StandardCharsets;
@@ -19,10 +20,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-/** Proves a student owns the Bennett inbox they sign up with: a 6-digit
- * code, emailed, then required by StudentService.signup. Same limits as
- * mealdeck_improved's OTP: hashed at rest, 5-minute expiry, 5 wrong
- * guesses, a minute between sends and a daily cap per address. */
+/** Proves a student owns a Bennett inbox: a 6-digit code, emailed, then
+ * required by StudentService.signup or StudentService.resetPassword. Same
+ * limits as mealdeck_improved's OTP: hashed at rest, 5-minute expiry, 5
+ * wrong guesses, a minute between sends and a daily cap per address,
+ * shared by both kinds of code. */
 @Service
 public class SignupCodeService {
 
@@ -50,12 +52,23 @@ public class SignupCodeService {
         return email == null ? null : email.trim().toLowerCase();
     }
 
-    /** Emails a fresh code unless the address already has an account. The
+    /** Emails a sign-up code unless the address already has an account. The
      * caller gets the same answer either way, so the form can't be used to
      * find out who has signed up. A failed send rolls back, so it doesn't
      * count against the limits. */
     @Transactional
     public void requestCode(String rawEmail) {
+        requestCode(rawEmail, Purpose.SIGNUP);
+    }
+
+    /** The mirror image: emails a reset code only if the address has an
+     * account, with the same answer either way. */
+    @Transactional
+    public void requestPasswordResetCode(String rawEmail) {
+        requestCode(rawEmail, Purpose.PASSWORD_RESET);
+    }
+
+    private void requestCode(String rawEmail, Purpose purpose) {
         String email = normalize(rawEmail);
         if (!EmailDomains.isStudentEmail(email)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -73,28 +86,35 @@ public class SignupCodeService {
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Too many codes today. Try again tomorrow");
         }
 
-        if (studentRepository.findByEmail(email).isPresent()) {
-            row.issue(null, null, now, today);
+        boolean hasAccount = studentRepository.findByEmail(email).isPresent();
+        if (hasAccount != (purpose == Purpose.PASSWORD_RESET)) {
+            row.issue(purpose, null, null, now, today);
             emailCodeRepository.save(row);
             return;
         }
         String code = String.format("%06d", RANDOM.nextInt(1_000_000));
-        row.issue(hash(email, code), now.plus(CODE_TTL), now, today);
+        row.issue(purpose, hash(email, code), now.plus(CODE_TTL), now, today);
         emailCodeRepository.save(row);
         try {
-            mailer.sendSignupCode(email, code);
+            if (purpose == Purpose.SIGNUP) {
+                mailer.sendSignupCode(email, code);
+            } else {
+                mailer.sendPasswordResetCode(email, code);
+            }
         } catch (CodeMailer.MailFailedException e) {
-            log.warn("Couldn't send sign-up code to {}", email, e);
+            log.warn("Couldn't send {} code to {}", purpose, email, e);
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Couldn't send the code right now. Try again in a minute");
         }
     }
 
-    /** Called inside StudentService.signup's transaction, which keeps a
-     * wrong guess's attempt count even though signup then fails. Uses up
-     * the code on success, so it can't create a second account. */
-    public void consume(String email, String code) {
+    /** Called inside StudentService.signup's or resetPassword's
+     * transaction, which keeps a wrong guess's attempt count even though
+     * the call then fails. Uses up the code on success, so it works once.
+     * A code only works for what it was sent for. */
+    public void consume(String email, String code, Purpose purpose) {
         EmailCode row = emailCodeRepository.findByEmail(email).orElse(null);
         boolean usable = row != null
+                && row.getPurpose() == purpose
                 && row.getCodeHash() != null
                 && row.getExpiresAt().isAfter(Instant.now(clock))
                 && row.getAttempts() < MAX_WRONG_GUESSES;

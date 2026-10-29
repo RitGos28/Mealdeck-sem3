@@ -7,6 +7,7 @@ import com.mealdeck.service.StudentService;
 import com.mealdeck.web.AuthDtos.LoginRequest;
 import com.mealdeck.web.AuthDtos.MeResponse;
 import com.mealdeck.web.AuthDtos.MessageResponse;
+import com.mealdeck.web.StudentRequests.PasswordResetRequest;
 import com.mealdeck.web.StudentRequests.SignupCodeRequest;
 import com.mealdeck.web.StudentRequests.SignupRequest;
 import jakarta.servlet.http.HttpServletRequest;
@@ -69,6 +70,22 @@ public class AuthController {
     @PostMapping("/student/signup")
     public MeResponse studentSignup(@RequestBody SignupRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
         Student student = studentService.signup(request);
+        return login(new LoginRequest(student.getEmail(), request.password()), "ROLE_STUDENT", httpRequest, httpResponse);
+    }
+
+    /** Forgot password, step 1: emails a reset code if the address has an
+     * account. The same answer either way (see SignupCodeService). */
+    @PostMapping("/student/password-reset/code")
+    public MessageResponse requestPasswordResetCode(@RequestBody SignupCodeRequest request) {
+        signupCodeService.requestPasswordResetCode(request.email());
+        return new MessageResponse("If that address has an account, we've emailed it a 6-digit code. It expires in "
+                + SignupCodeService.CODE_TTL.toMinutes() + " minutes.");
+    }
+
+    /** Step 2: the emailed code plus the new password; logs the student in. */
+    @PostMapping("/student/password-reset")
+    public MeResponse resetStudentPassword(@RequestBody PasswordResetRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+        Student student = studentService.resetPassword(request);
         return login(new LoginRequest(student.getEmail(), request.password()), "ROLE_STUDENT", httpRequest, httpResponse);
     }
 

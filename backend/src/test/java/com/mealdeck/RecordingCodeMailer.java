@@ -20,6 +20,11 @@ public class RecordingCodeMailer implements CodeMailer {
         lastCode.put(email, code);
     }
 
+    @Override
+    public void sendPasswordResetCode(String email, String code) {
+        sendSignupCode(email, code);
+    }
+
     public String lastCodeFor(String email) {
         return lastCode.get(email);
     }

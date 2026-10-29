@@ -35,7 +35,7 @@ public class ResendCodeMailer implements CodeMailer {
         requests.setReadTimeout(Duration.ofSeconds(10));
         this.resend = RestClient.builder().baseUrl("https://api.resend.com").requestFactory(requests).build();
         if (!isConfigured()) {
-            log.warn("RESEND_API_KEY is not set: sign-up codes will be logged, not emailed");
+            log.warn("RESEND_API_KEY is not set: codes will be logged, not emailed");
         }
     }
 
@@ -45,13 +45,23 @@ public class ResendCodeMailer implements CodeMailer {
 
     @Override
     public void sendSignupCode(String email, String code) {
+        send(email, code, "sign-up");
+    }
+
+    @Override
+    public void sendPasswordResetCode(String email, String code) {
+        send(email, code, "password reset");
+    }
+
+    /** kind: "sign-up" or "password reset", as it reads in the email. */
+    private void send(String email, String code, String kind) {
         if (!isConfigured()) {
-            log.info("Sign-up code for {}: {} (not emailed, RESEND_API_KEY unset)", email, code);
+            log.info("{} code for {}: {} (not emailed, RESEND_API_KEY unset)", kind, email, code);
             return;
         }
         String expiry = "It expires in " + SignupCodeService.CODE_TTL.toMinutes() + " minutes. If you didn't ask for it, ignore this email.";
-        String text = "Your MealDeck sign-up code is " + code + ".\n\n" + expiry;
-        String html = "<p>Your MealDeck sign-up code is</p>"
+        String text = "Your MealDeck " + kind + " code is " + code + ".\n\n" + expiry;
+        String html = "<p>Your MealDeck " + kind + " code is</p>"
                 + "<p style=\"font-size:28px;font-weight:700;letter-spacing:4px\">" + code + "</p>"
                 + "<p>" + expiry + "</p>";
         try {
@@ -62,13 +72,13 @@ public class ResendCodeMailer implements CodeMailer {
                     .body(Map.of(
                             "from", from,
                             "to", List.of(email),
-                            "subject", code + " is your MealDeck sign-up code",
+                            "subject", code + " is your MealDeck " + kind + " code",
                             "text", text,
                             "html", html))
                     .retrieve()
                     .toBodilessEntity();
         } catch (RestClientException e) {
-            throw new MailFailedException("Resend rejected the sign-up email", e);
+            throw new MailFailedException("Resend rejected the " + kind + " email", e);
         }
     }
 }
