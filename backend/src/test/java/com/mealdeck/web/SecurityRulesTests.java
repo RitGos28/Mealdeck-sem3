@@ -10,8 +10,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.mealdeck.FixedClockConfig;
 import com.mealdeck.model.MenuItem;
 import com.mealdeck.model.Stall;
+import com.mealdeck.model.Vendor;
 import com.mealdeck.repository.StallRepository;
 import com.mealdeck.repository.StudentRepository;
+import com.mealdeck.repository.VendorRepository;
 import com.mealdeck.service.OrderService;
 import com.mealdeck.web.OrderRequests.CreateOrderRequest;
 import com.mealdeck.web.OrderRequests.OrderItemRequest;
@@ -59,6 +61,9 @@ class SecurityRulesTests {
 
     @Autowired
     StudentRepository studentRepository;
+
+    @Autowired
+    VendorRepository vendorRepository;
 
     MockMvc mvc;
 
@@ -140,6 +145,31 @@ class SecurityRulesTests {
         mvc.perform(get("/api/vendor/orders").with(VENDOR))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.id == " + snapOrder + ")]").isEmpty());
+    }
+
+    @Test
+    void orderDetailsOnlyShowToTheStudentTheStallAndAdmins() throws Exception {
+        Stall bistro = stall("Bistro / Kathi");
+        Long studentId = studentRepository.findByEmail("student@bennett.edu.in").orElseThrow().getId();
+        Long orderId = orderService.checkout(studentId, new CreateOrderRequest(
+                List.of(new OrderItemRequest(bistro.getMenuItems().getFirst().getId(), 1)),
+                Map.of(bistro.getId(), LocalTime.of(12, 0)))).getFirst().getId();
+        String url = "/api/orders/" + orderId;
+        vendorRepository.save(new Vendor("snapeats@mealdeck.in", "unused", "snapeats@example.com", stall("SnapEats")));
+
+        mvc.perform(get(url)).andExpect(status().isForbidden());
+        mvc.perform(get(url).with(STUDENT))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.customerName").value("Demo Student"));
+        mvc.perform(get(url).with(VENDOR)).andExpect(status().isOk());
+        mvc.perform(get(url).with(ADMIN)).andExpect(status().isOk());
+        // Another student, or another stall's vendor, gets the same 404 as a
+        // missing order, so order numbers can't be probed.
+        mvc.perform(get(url).with(user("someone.else@bennett.edu.in").roles("STUDENT")))
+                .andExpect(status().isNotFound());
+        mvc.perform(get(url).with(user("snapeats@mealdeck.in").roles("VENDOR")))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/orders/999999").with(STUDENT)).andExpect(status().isNotFound());
     }
 
     @Test

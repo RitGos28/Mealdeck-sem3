@@ -2,6 +2,7 @@ package com.mealdeck.web;
 
 import com.mealdeck.model.Order;
 import com.mealdeck.repository.StudentRepository;
+import com.mealdeck.repository.VendorRepository;
 import com.mealdeck.service.OrderService;
 import com.mealdeck.service.QueueService;
 import com.mealdeck.web.OrderRequests.CreateOrderRequest;
@@ -17,18 +18,23 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** Placing a pre-order needs a student login (SecurityConfig); the order
  * takes its name and contact from that account. Looking an order up by
- * number stays open, for the confirmation page. */
+ * number needs a login too, and only shows the order to the student who
+ * placed it, that stall's vendor, or an admin: ids are sequential and the
+ * order carries the student's name and contact. */
 @RestController
 public class OrderController {
 
     private final OrderService orderService;
     private final QueueService queueService;
     private final StudentRepository studentRepository;
+    private final VendorRepository vendorRepository;
 
-    public OrderController(OrderService orderService, QueueService queueService, StudentRepository studentRepository) {
+    public OrderController(OrderService orderService, QueueService queueService,
+            StudentRepository studentRepository, VendorRepository vendorRepository) {
         this.orderService = orderService;
         this.queueService = queueService;
         this.studentRepository = studentRepository;
+        this.vendorRepository = vendorRepository;
     }
 
     @GetMapping("/api/stalls/{id}/slots")
@@ -52,8 +58,31 @@ public class OrderController {
         return orders.stream().map(OrderDto::from).toList();
     }
 
+    /** Someone else's order answers 404, same as a missing one, so the
+     * endpoint doesn't confirm which order numbers exist. */
     @GetMapping("/api/orders/{id}")
-    public OrderDto getOrder(@PathVariable Long id) {
-        return OrderDto.from(orderService.getOrder(id));
+    public OrderDto getOrder(Authentication authentication, @PathVariable Long id) {
+        Order order = orderService.getOrder(id);
+        if (!canSee(authentication, order)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No order " + id);
+        }
+        return OrderDto.from(order);
+    }
+
+    private boolean canSee(Authentication authentication, Order order) {
+        String email = authentication.getName();
+        if (hasRole(authentication, "ROLE_ADMIN")) {
+            return true;
+        }
+        if (hasRole(authentication, "ROLE_VENDOR")) {
+            return vendorRepository.findByEmail(email)
+                    .map(vendor -> vendor.getStall().getId().equals(order.getStall().getId()))
+                    .orElse(false);
+        }
+        return order.getStudent() != null && order.getStudent().getEmail().equals(email);
+    }
+
+    private static boolean hasRole(Authentication authentication, String role) {
+        return authentication.getAuthorities().stream().anyMatch(authority -> authority.getAuthority().equals(role));
     }
 }
