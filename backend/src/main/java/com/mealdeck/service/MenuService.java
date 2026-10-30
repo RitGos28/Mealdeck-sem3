@@ -165,6 +165,17 @@ public class MenuService {
     }
 
     @Transactional
+    public MenuItem updateItemImage(Long stallId, Long itemId, String imageUrl) {
+        MenuItem item = requireItemOnStall(stallId, itemId);
+        item.setImage(imageUrl);
+        return menuItemRepository.save(item);
+    }
+
+    public MenuItem getItemOnStall(Long stallId, Long itemId) {
+        return requireItemOnStall(stallId, itemId);
+    }
+
+    @Transactional
     public void deleteItem(Long stallId, Long itemId) {
         MenuItem item = requireItemOnStall(stallId, itemId);
         menuItemRepository.delete(item);

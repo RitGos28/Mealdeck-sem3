@@ -9,7 +9,7 @@ export default function AdminLoginPage() {
     <AuthCard title="Admin login" subtitle="Manage stalls, menus, vendors, and student accounts.">
       <AuthForm endpoint="/api/auth/admin/login" submitLabel="Log in" redirectTo="/admin">
         <Field label="Email" name="email" type="email" autoComplete="username" required />
-        <Field label="Pasword" name="password" type="password" autoComplete="current-password" required />
+        <Field label="Password" name="password" type="password" autoComplete="current-password" required />
       </AuthForm>
     </AuthCard>
   );

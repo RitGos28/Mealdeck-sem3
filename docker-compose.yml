@@ -47,10 +47,13 @@ services:
       # Sign-up emails; see .env.example. Empty key = codes go to the log.
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       MAIL_FROM: ${MAIL_FROM:-MealDeck <noreply@mealdeck.in>}
+      MEALDECK_UPLOAD_DIR: /app/uploads
       # One JSON object per log line (Elastic Common Schema), so logs can be
       # searched by level, logger or message. Set here, not in
       # application.properties, so ./run.sh and the tests keep plain text.
       LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+    volumes:
+      - uploads_data:/app/uploads
     depends_on:
       mysql:
         condition: service_healthy
@@ -98,3 +101,4 @@ services:
 
 volumes:
   mysql_data:
+  uploads_data:

@@ -8,6 +8,7 @@ import com.mealdeck.model.Vendor;
 import com.mealdeck.repository.VendorRepository;
 import com.mealdeck.service.MenuService;
 import com.mealdeck.service.OrderService;
+import com.mealdeck.service.ImageStorageService;
 import com.mealdeck.web.MenuItemRequests.CreateMenuItemRequest;
 import com.mealdeck.web.MenuItemRequests.UpdateMenuItemRequest;
 import com.mealdeck.web.MenuItemRequests.UpdateStallRequest;
@@ -26,6 +27,8 @@ import java.time.LocalDate;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 /** Everything here is scoped to the caller's own stall, resolved fresh from
@@ -39,11 +42,13 @@ public class VendorController {
     private final VendorRepository vendorRepository;
     private final MenuService menuService;
     private final OrderService orderService;
+    private final ImageStorageService imageStorageService;
 
-    public VendorController(VendorRepository vendorRepository, MenuService menuService, OrderService orderService) {
+    public VendorController(VendorRepository vendorRepository, MenuService menuService, OrderService orderService, ImageStorageService imageStorageService) {
         this.vendorRepository = vendorRepository;
         this.menuService = menuService;
         this.orderService = orderService;
+        this.imageStorageService = imageStorageService;
     }
 
     @GetMapping("/stall")
@@ -67,6 +72,16 @@ public class VendorController {
     public MenuItemDto updateItem(Authentication authentication, @PathVariable Long id, @RequestBody UpdateMenuItemRequest request) {
         MenuItem item = menuService.updateItem(ownStall(authentication).getId(), id, request);
         return MenuItemDto.from(item);
+    }
+
+    @PostMapping(value = "/menu-items/{id}/image", consumes = "multipart/form-data")
+    public MenuItemDto uploadItemImage(Authentication authentication, @PathVariable Long id, @RequestParam("image") MultipartFile image) {
+        Stall stall = ownStall(authentication);
+        MenuItem existing = menuService.getItemOnStall(stall.getId(), id);
+        String oldImage = existing.getImage();
+        MenuItem updated = menuService.updateItemImage(stall.getId(), id, imageStorageService.store(image));
+        imageStorageService.delete(oldImage);
+        return MenuItemDto.from(updated);
     }
 
     @DeleteMapping("/menu-items/{id}")

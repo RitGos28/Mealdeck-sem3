@@ -18,7 +18,10 @@ const nextConfig = {
   // CORS) without a hand-written route handler per backend endpoint — this
   // covers every future mutation (auth, ordering, etc.), not just today's one.
   async rewrites() {
-    return [{ source: "/api/:path*", destination: `${BACKEND_URL}/api/:path*` }];
+    return [
+      { source: "/api/:path*", destination: `${BACKEND_URL}/api/:path*` },
+      { source: "/uploads/:path*", destination: `${BACKEND_URL}/uploads/:path*` },
+    ];
   },
 };
 
