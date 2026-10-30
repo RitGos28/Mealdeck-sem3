@@ -3,6 +3,23 @@
 @theme inline {
   --font-sans: var(--font-body), system-ui, sans-serif;
   --font-display: var(--font-display), var(--font-body), sans-serif;
+  --font-serif: var(--font-serif-face), Georgia, serif;
+}
+
+/* The student redesign's palette: deep green band, white sheet. */
+@theme {
+  --color-deck: #163D29;
+  --color-deck-hover: #1F5137;
+  --color-ink: #14201A;
+  --color-muted: #5C6B62;
+  --color-line: #E6EAE5;
+  --color-field: #DCE2DB;
+  --color-mint: #E3EFE6;
+  --color-mint-ink: #1F4D33;
+  --color-on-deck: #C3DDCB;
+  --color-veg: #1F7A3E;
+  --color-nonveg: #9A3412;
+  --color-danger: #9A3412;
 }
 
 @layer base {

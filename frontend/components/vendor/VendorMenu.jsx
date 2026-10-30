@@ -7,8 +7,9 @@ import { api } from "../../lib/api";
 const inputClass = "w-full rounded-xl border border-[#dbe5d8] bg-white px-3 py-2 text-sm outline-none focus:border-[#477355] focus:ring-2 focus:ring-[#dbead6]";
 const primaryButton = "rounded-xl bg-[#173725] px-3 py-2 text-sm font-semibold text-white hover:bg-[#28543a] disabled:opacity-50";
 
-function MenuItemEditor({ item, onChanged }) {
+function MenuItemEditor({ item, categoriesId, onChanged }) {
   const [name, setName] = useState(item.name);
+  const [category, setCategory] = useState(item.category ?? "");
   const [price, setPrice] = useState(String(item.price));
   const [veg, setVeg] = useState(item.veg);
   const [available, setAvailable] = useState(item.available);
@@ -23,7 +24,7 @@ function MenuItemEditor({ item, onChanged }) {
     try {
       await api(`/api/vendor/menu-items/${item.id}`, {
         method: "PATCH",
-        body: { name, price: Number(price), veg, available },
+        body: { name, price: Number(price), veg, available, category },
       });
       if (imageFile) {
         const formData = new FormData();
@@ -58,6 +59,9 @@ function MenuItemEditor({ item, onChanged }) {
           <input className={`${inputClass} mt-1`} required min="1" step="1" type="number" value={price} onChange={(event) => setPrice(event.target.value)} />
         </label>
       </div>
+      <label className="mt-3 block text-xs font-bold uppercase tracking-wide text-gray-500">Category
+        <input className={`${inputClass} mt-1 normal-case tracking-normal`} list={categoriesId} maxLength={40} placeholder="e.g. Kathi Rolls, Cold Beverages" value={category} onChange={(event) => setCategory(event.target.value)} />
+      </label>
       <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-semibold">
         <label className="flex items-center gap-2"><input type="checkbox" checked={veg} onChange={(event) => setVeg(event.target.checked)} /> Vegetarian</label>
         <label className="flex items-center gap-2"><input type="checkbox" checked={available} onChange={(event) => setAvailable(event.target.checked)} /> Available to order</label>
@@ -73,7 +77,11 @@ function MenuItemEditor({ item, onChanged }) {
 }
 
 export default function VendorMenu({ stall, onChanged }) {
-  const [newItem, setNewItem] = useState({ name: "", price: "", veg: true, imageFile: null });
+  const [newItem, setNewItem] = useState({ name: "", price: "", veg: true, category: "", imageFile: null });
+  // Each distinct category becomes a row on the student menu; suggesting the
+  // existing ones keeps spellings consistent.
+  const categories = [...new Set(stall.items.map((item) => item.category).filter(Boolean))];
+  const categoriesId = `categories-${stall.id}`;
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState(null);
 
@@ -84,14 +92,14 @@ export default function VendorMenu({ stall, onChanged }) {
     try {
       const created = await api("/api/vendor/menu-items", {
         method: "POST",
-        body: { name: newItem.name, price: Number(newItem.price), veg: newItem.veg },
+        body: { name: newItem.name, price: Number(newItem.price), veg: newItem.veg, category: newItem.category },
       });
       if (newItem.imageFile) {
         const formData = new FormData();
         formData.append("image", newItem.imageFile);
         await api(`/api/vendor/menu-items/${created.id}/image`, { method: "POST", formData });
       }
-      setNewItem({ name: "", price: "", veg: true, imageFile: null });
+      setNewItem({ name: "", price: "", veg: true, category: newItem.category, imageFile: null });
       await onChanged();
     } catch (err) {
       setError(err.message);
@@ -115,6 +123,10 @@ export default function VendorMenu({ stall, onChanged }) {
           <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={newItem.veg} onChange={(event) => setNewItem({ ...newItem, veg: event.target.checked })} /> Vegetarian</label>
           <button className={primaryButton} disabled={adding}>{adding ? "Adding…" : "Add item"}</button>
         </div>
+        <label className="mt-3 block text-sm font-semibold text-[#315c3d]">Category <span className="font-normal text-gray-500">(optional — each category is its own row on the menu; type a new name to add one)</span>
+          <input className={`${inputClass} mt-1 font-normal`} list={categoriesId} maxLength={40} placeholder="e.g. Kathi Rolls" value={newItem.category} onChange={(event) => setNewItem({ ...newItem, category: event.target.value })} />
+        </label>
+        <datalist id={categoriesId}>{categories.map((name) => <option key={name} value={name} />)}</datalist>
         <label className="mt-3 block text-sm font-semibold text-[#315c3d]">Dish image <span className="font-normal text-gray-500">(optional)</span>
           <input className="mt-1 block w-full text-sm font-normal file:mr-3 file:rounded-lg file:border-0 file:bg-[#e8f2e3] file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-[#315c3d]" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setNewItem({ ...newItem, imageFile: event.target.files?.[0] ?? null })} />
           <span className="mt-1 block text-xs font-normal text-gray-500">JPEG, PNG, or WebP · maximum 5 MB</span>
@@ -123,7 +135,7 @@ export default function VendorMenu({ stall, onChanged }) {
       </form>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {stall.items.map((item) => <MenuItemEditor key={item.id} item={item} onChanged={onChanged} />)}
+        {stall.items.map((item) => <MenuItemEditor key={item.id} item={item} categoriesId={categoriesId} onChanged={onChanged} />)}
       </div>
       {stall.items.length === 0 && <p className="rounded-2xl bg-white px-5 py-10 text-center text-gray-500">No menu items yet. Add the first item above.</p>}
     </section>

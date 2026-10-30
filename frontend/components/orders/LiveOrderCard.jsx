@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { api, formatInstant, formatTime } from "../../lib/api";
 import { LiveIndicator, useLiveTopic } from "../../lib/liveQueue";
-import { FINAL_STATUSES, StatusBadge } from "../../lib/orderStatus";
+import { FINAL_STATUSES, STATUS_LABELS, STATUS_STYLES } from "../../lib/orderStatus";
 
 // The server renders the order once; after that its stall's live queue
 // keeps the status and place in line current. A finished order drops out
@@ -30,41 +30,45 @@ export default function LiveOrderCard({ initialOrder }) {
   });
 
   return (
-    <article className="rounded-2xl border border-[#e5e7e0] bg-white p-5 shadow-sm">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm text-gray-500">{order.stallName}</p>
-          <p className="font-display text-2xl font-bold">Order #{order.id}</p>
+    <article className="rounded-3xl border border-line bg-white p-5 sm:p-6">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-muted">{order.stallName}</p>
+          <h3 className="font-serif text-3xl leading-tight text-ink">Order #{order.id}</h3>
         </div>
-        <div className="flex flex-col items-end gap-1.5">
-          <StatusBadge status={order.status} />
-          {!final && <LiveIndicator connected={connected} />}
-        </div>
+        {!final && <LiveIndicator connected={connected} />}
       </div>
+
+      <p className="mt-3">
+        <span className={`inline-flex min-h-9 items-center rounded-full px-4 text-base font-semibold ${STATUS_STYLES[order.status] ?? ""}`}>{STATUS_LABELS[order.status] ?? order.status}</span>
+      </p>
+
       {order.noShowAt && (
-        <p className="mb-4 rounded-xl bg-[#dbead6] px-4 py-3 font-semibold text-[#3f6b3a]">
-          Ready now! Collect by {formatInstant(order.noShowAt)} or it&apos;s marked a no-show.
+        <p role="status" className="mt-4 rounded-2xl bg-mint px-4 py-4 text-mint-ink">
+          <span className="block font-serif text-2xl leading-tight">Ready now!</span>
+          <span className="mt-1 block font-semibold">Collect by {formatInstant(order.noShowAt)} or it&apos;s marked a no-show.</span>
         </p>
       )}
       {order.pickupTime && !order.noShowAt && !final && (
-        <p className="mb-4 rounded-xl bg-[#f5faf3] px-4 py-3 text-[#3f6b3a]">
-          Pick up at <span className="font-bold">{formatTime(order.pickupTime)}</span> today
+        <div className="mt-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-1 rounded-2xl border border-line px-4 py-3">
+          <p className="text-sm text-muted">Pick up today at <span className="block text-2xl font-semibold text-ink">{formatTime(order.pickupTime)}</span></p>
           {ahead !== null && (
-            <span className="block text-sm">
-              {ahead === 0 ? "You're next in line at this stall." : `${ahead} order${ahead === 1 ? "" : "s"} ahead of you.`}
-            </span>
+            <p className="text-sm font-semibold text-mint-ink">
+              {ahead === 0 ? "You're next in line" : `${ahead} ahead of you`}
+            </p>
           )}
-        </p>
+        </div>
       )}
-      <ul className="space-y-1.5 text-sm">
+
+      <ul className="mt-4 space-y-1.5 text-sm">
         {order.items.map((item) => (
           <li key={item.menuItemId} className="flex justify-between gap-3">
-            <span>{item.quantity}× {item.menuItemName}</span>
-            <span className="text-gray-500">₹{item.priceAtOrder * item.quantity}</span>
+            <span className="text-ink">{item.quantity}× {item.menuItemName}</span>
+            <span className="text-muted">₹{item.priceAtOrder * item.quantity}</span>
           </li>
         ))}
       </ul>
-      <div className="mt-3 flex justify-between border-t border-[#e5e7e0] pt-3 font-bold"><span>Total</span><span>₹{order.total}</span></div>
+      <div className="mt-3 flex justify-between border-t border-line pt-3 font-semibold text-ink"><span>Total</span><span>₹{order.total}</span></div>
     </article>
   );
 }

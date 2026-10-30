@@ -1,0 +1,147 @@
+stall,category,name,price_inr,veg,confidence,note
+SnapEats,Hot Beverages,Cappuccino,49,veg,high,
+SnapEats,Hot Beverages,Hot Coffee,49,veg,high,
+SnapEats,Hot Beverages,Hot Chocolate,59,veg,high,
+SnapEats,Chai Nagri,Adrak Chai (Cup),10,veg,high,
+SnapEats,Chai Nagri,Adrak Chai (Kulhar),20,veg,high,
+SnapEats,Chai Nagri,Masala Chai (Cup),10,veg,high,
+SnapEats,Chai Nagri,Masala Chai (Kulhar),20,veg,high,
+SnapEats,Sandwiches,Veg Sandwich,69,veg,high,
+SnapEats,Sandwiches,Cheese Sandwich,99,veg,high,
+SnapEats,Sandwiches,Paneer Tikka Sandwich,99,veg,high,Printed as 'Paneer Tikka' under Sandwiches; 'Sandwich' added to disambiguate
+SnapEats,Sandwiches,Chicken Tikka Sandwich,129,non-veg,high,Printed as 'Chicken Tikka' under Sandwiches; 'Sandwich' added to disambiguate from tandoori Chicken Tikka
+SnapEats,Sandwiches,Seekh Kebab Sandwich,129,non-veg,medium,Printed as 'Seekh Kebab' under Sandwiches; meat not stated (assumed chicken/non-veg)
+SnapEats,Burgers,Veg Burger,59,veg,high,
+SnapEats,Burgers,Cheese Burger,69,veg,high,
+SnapEats,Burgers,Peppy Paneer Burger,109,veg,high,
+SnapEats,Burgers,Egg & Mayo Burger,99,non-veg,high,
+SnapEats,Burgers,Chicken Burger,129,non-veg,high,
+SnapEats,Dil Se Tandoori,Malai Paneer Tikka (8 Pcs),249,veg,high,
+SnapEats,Dil Se Tandoori,Malai Soya Chap (8 Pcs),199,veg,high,
+SnapEats,Dil Se Tandoori,Tandoori Mushroom (8 Pcs),199,veg,high,
+SnapEats,Dil Se Tandoori,Chicken Tikka (8 Pcs),299,non-veg,high,
+SnapEats,Dil Se Tandoori,Seekh Kebab - Chicken (8 Pcs),299,non-veg,high,
+SnapEats,Dil Se Tandoori,Seekh Kebab - Mutton (8 Pcs),349,non-veg,medium,Listed twice on the board (both 349); emitted once
+SnapEats,Dil Se Tandoori,"Tandoori Chicken (Half, 4 Pcs)",199,non-veg,high,
+SnapEats,Dil Se Tandoori,"Tandoori Chicken (Full, 8 Pcs)",349,non-veg,high,
+SnapEats,Dil Se Tandoori,Lachha Parantha (1 Pc),59,veg,high,
+SnapEats,Dil Se Tandoori,Garlic Naan,59,veg,high,
+SnapEats,Dil Se Tandoori,Butter Naan,59,veg,high,
+SnapEats,Dil Se Tandoori,Chicken Keema Naan,139,non-veg,high,
+SnapEats,Dil Se Tandoori,Mutton Keema Naan,199,non-veg,high,
+SnapEats,Dil Se Tandoori,Chicken Tangdi (4 Pcs),249,non-veg,high,
+SnapEats,Crispy Snacks,Classic Salted Fries,80,veg,high,
+SnapEats,Crispy Snacks,Peri Peri Fries,99,veg,high,
+SnapEats,Crispy Snacks,Potato Wedges,99,veg,high,
+SnapEats,Crispy Snacks,Sweet Corn,99,veg,high,
+SnapEats,Crispy Snacks,Crispy Corn,129,veg,high,
+SnapEats,Crispy Snacks,Crispy Chicken,159,non-veg,high,
+SnapEats,Crispy Snacks,Macaroni (Veg),99,veg,high,Printed 'Macroni - Veg & Chicken 99/199'
+SnapEats,Crispy Snacks,Macaroni (Chicken),199,non-veg,high,Printed 'Macroni - Veg & Chicken 99/199'
+SnapEats,Crispy Snacks,Pasta (Veg),99,veg,high,Printed 'Pasta - Veg & Chicken 99/199'
+SnapEats,Crispy Snacks,Pasta (Chicken),199,non-veg,high,Printed 'Pasta - Veg & Chicken 99/199'
+SnapEats,Crispy Snacks,Honey Chilly Potato,129,veg,high,
+SnapEats,Crispy Snacks,Veg Manchurian Dry,129,veg,high,
+SnapEats,Crispy Snacks,Chicken Manchurian Dry,249,non-veg,high,
+SnapEats,Crispy Snacks,Chilly Paneer Dry,159,veg,high,
+SnapEats,Crispy Snacks,Chilly Chicken Dry,249,non-veg,high,
+SnapEats,Crispy Snacks,Mushroom Chilly Dry,249,veg,high,
+SnapEats,Soups (Winter Edition),Tomato Soup,79,veg,high,
+SnapEats,Soups (Winter Edition),Vegetable Soup,79,veg,high,
+SnapEats,Soups (Winter Edition),Manchow Soup,99,veg,medium,Manchow can be veg or chicken; assumed veg
+SnapEats,Soups (Winter Edition),Chicken Soup,119,non-veg,high,
+SnapEats,Packaged Drinks,Canned Beverages,,veg,medium,Price printed as MRP (varies by product); listed under the Soups section
+SnapEats,Packaged Drinks,Bottled Water,,veg,medium,Price printed as MRP; listed under the Soups section
+SnapEats,Dimsums & Cigar Spring Rolls,Veg Momos (8 Pcs) (Steamed),99,veg,high,
+SnapEats,Dimsums & Cigar Spring Rolls,Veg Momos (8 Pcs) (Fried),119,veg,high,
+SnapEats,Dimsums & Cigar Spring Rolls,Paneer Momos (8 Pcs) (Steamed),119,veg,high,
+SnapEats,Dimsums & Cigar Spring Rolls,Paneer Momos (8 Pcs) (Fried),129,veg,high,
+SnapEats,Dimsums & Cigar Spring Rolls,Chicken Momos (8 Pcs) (Steamed),129,non-veg,high,
+SnapEats,Dimsums & Cigar Spring Rolls,Chicken Momos (8 Pcs) (Fried),139,non-veg,high,
+SnapEats,Dimsums & Cigar Spring Rolls,Veg Cigar Rolls,119,veg,high,
+SnapEats,Dimsums & Cigar Spring Rolls,Chicken Cigar Rolls,139,non-veg,high,
+SnapEats,Street Flavours,Pao Bhaji,70,veg,high,
+SnapEats,Street Flavours,Chole Bhature,89,veg,high,
+SnapEats,Street Flavours,Paneer Bread Pakora,49,veg,high,
+SnapEats,Street Flavours,Classic Bread Omelette,79,non-veg,high,Printed 'Omellette'
+SnapEats,Street Flavours,Cheese Bread Omelette,99,non-veg,high,Printed 'Omellete'
+SnapEats,Street Flavours,Chicken Bread Omelette,129,non-veg,high,Printed 'Omellete'
+SnapEats,Street Flavours,Vada Pao,49,veg,high,
+SnapEats,Street Flavours,Boiled Chicken,199,non-veg,high,
+SnapEats,Street Flavours,Chicken Salad,249,non-veg,high,
+SnapEats,Cold Beverages,Cold Coffee,85,veg,high,
+SnapEats,Cold Beverages,Iced Americano,85,veg,high,
+SnapEats,Cold Beverages,Iced Cappuccino,85,veg,high,
+SnapEats,Cold Beverages,Coffee Frappe,85,veg,high,
+SnapEats,Cold Beverages,Mocha Frappe,85,veg,high,
+SnapEats,Cold Beverages,Hazel Frappe,85,veg,high,
+SnapEats,Cold Beverages,Oreo Frappe,85,veg,high,
+SnapEats,Cold Beverages,Fresh Lime Soda,85,veg,high,
+SnapEats,Cold Beverages,Green Apple Soda,85,veg,high,
+SnapEats,Cold Beverages,Green Iced Tea,85,veg,high,
+SnapEats,Cold Beverages,Masala Lemonade,85,veg,high,
+SnapEats,Cold Beverages,Mint Mojito,85,veg,high,
+SnapEats,Cold Beverages,Blue Lagoon,85,veg,high,
+SnapEats,Cold Beverages,Imli Banta,85,veg,high,
+SnapEats,Cold Beverages,Kala Khatta,85,veg,high,
+SnapEats,Cold Beverages,Guava Chilli,85,veg,high,
+SnapEats,Cold Beverages,Pineapple Shake,85,veg,high,
+SnapEats,Cold Beverages,Strawberry Shake,85,veg,high,
+SnapEats,Cold Beverages,Choco Shake,85,veg,high,
+SnapEats,Cold Beverages,Rich Mango Shake,85,veg,high,
+SnapEats,Cold Beverages,O-O-Oreo Shake,85,veg,high,Printed 'O-O- Oreo Shake'
+SnapEats,Cold Beverages,Butterscotch Shake,85,veg,high,Printed 'Butter Scotch Shake'
+SnapEats,Cold Beverages,KitKat Shake,85,veg,high,
+SnapEats,Cold Beverages,Chocolate Almond Shake,85,veg,high,
+SnapEats,Cold Beverages,Brownie Blast Shake,85,veg,high,
+SnapEats,Veg Kathi Rolls,Veg Kathi Roll,99,veg,high,
+SnapEats,Veg Kathi Rolls,Paneer Kathi Roll,119,veg,high,
+SnapEats,Veg Kathi Rolls,Paneer Makhani Roll,139,veg,high,
+SnapEats,Veg Kathi Rolls,Paneer Schezwan Roll,129,veg,high,
+SnapEats,Veg Kathi Rolls,Paneer Shawarma Roll,99,veg,high,Printed 'Paneer Shwarma Roll'
+SnapEats,Veg Kathi Rolls,Noodle Roll,89,veg,high,
+SnapEats,Veg Kathi Rolls,Soya Chap Roll,89,veg,high,
+SnapEats,Veg Kathi Rolls,Creamy Soya Roll,99,veg,high,
+SnapEats,Non Veg Kathi Rolls,Egg Roll,89,non-veg,high,
+SnapEats,Non Veg Kathi Rolls,Chicken Tikka Roll,149,non-veg,high,
+SnapEats,Non Veg Kathi Rolls,Chicken Achari Roll,129,non-veg,high,
+SnapEats,Non Veg Kathi Rolls,Chicken Egg Roll,169,non-veg,high,
+SnapEats,Non Veg Kathi Rolls,Chicken Shawarma Roll,159,non-veg,high,
+SnapEats,Non Veg Kathi Rolls,Chicken Kebab Roll,129,non-veg,high,
+SnapEats,Non Veg Kathi Rolls,Mutton Kebab Roll,189,non-veg,high,
+SnapEats,Non Veg Kathi Rolls,Noodle Egg Roll,109,non-veg,high,
+SnapEats,Continental,White Pasta,99,veg,high,
+SnapEats,Continental,Red Pasta,99,veg,high,
+SnapEats,Continental,Mix Pasta,99,veg,high,Printed 'Mix Paste'
+SnapEats,Continental,Cheese Pasta,139,veg,high,
+SnapEats,Continental,Chicken Pasta,149,non-veg,high,Printed 'Chicken Pasa'
+SnapEats,Classic Indian Combos,Aloo Pyaz Parantha with Curd & Pickle,90,veg,high,
+SnapEats,Classic Indian Combos,Paneer Parantha with Curd & Pickle,99,veg,high,
+SnapEats,Classic Indian Combos,Egg Parantha with Curd & Pickle,119,non-veg,medium,Price partly under tape; reads 119
+SnapEats,Classic Indian Combos,Chicken Keema Parantha with Curd & Pickle,139,non-veg,high,
+SnapEats,Classic Indian Combos,Veg Combo with Rice,89,veg,high,"Choice of Rajma / Chole / Kadhi / Soya Chap, same price"
+SnapEats,Classic Indian Combos,Rice & Egg Curry Combo,149,non-veg,medium,Price under tape; reads 149
+SnapEats,Classic Indian Combos,Rice & Paneer Combo,149,veg,high,
+SnapEats,Classic Indian Combos,Chicken Curry (2 Pcs) with Rice / Parantha / Naan,159,non-veg,high,"Choice of rice, parantha or naan, same price"
+SnapEats,Classic Indian Combos,Mutton Curry (2 Pcs) with Rice / Parantha / Naan,259,non-veg,high,"Choice of rice, parantha or naan, same price"
+SnapEats,Classic Indian Combos,Chicken Biryani with Salan (Serves 2),299,non-veg,medium,Price half-covered by a sticker; reads 299. Printed 'Sallan'
+SnapEats,Classic Indian Combos,Premium Thali (Veg),199,veg,high,
+SnapEats,Classic Indian Combos,Premium Thali (Non Veg),299,non-veg,high,
+SnapEats,Classic Indian Combos,Hakka Noodles + Chilly Paneer Gravy,249,veg,high,
+SnapEats,Classic Indian Combos,Hakka Noodles + Veg Manchurian Gravy,249,veg,high,
+SnapEats,Classic Indian Combos,Hakka Noodles + Chilly Chicken Gravy,299,non-veg,high,
+SnapEats,Classic Indian Combos,Hakka Noodles + Chicken Manchurian Gravy,299,non-veg,medium,Price partly under tape; reads 299
+SnapEats,Classic Indian Combos,Fried Rice + Chilly Paneer Gravy,249,veg,low,Middle digit hidden under torn tape ('2?9'); 249 assumed to match Hakka Noodles + Chilly Paneer Gravy
+SnapEats,Classic Indian Combos,Fried Rice + Veg Manchurian Gravy,249,veg,high,Printed 'Fries Rice'
+SnapEats,Classic Indian Combos,Fried Rice + Chilly Chicken Gravy,299,non-veg,high,
+SnapEats,Classic Indian Combos,Fried Rice + Chicken Manchurian Gravy,299,non-veg,high,
+SnapEats,Classic Indian Combos,Fried Rice (Veg),149,veg,medium,Second price partly under tape; reads 149/249
+SnapEats,Classic Indian Combos,Fried Rice (Chicken),249,non-veg,medium,Second price partly under tape; reads 149/249
+SnapEats,Classic Indian Combos,Hakka Noodles (Veg),149,veg,medium,Second price partly under tape; reads 149/249
+SnapEats,Classic Indian Combos,Hakka Noodles (Chicken),249,non-veg,medium,Second price partly under tape; reads 149/249
+SnapEats,Classic Indian Combos,Schezwan Fried Rice + Hot Garlic Paneer,249,veg,high,
+SnapEats,Classic Indian Combos,Schezwan Fried Rice + Chilly Chicken Gravy,299,non-veg,high,
+SnapEats,Classic Indian Combos,Schezwan Fried Rice + Chicken Manchurian,299,non-veg,high,
+SnapEats,Classic Indian Combos,Chicken Lollipop (4 Pcs),299,non-veg,high,Listed at the end of Classic Indian Combos
+SnapEats,Classic Indian Combos,Chinese Platter (Veg),249,veg,high,
+SnapEats,Classic Indian Combos,Chinese Platter (Non Veg),349,non-veg,high,

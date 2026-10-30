@@ -6,11 +6,13 @@ import java.math.BigDecimal;
  * same reasoning as AuthDtos. */
 public class MenuItemRequests {
 
-    public record CreateMenuItemRequest(String name, BigDecimal price, boolean veg) {
+    /** `category` is optional: null or blank means no category. */
+    public record CreateMenuItemRequest(String name, BigDecimal price, boolean veg, String category) {
     }
 
-    /** Any field left null on an update is left unchanged. */
-    public record UpdateMenuItemRequest(String name, BigDecimal price, Boolean veg, Boolean available) {
+    /** Any field left null on an update is left unchanged; a blank
+     * `category` clears it. */
+    public record UpdateMenuItemRequest(String name, BigDecimal price, Boolean veg, Boolean available, String category) {
     }
 
     public record UpdateStallRequest(java.time.LocalTime openTime, java.time.LocalTime closeTime, Boolean closedToday, Integer slotCapacity, Boolean ordersPaused) {
