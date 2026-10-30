@@ -167,7 +167,7 @@ export default function MenuExperience({ stalls, demoMode }) {
             {visibleStalls.map((stall) => <MenuSection key={stall.id} stall={stall} demoMode={demoMode} onAddToCart={addToCart} />)}
             {visibleStalls.length === 0 && <div className="rounded-2xl border border-dashed border-[#cbdac6] bg-white px-6 py-12 text-center"><p className="font-display text-lg font-bold">No dishes found</p><p className="mt-1 text-sm text-gray-500">Try another search term or browse all stalls.</p><button className="mt-4 text-sm font-semibold text-[#356b42] underline underline-offset-4" onClick={() => setSearch("")}>Clear search</button></div>}
           </div>
-          <div id="bag" ref={bagRef} className="scroll-mt-4 lg:mt-[61px]">
+          <div id="bag" ref={bagRef} className="scroll-mt-4 lg:mt-40">
             {checkingOut && cartItems.length > 0 && user?.role === "STUDENT"
               ? <Checkout cartItems={cartItems} total={total} user={user} onBack={() => setCheckingOut(false)} onPlaced={handlePlaced} />
               : <Cart cartItems={cartItems} itemCount={itemCount} total={total} changeQuantity={changeQuantity} onCheckout={() => setCheckingOut(true)} demoMode={demoMode} user={user} />}
