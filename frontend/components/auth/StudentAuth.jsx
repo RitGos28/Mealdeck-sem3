@@ -6,8 +6,9 @@ import AuthForm from "./AuthForm";
 import Field from "./Field";
 import StudentSignup from "./StudentSignup";
 
-export default function StudentAuth({ next }) {
-  const [mode, setMode] = useState("login");
+// initialMode "reset" opens straight on "Forgot password" (/login?mode=forgot).
+export default function StudentAuth({ next, initialMode = "login" }) {
+  const [mode, setMode] = useState(initialMode);
   const tab = (value, label) => (
     <button
       type="button"

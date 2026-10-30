@@ -36,6 +36,10 @@ public class MenuItem {
 
     private String image;
 
+    /** Free-text group on the menu ("Kathi Rolls", "Cold Beverages"); null = none. */
+    @Column(length = 40)
+    private String category;
+
     protected MenuItem() {
     }
 
@@ -100,5 +104,13 @@ public class MenuItem {
 
     public void setImage(String image) {
         this.image = image;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 }

@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, formatTime, toSlotValue } from "../../lib/api";
 import { LiveIndicator, useLiveTopic } from "../../lib/liveQueue";
+import { readPreferredPickup } from "../student/PickupChips";
 
 // A cart spanning stalls becomes one order per stall on the backend, each
 // with its own pickup slot -- so the slot picker is per stall too.
@@ -56,6 +57,17 @@ function dropUnbookable(slotsByStall, setPicked, setNotices) {
   });
 }
 
+// The slot to pre-select from the menu's pickup preference: "ASAP" is the
+// first slot with room; a time is that slot if it has room, else the first
+// one after it that does.
+function preferredSlot(slots, preferred) {
+  const open = slots.filter((slot) => !slot.full);
+  const choice = preferred === "ASAP"
+    ? open[0]
+    : open.find((slot) => toSlotValue(slot.time) === preferred) ?? open.find((slot) => toSlotValue(slot.time) >= preferred);
+  return choice ? toSlotValue(choice.time) : null;
+}
+
 export default function Checkout({ cartItems, total, user, onBack, onPlaced }) {
   const router = useRouter();
   const stalls = useMemo(() => groupByStall(cartItems), [cartItems]);
@@ -65,6 +77,9 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced }) {
   const [pausedStalls, setPausedStalls] = useState({});
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState(null);
+  // Stalls already pre-selected once. Later reloads (reconnects, a 409)
+  // leave an empty pick empty, so a dropped time is never swapped silently.
+  const prefilled = useRef(new Set());
 
   // The queue snapshot, not just /slots: it also says whether the stall has
   // paused orders, so a row of "Full" slots can be explained.
@@ -75,6 +90,20 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced }) {
     setPausedStalls(Object.fromEntries(results.map(([stallId, snapshot]) => [stallId, Boolean(snapshot?.ordersPaused)])));
     setSlotsByStall(next);
     dropUnbookable(next, setPicked, setNotices);
+    const preferred = readPreferredPickup();
+    const prefills = {};
+    for (const [stallId, snapshot] of results) {
+      if (prefilled.current.has(String(stallId)) || !snapshot?.slots || snapshot.ordersPaused) continue;
+      prefilled.current.add(String(stallId));
+      const value = preferredSlot(snapshot.slots, preferred);
+      if (value) prefills[stallId] = value;
+    }
+    if (Object.keys(prefills).length > 0) {
+      setPicked((current) => {
+        const fill = Object.fromEntries(Object.entries(prefills).filter(([stallId]) => !current[stallId]));
+        return Object.keys(fill).length > 0 ? { ...current, ...fill } : current;
+      });
+    }
   }), [stalls]);
 
   function updateFromSnapshot(stallId, snapshot) {
@@ -123,29 +152,29 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced }) {
   }
 
   return (
-    <aside className="h-fit rounded-2xl border border-[#e5e7e0] bg-white p-5 shadow-sm lg:sticky lg:top-6">
+    <aside aria-labelledby="checkout-heading" className="h-fit bg-white text-ink lg:rounded-3xl lg:border lg:border-line lg:p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-display text-xl font-bold">Checkout</h2>
-        <button className="text-sm font-semibold text-gray-500 hover:text-[#12180f]" onClick={onBack}>← Cart</button>
+        <h2 id="checkout-heading" className="font-serif text-[22px]">Checkout</h2>
+        <button type="button" className="-mr-2 flex h-11 items-center rounded-full px-3 text-sm font-semibold text-muted hover:bg-[#F4F6F3] hover:text-ink" onClick={onBack}><span aria-hidden="true">←&nbsp;</span>Bag</button>
       </div>
-      <form className="space-y-5" onSubmit={placeOrder}>
+      <form className="space-y-6" onSubmit={placeOrder}>
         {stalls.map(({ stallId, stallName, entries }) => {
           const slots = slotsByStall[stallId];
           return (
             <section key={stallId}>
-              <h3 className="text-sm font-bold">{stallName}</h3>
-              <p className="mb-2 text-xs text-gray-500">{entries.map((e) => `${e.quantity}× ${e.item.name}`).join(", ")}</p>
+              <h3 className="font-serif text-lg">{stallName}</h3>
+              <p className="mb-3 text-sm text-muted">{entries.map((e) => `${e.quantity}× ${e.item.name}`).join(", ")}</p>
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Pickup time</p>
+                <p className="text-xs font-semibold tracking-[.04em] text-muted uppercase">Pickup time</p>
                 <LiveSlots stallId={stallId} onSnapshot={updateFromSnapshot} onConnect={loadSlots} />
               </div>
-              {pausedStalls[stallId] && <p className="mb-2 rounded-lg bg-[#fbe9e7] px-3 py-2 text-xs font-semibold text-[#9a4a3f]" role="status">{stallName} has paused new orders for now. This updates live when they resume.</p>}
-              {notices[stallId] && !pausedStalls[stallId] && <p className="mb-2 rounded-lg bg-[#fbe9e7] px-3 py-2 text-xs font-semibold text-[#9a4a3f]" role="status">{notices[stallId]}</p>}
-              {slots === undefined && <p className="text-sm text-gray-500">Loading slots…</p>}
-              {slots === null && <p className="text-sm text-[#9a4a3f]">Couldn&apos;t load pickup slots.</p>}
-              {slots?.length === 0 && <p className="rounded-xl bg-[#f4f6f2] px-3 py-2.5 text-sm text-gray-500">No pickup slots left today at {stallName}.</p>}
+              {pausedStalls[stallId] && <p className="mb-2 rounded-xl bg-[#FBEDE6] px-3 py-2 text-xs font-semibold text-danger" role="status">{stallName} has paused new orders for now. This updates live when they resume.</p>}
+              {notices[stallId] && !pausedStalls[stallId] && <p className="mb-2 rounded-xl bg-[#FBEDE6] px-3 py-2 text-xs font-semibold text-danger" role="status">{notices[stallId]}</p>}
+              {slots === undefined && <p className="text-sm text-muted">Loading slots…</p>}
+              {slots === null && <p className="text-sm text-danger">Couldn&apos;t load pickup slots.</p>}
+              {slots?.length === 0 && <p className="rounded-xl bg-[#F4F6F3] px-3 py-2.5 text-sm text-muted">No pickup slots left today at {stallName}.</p>}
               {slots?.length > 0 && (
-                <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 lg:max-h-52 lg:grid-cols-3 lg:overflow-y-auto lg:pr-1">
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:max-h-56 lg:grid-cols-3 lg:overflow-y-auto lg:p-0.5">
                   {slots.map((slot) => {
                     const value = toSlotValue(slot.time);
                     const selected = picked[stallId] === value;
@@ -156,11 +185,11 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced }) {
                         aria-pressed={selected}
                         disabled={slot.full}
                         onClick={() => pick(stallId, value)}
-                        className={`rounded-lg border px-1 py-2.5 text-xs lg:py-1.5 font-semibold transition-colors disabled:cursor-not-allowed disabled:border-[#f0f0ee] disabled:bg-[#f4f6f2] disabled:text-gray-400 ${selected ? "border-[#0f2419] bg-[#0f2419] text-white" : "border-[#e5e7e0] hover:border-[#3f6b3a]"}`}
+                        className={`flex min-h-12 flex-col items-center justify-center rounded-xl border px-1 py-1.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:border-line disabled:bg-[#F4F6F3] disabled:text-[#9AA59E] ${selected ? "border-deck bg-deck text-white" : "border-field text-ink hover:border-deck hover:bg-mint"}`}
                       >
                         {formatTime(slot.time)}
-                        <span className={`block text-[10px] font-medium ${selected ? "text-white/70" : "text-gray-400"}`}>
-                          {pausedStalls[stallId] ? "Paused" : slot.full ? "Full" : `${slot.booked}/${slot.capacity}`}
+                        <span className={`block text-[11px] font-medium ${selected ? "text-white/75" : "text-muted"}`}>
+                          {pausedStalls[stallId] ? "Paused" : slot.full ? "Full" : `${slot.capacity - slot.booked} left`}
                         </span>
                       </button>
                     );
@@ -171,16 +200,16 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced }) {
           );
         })}
 
-        <p className="border-t border-[#e5e7e0] pt-4 text-sm text-gray-500">
-          Ordering as <span className="font-semibold text-[#12180f]">{user.email}</span>. The stall sees your name and your phone number, or your email if you didn&apos;t add one.
+        <p className="border-t border-line pt-4 text-sm text-muted">
+          Ordering as <span className="font-semibold text-ink">{user.email}</span>. The stall sees your name and your phone number, or your email if you didn&apos;t add one.
         </p>
 
-        {error && <p className="rounded-xl bg-[#fbe9e7] px-3 py-2.5 text-sm text-[#9a4a3f]" role="alert">{error}</p>}
+        {error && <p className="rounded-xl bg-[#FBEDE6] px-3 py-2.5 text-sm text-danger" role="alert">{error}</p>}
 
         <div>
-          <div className="mb-1 flex justify-between font-bold"><span>Total</span><span>₹{total}</span></div>
-          <p className="mb-3 text-xs text-gray-500">Pay at the counter when you pick up (cash or UPI). Collect within 15 minutes of it being ready, or it&apos;s marked a no-show.</p>
-          <button className="w-full rounded-xl bg-[#0f2419] py-3 text-sm font-semibold text-white transition-colors hover:bg-[#1a3827] disabled:cursor-not-allowed disabled:opacity-50" disabled={!ready || placing}>
+          <div className="mb-1 flex justify-between text-base font-semibold"><span>Total</span><span>₹{total}</span></div>
+          <p className="mb-3 text-xs text-muted">Pay at the counter when you pick up (cash or UPI). Collect within 15 minutes of it being ready, or it&apos;s marked a no-show.</p>
+          <button className="flex h-12 w-full items-center justify-center rounded-full bg-deck text-[15px] font-semibold text-white transition-colors hover:bg-deck-hover disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-deck" disabled={!ready || placing}>
             {placing ? "Placing order…" : ready ? "Place pre-order" : "Pick a pickup time"}
           </button>
         </div>

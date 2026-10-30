@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import Header from "../components/layout/Header";
-import MenuSection from "../components/menu/MenuSection";
-import Cart from "../components/cart/Cart";
-import Checkout from "../components/checkout/Checkout";
-import { useCurrentUser } from "../lib/useCurrentUser";
+import MenuSection from "./menu/MenuSection";
+import Cart from "./cart/Cart";
+import Checkout from "./checkout/Checkout";
+import StudentShell from "./student/StudentShell";
+import PickupChips from "./student/PickupChips";
+import OrderAgain from "./student/OrderAgain";
 
 // The bag survives the trip to /login and back (ordering needs a login),
 // but only for this tab. Storage can be unavailable (private mode, blocked
@@ -52,25 +53,196 @@ const DISH_IMAGE_KEYWORDS = [
   ["shake", "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=800&q=80"],
 ];
 
+// The vendor's own photo, else a stock photo matched on the dish name. No
+// match gives null, so the row shows an initials tile rather than a random
+// dish that might not be what's served.
 function imageForDish(item) {
   if (item.image) return item.image;
   const name = item.name.trim().toLowerCase();
   if (DISH_IMAGES[name]) return DISH_IMAGES[name];
-  return DISH_IMAGE_KEYWORDS.find(([keyword]) => name.includes(keyword))?.[1]
-    ?? "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=800&q=80";
+  return DISH_IMAGE_KEYWORDS.find(([keyword]) => name.includes(keyword))?.[1] ?? null;
 }
 
-// True while the element is on screen, so the phone's "View bag" bar can
-// step aside once the bag itself is visible.
-function useOnScreen(ref) {
-  const [onScreen, setOnScreen] = useState(false);
+// Wide screens (lg+) keep the bag in a sticky column beside the menu;
+// narrower ones open it as a bottom sheet. The server snapshot says
+// "desktop" so the column is in the first HTML (CSS hides it on phones)
+// and the bag is only ever rendered once, so Checkout isn't doubled.
+const DESKTOP_QUERY = "(min-width: 1024px)";
+
+function subscribeDesktop(onChange) {
+  const query = window.matchMedia(DESKTOP_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+function useIsDesktop() {
+  return useSyncExternalStore(subscribeDesktop, () => window.matchMedia(DESKTOP_QUERY).matches, () => true);
+}
+
+// Campus time of day, whatever the device's time zone.
+function greeting() {
+  const hour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", hourCycle: "h23" }).format(new Date()));
+  if (hour >= 5 && hour < 12) return "Good morning";
+  if (hour >= 12 && hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+// The phone/tablet bag: a modal bottom sheet. Focus moves in on open, stays
+// inside while open (Tab wraps), and returns to the bag button on close.
+function BagSheet({ onClose, children }) {
+  const panelRef = useRef(null);
+  const onCloseRef = useRef(onClose);
   useEffect(() => {
-    if (!ref.current || typeof IntersectionObserver === "undefined") return;
-    const observer = new IntersectionObserver(([entry]) => setOnScreen(entry.isIntersecting));
-    observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [ref]);
-  return onScreen;
+    onCloseRef.current = onClose;
+  });
+
+  useEffect(() => {
+    const opener = document.activeElement;
+    const panel = panelRef.current;
+    panel?.focus();
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab" || !panel) return;
+      const focusable = [...panel.querySelectorAll(FOCUSABLE)];
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === panel)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = overflow;
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+    };
+  }, []);
+
+  return (
+    <div className="fixed inset-0 z-30 flex items-end justify-center">
+      <div className="absolute inset-0 bg-[#0B1F14]/50" onClick={onClose} aria-hidden="true" />
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Your bag" tabIndex={-1} className="relative max-h-[85vh] w-full overflow-y-auto overscroll-contain rounded-t-3xl bg-white px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-ink outline-none md:max-w-xl md:px-8">
+        <div className="sticky top-0 z-10 -mx-5 flex items-center justify-between bg-white px-5 pt-2 pb-1 md:-mx-8 md:px-8">
+          <span className="mx-auto h-1 w-10 rounded-full bg-field" aria-hidden="true" />
+          <button type="button" onClick={onClose} aria-label="Close bag" className="absolute top-1.5 right-3 flex size-11 items-center justify-center rounded-full text-2xl text-muted hover:bg-[#F4F6F3] hover:text-ink md:right-6">×</button>
+        </div>
+        <div className="pt-3">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function VegToggle({ vegOnly, onChange }) {
+  const option = (active) => `h-10 rounded-full px-4 text-[13px] transition-colors focus-visible:outline-white ${active ? "bg-white font-semibold text-deck" : "font-medium text-on-deck hover:text-white"}`;
+  return (
+    <div role="group" aria-label="Diet" className="flex rounded-full bg-white/12 p-0.5">
+      <button type="button" aria-pressed={!vegOnly} onClick={() => onChange(false)} className={option(!vegOnly)}>All</button>
+      <button type="button" aria-pressed={vegOnly} onClick={() => onChange(true)} className={option(vegOnly)}>Veg</button>
+    </div>
+  );
+}
+
+const SORTS = [["relevance", "Relevance"], ["price-asc", "Price: low to high"], ["price-desc", "Price: high to low"]];
+const DIETS = [["all", "All"], ["veg", "Veg only"], ["nonveg", "Non-veg"]];
+const KINDS = [["all", "Everything"], ["food", "Food"], ["drinks", "Drinks"]];
+
+// Drinks are told apart by their category ("Cold Beverages", "Chai Nagri"),
+// or by the dish name when the stall hasn't set one.
+const DRINK_WORDS = /beverage|drink|shake|juice|coffee|chai|\btea\b|soda|lassi|mojito|smoothie|cooler|frappe|lemonade|water|cola|coke|pepsi|sprite|latte|cappuccino|espresso|milk/i;
+function isDrink(item) {
+  return DRINK_WORDS.test(item.category ?? "") || (!item.category && DRINK_WORDS.test(item.name));
+}
+
+function SearchField({ value, onChange, onBand = false }) {
+  return (
+    <label className={`flex h-11 items-center gap-2.5 rounded-xl px-3.5 ${onBand ? "bg-white/12 focus-within:ring-2 focus-within:ring-white" : "border border-field bg-white focus-within:border-deck focus-within:ring-2 focus-within:ring-mint"}`}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className={`shrink-0 ${onBand ? "text-on-deck" : "text-muted"}`} aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg>
+      <span className="sr-only">Search the menu</span>
+      <input type="search" className={`min-w-0 flex-1 bg-transparent text-base outline-none focus-visible:outline-none sm:text-[15px] [&::-webkit-search-cancel-button]:hidden ${onBand ? "text-white placeholder:text-[#B9D3C1]" : "text-ink placeholder:text-muted"}`} value={value} onChange={(event) => onChange(event.target.value)} placeholder="Search dishes or drinks" />
+      {value && <button type="button" className={`-mr-2 flex size-9 shrink-0 items-center justify-center rounded-full text-lg ${onBand ? "text-on-deck hover:bg-white/10 hover:text-white focus-visible:outline-white" : "text-muted hover:bg-mint hover:text-ink"}`} onClick={() => onChange("")} aria-label="Clear search">×</button>}
+    </label>
+  );
+}
+
+// A labelled list of options where exactly one is chosen.
+function ChoiceList({ label, options, value, onChange }) {
+  return (
+    <fieldset>
+      <legend className="mb-1.5 text-xs font-semibold tracking-[.04em] text-muted uppercase">{label}</legend>
+      {options.map(([id, text]) => (
+        <label key={id} className="flex min-h-8 cursor-pointer items-center gap-2.5 rounded-lg px-2 text-[13px] hover:bg-white">
+          <input type="radio" name={label} value={id} checked={value === id} onChange={() => onChange(id)} className="size-4 accent-[#163D29]" />
+          <span className={value === id ? "font-semibold text-ink" : "text-ink"}>{text}</span>
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
+// Wide screens only: search, pickup time, filters and the stalls, in a
+// sticky column beside the menu.
+function SidePanel({ greetingText, stalls, menuStalls, demoMode, openCount, search, onSearch, diet, onDiet, kind, onKind, sort, onSort }) {
+  return (
+    <aside aria-label="Filters" className="sticky top-5 max-h-[calc(100vh-2.5rem)] space-y-5 overflow-y-auto rounded-2xl bg-[#F4F6F3] p-4 text-[13px]">
+      <div>
+        <h1 className="font-serif text-[22px] leading-tight" suppressHydrationWarning>{greetingText}</h1>
+        <p className="mt-0.5 text-muted">{openCount === 0 ? "No stalls open right now" : `${openCount} stall${openCount === 1 ? "" : "s"} open`} · pick up between classes</p>
+      </div>
+      <SearchField value={search} onChange={onSearch} />
+      <div>
+        <p className="mb-2 text-xs font-semibold tracking-[.04em] text-muted uppercase">Pickup time</p>
+        <PickupChips stalls={stalls} variant="panel" />
+        <p className="mt-2 text-xs text-muted">We pre-select this time at checkout.</p>
+      </div>
+      <ChoiceList label="Show" options={KINDS} value={kind} onChange={onKind} />
+      <ChoiceList label="Diet" options={DIETS} value={diet} onChange={onDiet} />
+      <ChoiceList label="Sort by" options={SORTS} value={sort} onChange={onSort} />
+      <StallNav stalls={menuStalls} demoMode={demoMode} />
+    </aside>
+  );
+}
+
+// Wide screens only: a sticky list of stalls that jumps to each menu, with
+// what's happening at each one.
+function StallNav({ stalls, demoMode }) {
+  return (
+    <nav aria-label="Stalls">
+      <p className="mb-2 text-xs font-semibold tracking-[.04em] text-muted uppercase">Stalls</p>
+      <ul className="space-y-1">
+        {stalls.map((stall) => {
+          const status = stall.closedToday ? "Closed today" : stall.ordersPaused ? "Paused" : !demoMode && !stall.open ? "Closed now" : "Open";
+          const live = status === "Open";
+          return (
+            <li key={stall.id}>
+              <a href={`#menu-${stall.id}`} className="flex min-h-10 items-center justify-between gap-2 rounded-xl px-2 py-2 hover:bg-white">
+                <span className="min-w-0">
+                  <span className="block truncate font-serif text-[15px] leading-tight">{stall.name}</span>
+                  <span className={`flex items-center gap-1.5 text-xs ${live ? "text-deck" : "text-muted"}`}>
+                    <span className={`size-1.5 rounded-full ${live ? "bg-veg" : stall.ordersPaused ? "bg-danger" : "bg-field"}`} aria-hidden="true" />{status}
+                  </span>
+                </span>
+                <span className="shrink-0 text-xs text-muted">{stall.items.length}</span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
 }
 
 export default function MenuExperience({ stalls, demoMode }) {
@@ -78,9 +250,13 @@ export default function MenuExperience({ stalls, demoMode }) {
   const [cart, setCart] = useState({});
   const [cartLoaded, setCartLoaded] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
-  const [user] = useCurrentUser();
-  const bagRef = useRef(null);
-  const bagOnScreen = useOnScreen(bagRef);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [diet, setDiet] = useState("all");
+  const [sort, setSort] = useState("relevance");
+  const [kind, setKind] = useState("all");
+  const vegOnly = diet === "veg";
+  const isDesktop = useIsDesktop();
 
   // Read after mount, not in useState: the server render has no storage.
   useEffect(() => {
@@ -91,25 +267,34 @@ export default function MenuExperience({ stalls, demoMode }) {
   useEffect(() => {
     if (cartLoaded) saveCart(cart);
   }, [cart, cartLoaded]);
-  const [search, setSearch] = useState("");
-  const menuStalls = stalls.map((stall) => ({
+
+  const menuStalls = useMemo(() => stalls.map((stall) => ({
     ...stall,
     items: stall.items.map((item) => ({
       ...item,
       image: imageForDish(item),
     })),
-  }));
+  })), [stalls]);
+
+  // Demo data has no hours, so every sample stall counts as open.
+  const openCount = demoMode
+    ? stalls.length
+    : stalls.filter((stall) => stall.open && !stall.ordersPaused && !stall.closedToday).length;
 
   const cartItems = useMemo(() => Object.values(cart), [cart]);
   const itemCount = cartItems.reduce((count, entry) => count + entry.quantity, 0);
   const total = cartItems.reduce((sum, entry) => sum + entry.item.price * entry.quantity, 0);
+  const query = search.trim().toLowerCase();
+  const filtering = Boolean(query) || diet !== "all" || kind !== "all";
   const visibleStalls = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return menuStalls;
+    const matches = (item) => (diet === "all" || (diet === "veg") === item.veg)
+      && (kind === "all" || (kind === "drinks") === isDrink(item))
+      && item.name.toLowerCase().includes(query);
+    const order = (items) => sort === "relevance" ? items : [...items].sort((a, b) => sort === "price-asc" ? a.price - b.price : b.price - a.price);
     return menuStalls
-      .map((stall) => ({ ...stall, items: stall.items.filter((item) => item.name.toLowerCase().includes(query)) }))
-      .filter((stall) => stall.items.length > 0);
-  }, [menuStalls, search]);
+      .map((stall) => ({ ...stall, items: order(filtering ? stall.items.filter(matches) : stall.items) }))
+      .filter((stall) => !filtering || stall.items.length > 0);
+  }, [menuStalls, filtering, query, diet, kind, sort]);
 
   function addToCart(item, stall) {
     setCart((current) => ({
@@ -126,6 +311,7 @@ export default function MenuExperience({ stalls, demoMode }) {
   function handlePlaced(orderCodes) {
     setCart({});
     setCheckingOut(false);
+    setSheetOpen(false);
     router.push(`/orders?codes=${orderCodes.join(",")}`);
   }
 
@@ -142,48 +328,100 @@ export default function MenuExperience({ stalls, demoMode }) {
     });
   }
 
-  return (
+  function openBag() {
+    if (isDesktop) {
+      const column = document.getElementById("bag");
+      column?.scrollIntoView({ block: "start" });
+      column?.focus({ preventScroll: true });
+    } else {
+      setSheetOpen(true);
+    }
+  }
+
+  function clearFilters() {
+    setSearch("");
+    setDiet("all");
+    setKind("all");
+  }
+
+  function bagContent(user) {
+    return checkingOut && cartItems.length > 0 && user?.role === "STUDENT"
+      ? <Checkout cartItems={cartItems} total={total} user={user} onBack={() => setCheckingOut(false)} onPlaced={handlePlaced} />
+      : <Cart cartItems={cartItems} itemCount={itemCount} total={total} changeQuantity={changeQuantity} onCheckout={() => setCheckingOut(true)} demoMode={demoMode} user={user} />;
+  }
+
+  const band = (
     <>
-      <Header itemCount={itemCount} />
-      <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-28 sm:px-6 sm:py-10 lg:pb-16">
-        <section className="relative mb-8 overflow-hidden rounded-3xl bg-[#173725] px-5 py-7 text-white shadow-[0_20px_55px_-28px_rgba(17,55,35,.7)] sm:px-9 sm:py-10">
-          <div className="absolute -right-12 -top-20 size-64 rounded-full bg-[#a8dc78]/20 blur-2xl" />
-          <div className="relative max-w-xl">
-            <p className="mb-3 text-xs font-bold uppercase tracking-[.18em] text-[#c9e8a9]">Campus food, without the wait</p>
-            <h1 className="font-display mb-3 text-4xl font-bold tracking-tight sm:text-5xl">Today&apos;s menu,<br />ready when you are.</h1>
-            <p className="max-w-md text-sm leading-6 text-white/75 sm:text-base">See what&apos;s available, order ahead, and pick up at the time that suits you.</p>
-          </div>
-          <div className="relative mt-5 flex flex-wrap sm:mt-7 gap-2 text-xs font-semibold text-[#d9edcb]"><span className="rounded-full border border-white/15 bg-white/10 px-3 py-2">● Live availability</span><span className="rounded-full border border-white/15 bg-white/10 px-3 py-2">◷ Quick pickup</span></div>
-        </section>
-
-        <div className="mb-7 flex flex-wrap items-end justify-between gap-3"><div><h2 className="font-display text-2xl font-bold tracking-tight">Explore the stalls</h2><p className="mt-1 text-sm text-gray-500">Fresh picks from around campus.</p></div><p className="rounded-full border border-[#dce5d8] bg-white px-3 py-1.5 text-xs font-semibold text-[#477355]">{menuStalls.length} stalls open</p></div>
-
-        <label className="mb-7 flex max-w-md items-center gap-3 rounded-2xl border border-[#dce6d8] bg-white px-4 py-3 shadow-[0_10px_24px_-22px_rgba(21,55,33,.65)]"><span className="text-lg" aria-hidden="true">⌕</span><span className="sr-only">Search the menu</span><input className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-gray-400" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search dishes, snacks, or drinks" />{search && <button type="button" className="rounded-full px-2 py-1 text-xs font-semibold text-[#477355] hover:bg-[#f2f6ef]" onClick={() => setSearch("")} aria-label="Clear search">Clear</button>}</label>
-        {demoMode && <p className="mb-6 rounded-xl border border-[#dbead6] bg-[#f5faf3] px-4 py-3 text-sm text-[#3f6b3a]">Showing sample menu data. Start the backend later to load live availability.</p>}
-        {!demoMode && menuStalls.length === 0 && <p className="py-10 text-gray-500">No stalls yet.</p>}
-
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div>
-            {visibleStalls.map((stall) => <MenuSection key={stall.id} stall={stall} demoMode={demoMode} onAddToCart={addToCart} />)}
-            {visibleStalls.length === 0 && <div className="rounded-2xl border border-dashed border-[#cbdac6] bg-white px-6 py-12 text-center"><p className="font-display text-lg font-bold">No dishes found</p><p className="mt-1 text-sm text-gray-500">Try another search term or browse all stalls.</p><button className="mt-4 text-sm font-semibold text-[#356b42] underline underline-offset-4" onClick={() => setSearch("")}>Clear search</button></div>}
-          </div>
-          <div id="bag" ref={bagRef} className="scroll-mt-4 lg:mt-40">
-            {checkingOut && cartItems.length > 0 && user?.role === "STUDENT"
-              ? <Checkout cartItems={cartItems} total={total} user={user} onBack={() => setCheckingOut(false)} onPlaced={handlePlaced} />
-              : <Cart cartItems={cartItems} itemCount={itemCount} total={total} changeQuantity={changeQuantity} onCheckout={() => setCheckingOut(true)} demoMode={demoMode} user={user} />}
-          </div>
+      <div className="mt-3.5 md:mt-6 md:flex md:items-end md:justify-between md:gap-8 lg:mt-3">
+        <div>
+          <h1 className="font-serif text-[30px] leading-[1.1] md:text-4xl lg:text-[26px]" suppressHydrationWarning>{greeting()}</h1>
+          <p className="mt-0.5 text-sm text-on-deck">
+            {openCount === 0 ? "No stalls open right now" : `${openCount} stall${openCount === 1 ? "" : "s"} open`} · pick up between classes
+          </p>
         </div>
-      </main>
-
-      {/* On a phone the bag sits below every menu, so this keeps it one tap away. */}
-      {itemCount > 0 && !bagOnScreen && (
-        <div className="fixed inset-x-0 bottom-0 z-10 border-t border-[#dce6d8] bg-white/95 px-4 pt-3 pb-[max(.75rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
-          <a href="#bag" className="mx-auto flex max-w-xl items-center justify-between rounded-xl bg-[#0f2419] px-4 py-3 text-sm font-semibold text-white">
-            <span>View bag · {itemCount} item{itemCount === 1 ? "" : "s"}</span>
-            <span>₹{total} <span aria-hidden="true">→</span></span>
-          </a>
-        </div>
-      )}
+        {!isDesktop && <div className="mt-3.5 md:mt-0 md:w-80"><SearchField value={search} onChange={setSearch} onBand /></div>}
+      </div>
+      {!isDesktop && <PickupChips stalls={stalls} />}
     </>
+  );
+
+  return (
+    <StudentShell
+      active="menu"
+      wide
+      bandAside={isDesktop ? null : <VegToggle vegOnly={vegOnly} onChange={(veg) => setDiet(veg ? "veg" : "all")} />}
+      band={isDesktop ? null : band}
+      bag={{ count: itemCount, total, onOpen: openBag }}
+    >
+      {(user) => (
+        <>
+          <div className="mx-auto max-w-3xl lg:grid lg:max-w-none lg:grid-cols-[220px_minmax(0,1fr)_280px] lg:gap-7 xl:grid-cols-[230px_minmax(0,1fr)_300px] xl:gap-8">
+            {isDesktop && (
+              <div className="hidden lg:block">
+                <SidePanel greetingText={greeting()} stalls={stalls} menuStalls={menuStalls} demoMode={demoMode} openCount={openCount} search={search} onSearch={setSearch} diet={diet} onDiet={setDiet} kind={kind} onKind={setKind} sort={sort} onSort={setSort} />
+              </div>
+            )}
+            <div className="min-w-0 space-y-6">
+              {!isDesktop && (
+                <div className="flex items-center justify-between gap-3">
+                  <div role="group" aria-label="Show" className="flex rounded-full bg-[#F0F3EF] p-0.5">
+                    {KINDS.map(([id, text]) => (
+                      <button key={id} type="button" aria-pressed={kind === id} onClick={() => setKind(id)} className={`h-9 rounded-full px-3 text-[13px] transition-colors ${kind === id ? "bg-white font-semibold text-ink shadow-[0_1px_3px_rgba(0,0,0,.1)]" : "font-medium text-muted hover:text-ink"}`}>{id === "all" ? "All" : text}</button>
+                    ))}
+                  </div>
+                  <label className="flex items-center gap-2 text-sm text-muted">
+                    <span className="sr-only">Sort</span>
+                    <select value={sort} onChange={(event) => setSort(event.target.value)} className="h-10 rounded-full border border-field bg-white px-3 text-sm font-semibold text-ink outline-none focus:border-deck">
+                      {SORTS.map(([id, text]) => <option key={id} value={id}>{text}</option>)}
+                    </select>
+                  </label>
+                </div>
+              )}
+              <OrderAgain stalls={menuStalls} user={user} onAdd={addToCart} />
+              {demoMode && <p className="rounded-2xl bg-mint px-4 py-3 text-sm text-mint-ink">Showing sample menu data. Start the backend to load live availability.</p>}
+              {!demoMode && menuStalls.length === 0 && <p className="py-10 text-center text-muted">No stalls yet.</p>}
+              {menuStalls.length > 0 && (
+                <div>
+                  {visibleStalls.map((stall) => <MenuSection key={stall.id} stall={stall} demoMode={demoMode} cart={cart} onAddToCart={addToCart} onChangeQuantity={changeQuantity} expandAll={filtering} isDesktop={isDesktop} />)}
+                  {visibleStalls.length === 0 && (
+                    <div className="rounded-2xl border border-dashed border-field px-6 py-12 text-center">
+                      <p className="font-serif text-xl">No dishes found</p>
+                      <p className="mt-1 text-sm text-muted">{query ? "Try another search, or browse every stall." : "Nothing on today's menu matches those filters."}</p>
+                      <button type="button" className="mt-3 h-11 rounded-full px-4 text-sm font-semibold text-deck underline underline-offset-4 hover:bg-mint" onClick={clearFilters}>Show everything</button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            {isDesktop && (
+              <div id="bag" tabIndex={-1} className="hidden scroll-mt-6 outline-none lg:block">
+                <div className="sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto">{bagContent(user)}</div>
+              </div>
+            )}
+          </div>
+          {!isDesktop && sheetOpen && <BagSheet onClose={() => setSheetOpen(false)}>{bagContent(user)}</BagSheet>}
+        </>
+      )}
+    </StudentShell>
   );
 }

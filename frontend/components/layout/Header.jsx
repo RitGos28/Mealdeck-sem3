@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { api } from "../../lib/api";
+import { logout as endSession } from "../../lib/logout";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 
 export default function Header({ itemCount }) {
@@ -10,10 +10,9 @@ export default function Header({ itemCount }) {
   const [user, setUser] = useCurrentUser();
 
   async function logout() {
-    await api("/api/auth/logout", { method: "POST" });
+    const role = user?.role;
     setUser(null);
-    router.push(user?.role === "VENDOR" ? "/vendor/login" : user?.role === "ADMIN" ? "/admin/login" : "/");
-    router.refresh();
+    await endSession(router, role);
   }
 
   return (

@@ -137,7 +137,24 @@ public class MenuService {
     @Transactional
     public MenuItem addItem(Long stallId, CreateMenuItemRequest request) {
         Stall stall = getStall(stallId);
-        return menuItemRepository.save(new MenuItem(stall, request.name(), request.price(), request.veg()));
+        MenuItem item = new MenuItem(stall, request.name(), request.price(), request.veg());
+        item.setCategory(cleanCategory(request.category()));
+        return menuItemRepository.save(item);
+    }
+
+    static final int MAX_CATEGORY_LENGTH = 40;
+
+    /** Trims a category; blank becomes null (no category). */
+    static String cleanCategory(String category) {
+        if (category == null || category.isBlank()) {
+            return null;
+        }
+        String trimmed = category.strip().replaceAll("\\s+", " ");
+        if (trimmed.length() > MAX_CATEGORY_LENGTH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Category names can be at most " + MAX_CATEGORY_LENGTH + " characters");
+        }
+        return trimmed;
     }
 
     @Transactional
@@ -151,6 +168,9 @@ public class MenuService {
         }
         if (request.veg() != null) {
             item.setVeg(request.veg());
+        }
+        if (request.category() != null) {
+            item.setCategory(cleanCategory(request.category()));
         }
         if (request.available() != null) {
             item.setAvailable(request.available());
