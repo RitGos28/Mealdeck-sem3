@@ -2,6 +2,7 @@ package com.mealdeck.repository;
 
 import com.mealdeck.model.MenuItem;
 import jakarta.persistence.LockModeType;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -10,6 +11,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface MenuItemRepository extends JpaRepository<MenuItem, Long> {
+
+    List<MenuItem> findByStallId(Long stallId);
 
     // Atomic bulk update instead of read-modify-write, so two concurrent reports
     // can't clobber each other's increment — same UPDATE ... SET report_count =

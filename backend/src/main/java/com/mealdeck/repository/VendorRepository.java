@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface VendorRepository extends JpaRepository<Vendor, Long> {
 
     Optional<Vendor> findByEmail(String email);
+
+    Optional<Vendor> findByStallId(Long stallId);
 }
