@@ -47,6 +47,9 @@ services:
       # Sign-up emails; see .env.example. Empty key = codes go to the log.
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       MAIL_FROM: ${MAIL_FROM:-MealDeck <noreply@mealdeck.in>}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      BOOTSTRAP_ADMIN_REAL_EMAIL: ${BOOTSTRAP_ADMIN_REAL_EMAIL:-}
       MEALDECK_UPLOAD_DIR: /app/uploads
       # One JSON object per log line (Elastic Common Schema), so logs can be
       # searched by level, logger or message. Set here, not in

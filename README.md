@@ -60,7 +60,7 @@ For live updates under `next dev`, set `NEXT_PUBLIC_WS_URL=ws://localhost:8080/a
 
 ### Demo logins
 
-An empty database is seeded with stalls and these accounts:
+With the `demo` profile (`./run.sh --demo`, and the tests), an empty database is seeded with stalls and these accounts:
 
 | Role    | Email                  | Password   |
 |---------|------------------------|------------|
@@ -68,7 +68,7 @@ An empty database is seeded with stalls and these accounts:
 | Admin   | admin@mealdeck.in      | admin123   |
 | Student | student@bennett.edu.in | student123 |
 
-These passwords are public. Change them from the admin dashboard on any deployment real people use.
+These passwords are public, so the seeding never runs in production. A production database starts empty apart from one admin, created from `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD` in the env file (see `.env.example`); add stalls and vendors from the admin dashboard.
 
 ### Environment variables
 
