@@ -195,14 +195,18 @@ function ChoiceList({ label, options, value, onChange }) {
 
 // Wide screens only: search, pickup time, filters and the stalls, in a
 // sticky column beside the menu.
-function SidePanel({ stalls, menuStalls, demoMode, openCount, search, onSearch, diet, onDiet, kind, onKind, sort, onSort }) {
+function SidePanel({ greetingText, stalls, menuStalls, demoMode, openCount, search, onSearch, diet, onDiet, kind, onKind, sort, onSort }) {
   return (
     <aside aria-label="Filters" className="sticky top-5 max-h-[calc(100vh-2.5rem)] space-y-5 overflow-y-auto rounded-2xl bg-[#F4F6F3] p-4 text-[13px]">
+      <div>
+        <h1 className="font-serif text-[22px] leading-tight" suppressHydrationWarning>{greetingText}</h1>
+        <p className="mt-0.5 text-muted">{openCount === 0 ? "No stalls open right now" : `${openCount} stall${openCount === 1 ? "" : "s"} open`} · pick up between classes</p>
+      </div>
       <SearchField value={search} onChange={onSearch} />
       <div>
         <p className="mb-2 text-xs font-semibold tracking-[.04em] text-muted uppercase">Pickup time</p>
         <PickupChips stalls={stalls} variant="panel" />
-        <p className="mt-2 text-xs text-muted">{openCount === 0 ? "No stalls open right now" : `${openCount} stall${openCount === 1 ? "" : "s"} open`} · we hold your pick at checkout</p>
+        <p className="mt-2 text-xs text-muted">We pre-select this time at checkout.</p>
       </div>
       <ChoiceList label="Show" options={KINDS} value={kind} onChange={onKind} />
       <ChoiceList label="Diet" options={DIETS} value={diet} onChange={onDiet} />
@@ -366,7 +370,7 @@ export default function MenuExperience({ stalls, demoMode }) {
       active="menu"
       wide
       bandAside={isDesktop ? null : <VegToggle vegOnly={vegOnly} onChange={(veg) => setDiet(veg ? "veg" : "all")} />}
-      band={band}
+      band={isDesktop ? null : band}
       bag={{ count: itemCount, total, onOpen: openBag }}
     >
       {(user) => (
@@ -374,7 +378,7 @@ export default function MenuExperience({ stalls, demoMode }) {
           <div className="mx-auto max-w-3xl lg:grid lg:max-w-none lg:grid-cols-[220px_minmax(0,1fr)_280px] lg:gap-7 xl:grid-cols-[230px_minmax(0,1fr)_300px] xl:gap-8">
             {isDesktop && (
               <div className="hidden lg:block">
-                <SidePanel stalls={stalls} menuStalls={menuStalls} demoMode={demoMode} openCount={openCount} search={search} onSearch={setSearch} diet={diet} onDiet={setDiet} kind={kind} onKind={setKind} sort={sort} onSort={setSort} />
+                <SidePanel greetingText={greeting()} stalls={stalls} menuStalls={menuStalls} demoMode={demoMode} openCount={openCount} search={search} onSearch={setSearch} diet={diet} onDiet={setDiet} kind={kind} onKind={setKind} sort={sort} onSort={setSort} />
               </div>
             )}
             <div className="min-w-0 space-y-6">

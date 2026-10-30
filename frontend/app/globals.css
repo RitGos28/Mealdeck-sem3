@@ -37,6 +37,14 @@
   }
 }
 
+/* The student app is sized for phones; on a laptop that reads as zoomed in.
+   Wide screens shrink its rem scale (text, spacing, controls) by ~12%.
+   Scoped to pages that render the student shell, so vendor and admin pages
+   keep their sizes. */
+@media (min-width: 1024px) {
+  html:has(.student-shell) { font-size: 87.5%; }
+}
+
 /* iOS Safari zooms the page into any focused field under 16px. Unlayered so
    it beats text-sm and friends, but only on phone widths. */
 @media (max-width: 639px) {

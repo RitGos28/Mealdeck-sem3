@@ -82,7 +82,7 @@ export default function MenuItemCard({ item, demoMode, quantity = 0, onAddToCart
       </div>
       {available && (
         // On wide-screen cards it sits on the photo's bottom corner.
-        <div className="shrink-0 lg:absolute lg:top-[94px] lg:right-2.5 lg:origin-right lg:scale-[.82] lg:rounded-full lg:bg-white lg:shadow-[0_6px_16px_-6px_rgba(20,40,30,.35)]">
+        <div className="shrink-0 lg:absolute lg:top-[calc(7rem-1.375rem)] lg:right-2.5 lg:origin-right lg:scale-[.82] lg:rounded-full lg:bg-white lg:shadow-[0_6px_16px_-6px_rgba(20,40,30,.35)]">
           {quantity > 0
             ? <Stepper name={item.name} quantity={quantity} onChange={onChangeQuantity} />
             : <button type="button" onClick={onAddToCart} aria-label={`Add ${item.name}`} className="flex size-11 shrink-0 items-center justify-center rounded-full border border-field bg-white text-xl text-ink transition-colors hover:border-deck hover:bg-mint">+</button>}

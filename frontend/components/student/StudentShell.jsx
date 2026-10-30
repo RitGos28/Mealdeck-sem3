@@ -33,9 +33,9 @@ export default function StudentShell({ active, band, bandAside, bag, wide = fals
   const showBag = bag && bag.count > 0;
 
   return (
-    <div className="flex min-h-screen flex-col bg-deck">
+    <div className="student-shell flex min-h-screen flex-col bg-deck">
       <header className="text-white">
-        <div className={`mx-auto ${container} px-5 pt-4 pb-6 sm:px-8 lg:pt-3 lg:pb-6`}>
+        <div className={`mx-auto ${container} px-5 pt-4 pb-6 sm:px-8 lg:pt-3 ${band ? "lg:pb-6" : "lg:pb-8"}`}>
           <div className="flex min-h-11 items-center justify-between gap-3">
             <Link href="/" className="font-serif text-2xl lg:text-[22px]">MealDeck</Link>
             <div className="flex items-center gap-2">
