@@ -2,6 +2,7 @@ package com.mealdeck.service;
 
 import com.mealdeck.model.MenuItem;
 import com.mealdeck.model.Order;
+import com.mealdeck.model.OrderCode;
 import com.mealdeck.model.OrderItem;
 import com.mealdeck.model.OrderStatus;
 import com.mealdeck.model.Stall;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeSet;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
@@ -109,6 +111,10 @@ public class OrderService {
      * taken. */
     private void requireRoomInSlot(Long stallId, LocalTime pickupTime, LocalDate date) {
         Stall stall = stallRepository.findByIdForUpdate(stallId).orElseThrow();
+        if (stall.isOrdersPaused()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    stall.getName() + " has paused pre-orders. Try again in a bit");
+        }
         long booked = orderRepository.countActiveInSlot(stallId, date, pickupTime);
         if (booked >= stall.getSlotCapacity()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -118,7 +124,17 @@ public class OrderService {
 
     /** The vendor's working list: today's orders, in pickup-slot order. */
     public List<Order> todaysOrdersForStall(Long stallId) {
-        return orderRepository.findByStallIdAndPickupDateWithItems(stallId, slotService.today());
+        return ordersForStallOn(stallId, slotService.today());
+    }
+
+    /** Order history: one day's orders for a stall. Future dates have none
+     * (orders are only ever for today), so they're refused rather than
+     * quietly returning an empty list. */
+    public List<Order> ordersForStallOn(Long stallId, LocalDate date) {
+        if (date.isAfter(slotService.today())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No orders exist for future dates");
+        }
+        return orderRepository.findByStallIdAndPickupDateWithItems(stallId, date);
     }
 
     public List<Order> allOrders() {
@@ -128,6 +144,23 @@ public class OrderService {
     public Order getOrder(Long id) {
         return orderRepository.findByIdWithItems(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No order " + id));
+    }
+
+    public List<Order> ordersForStudent(Long studentId) {
+        return orderRepository.findByStudentIdWithItems(studentId);
+    }
+
+    @Transactional
+    public int fillMissingCodes() {
+        List<Order> missing = orderRepository.findByPublicCodeIsNull();
+        missing.forEach(order -> order.setPublicCode(OrderCode.next()));
+        return missing.size();
+    }
+
+    /** Links and API calls name an order by its public code, not its id. */
+    public Order getOrderByCode(String code) {
+        return (OrderCode.looksValid(code) ? orderRepository.findByPublicCodeWithItems(code) : Optional.<Order>empty())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No such order"));
     }
 
     @Transactional

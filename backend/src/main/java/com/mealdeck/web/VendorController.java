@@ -23,6 +23,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import java.time.LocalDate;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
@@ -86,15 +89,19 @@ public class VendorController {
         menuService.deleteItem(ownStall(authentication).getId(), id);
     }
 
+    /** Today's orders, or any past day's with ?date=2026-10-15 (order history). */
     @GetMapping("/orders")
-    public List<OrderDto> orders(Authentication authentication) {
-        return orderService.todaysOrdersForStall(ownStall(authentication).getId()).stream().map(OrderDto::from).toList();
+    public List<OrderDto> orders(Authentication authentication,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        Long stallId = ownStall(authentication).getId();
+        List<Order> orders = date == null ? orderService.todaysOrdersForStall(stallId) : orderService.ordersForStallOn(stallId, date);
+        return orders.stream().map(OrderDto::from).toList();
     }
 
-    @PatchMapping("/orders/{id}/status")
-    public OrderDto updateOrderStatus(Authentication authentication, @PathVariable Long id, @RequestBody UpdateOrderStatusRequest request) {
+    @PatchMapping("/orders/{code}/status")
+    public OrderDto updateOrderStatus(Authentication authentication, @PathVariable String code, @RequestBody UpdateOrderStatusRequest request) {
         OrderStatus next = parseStatus(request.status());
-        Order order = orderService.advanceStatus(ownStall(authentication).getId(), id, next);
+        Order order = orderService.advanceStatus(ownStall(authentication).getId(), orderService.getOrderByCode(code).getId(), next);
         return OrderDto.from(order);
     }
 

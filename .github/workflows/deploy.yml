@@ -55,6 +55,23 @@ jobs:
           npm run lint
           npm run build
 
+      - name: Docker image build
+        # Both Dockerfiles build, so a PR that breaks one fails here rather
+        # than during the deploy. Plain `docker build` under mealdeck-ci-*
+        # names, not `docker compose build`: compose would retag
+        # mealdeck-backend/-frontend, the images production runs, with this
+        # PR's untested code. Removed again afterwards to save disk; layer
+        # cache is kept, so the deploy's build reuses it.
+        run: |
+          tag="${{ github.run_id }}"
+          docker build -t "mealdeck-ci-backend:$tag" backend
+          docker build -t "mealdeck-ci-frontend:$tag" \
+            --build-arg BACKEND_INTERNAL_URL=http://backend:8080 frontend
+
+      - name: Remove CI images
+        if: always()
+        run: docker image rm -f "mealdeck-ci-backend:${{ github.run_id }}" "mealdeck-ci-frontend:${{ github.run_id }}" 2>/dev/null || true
+
   deploy:
     needs: test
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
@@ -100,10 +117,18 @@ jobs:
         # The API answers, and /api/ws still upgrades to a WebSocket through
         # nginx (101), so a proxy change that breaks the live queue fails
         # the deploy instead of passing silently. curl holds the upgraded
-        # connection open, hence the short timeout; the retries give the
-        # reload above a moment to hand over to the new nginx workers.
+        # connection open, hence the short timeout. Both checks retry: right
+        # after the reload above, nginx can answer 502 for a moment while
+        # its new workers take over (that failed #7's deploy).
         run: |
-          curl -fsS "http://localhost:$HOST_PORT/api/stalls" > /dev/null
+          for attempt in $(seq 1 15); do
+            curl -fsS --max-time 5 "http://localhost:$HOST_PORT/api/stalls" > /dev/null && break
+            if [ "$attempt" = 15 ]; then
+              echo "::error::/api/stalls still failing after 15 tries"
+              exit 1
+            fi
+            sleep 2
+          done
           for attempt in 1 2 3 4 5; do
             code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 \
               -H "Origin: http://localhost:$HOST_PORT" -H "Connection: Upgrade" -H "Upgrade: websocket" \

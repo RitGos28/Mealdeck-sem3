@@ -12,9 +12,11 @@ import com.mealdeck.model.OrderStatus;
 import com.mealdeck.model.Stall;
 import com.mealdeck.model.Student;
 import com.mealdeck.repository.StallRepository;
+import com.mealdeck.repository.OrderRepository;
 import com.mealdeck.repository.StudentRepository;
 import com.mealdeck.web.OrderRequests.CreateOrderRequest;
 import com.mealdeck.web.OrderRequests.OrderItemRequest;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +52,12 @@ class CheckoutTests {
 
     @Autowired
     StudentService studentService;
+
+    @Autowired
+    OrderRepository orderRepository;
+
+    @Autowired
+    java.time.Clock clock;
 
     /** Orders are placed as the student DemoDataSeeder creates. */
     private Long studentId() {
@@ -158,6 +166,45 @@ class CheckoutTests {
         Order kept = orderService.getOrder(orderId);
         assertThat(kept.getStudent()).isNull();
         assertThat(kept.getCustomerName()).isEqualTo("Leaver");
+    }
+
+    @Test
+    void eachOrderGetsItsOwnTwelveCharacterCode() {
+        Order first = orderService.getOrder(orderAt(stall("Bistro / Kathi")));
+        Order second = orderService.getOrder(orderAt(stall("Bistro / Kathi")));
+
+        assertThat(first.getPublicCode()).matches("[2-9A-HJKMNP-Z]{12}");
+        assertThat(second.getPublicCode()).matches("[2-9A-HJKMNP-Z]{12}").isNotEqualTo(first.getPublicCode());
+        assertThat(orderService.getOrderByCode(first.getPublicCode()).getId()).isEqualTo(first.getId());
+        assertRejected(() -> orderService.getOrderByCode("ZZZZZZZZZZZZ"), HttpStatus.NOT_FOUND);
+        assertRejected(() -> orderService.getOrderByCode(String.valueOf(first.getId())), HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void ordersFromBeforeCodesGetOneAtStartup() {
+        Order old = orderService.getOrder(orderAt(stall("Bistro / Kathi")));
+        old.setPublicCode(null);
+        orderRepository.saveAndFlush(old);
+
+        assertThat(orderService.fillMissingCodes()).isEqualTo(1);
+        assertThat(orderService.getOrder(old.getId()).getPublicCode()).matches("[2-9A-HJKMNP-Z]{12}");
+        assertThat(orderService.fillMissingCodes()).isZero();
+    }
+
+    @Test
+    void orderHistoryShowsOneDayAtATimeForTheVendorsOwnStall() {
+        Stall bistro = stall("Bistro / Kathi");
+        Stall snapEats = stall("SnapEats");
+        LocalDate today = LocalDate.now(clock);
+        Student student = studentRepository.findById(studentId()).orElseThrow();
+        Order yesterdays = orderRepository.save(new Order(bistro, student, today.minusDays(1), NOON));
+        orderRepository.save(new Order(snapEats, student, today.minusDays(1), NOON));
+        Long todays = orderAt(bistro);
+
+        assertThat(orderService.ordersForStallOn(bistro.getId(), today.minusDays(1))).extracting(Order::getId).containsExactly(yesterdays.getId());
+        assertThat(orderService.ordersForStallOn(bistro.getId(), today)).extracting(Order::getId).containsExactly(todays);
+        assertThat(orderService.ordersForStallOn(bistro.getId(), today.minusDays(30))).isEmpty();
+        assertRejected(() -> orderService.ordersForStallOn(bistro.getId(), today.plusDays(1)), HttpStatus.BAD_REQUEST);
     }
 
     @Test

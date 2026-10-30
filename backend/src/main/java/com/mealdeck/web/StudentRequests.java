@@ -9,6 +9,10 @@ public class StudentRequests {
     public record SignupCodeRequest(String email) {
     }
 
+    /** code: the 6-digit code emailed by POST /api/auth/student/password-reset/code. */
+    public record PasswordResetRequest(String email, String code, String password, String confirmPassword) {
+    }
+
     private StudentRequests() {
     }
 }

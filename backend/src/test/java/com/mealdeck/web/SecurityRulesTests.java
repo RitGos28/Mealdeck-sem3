@@ -9,9 +9,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.mealdeck.FixedClockConfig;
 import com.mealdeck.model.MenuItem;
+import com.mealdeck.model.Order;
 import com.mealdeck.model.Stall;
+import com.mealdeck.model.Student;
+import com.mealdeck.model.Vendor;
 import com.mealdeck.repository.StallRepository;
 import com.mealdeck.repository.StudentRepository;
+import com.mealdeck.repository.VendorRepository;
 import com.mealdeck.service.OrderService;
 import com.mealdeck.web.OrderRequests.CreateOrderRequest;
 import com.mealdeck.web.OrderRequests.OrderItemRequest;
@@ -59,6 +63,9 @@ class SecurityRulesTests {
 
     @Autowired
     StudentRepository studentRepository;
+
+    @Autowired
+    VendorRepository vendorRepository;
 
     MockMvc mvc;
 
@@ -125,9 +132,9 @@ class SecurityRulesTests {
         Stall snapEats = stall("SnapEats");
         MenuItem coffee = snapEats.getMenuItems().getFirst();
         Long studentId = studentRepository.findByEmail("student@bennett.edu.in").orElseThrow().getId();
-        Long snapOrder = orderService.checkout(studentId, new CreateOrderRequest(
+        String snapOrder = orderService.checkout(studentId, new CreateOrderRequest(
                 List.of(new OrderItemRequest(coffee.getId(), 1)),
-                Map.of(snapEats.getId(), LocalTime.of(12, 0)))).getFirst().getId();
+                Map.of(snapEats.getId(), LocalTime.of(12, 0)))).getFirst().getPublicCode();
 
         mvc.perform(patch("/api/vendor/menu-items/" + coffee.getId()).with(VENDOR)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"available\":false}"))
@@ -139,12 +146,71 @@ class SecurityRulesTests {
                 .andExpect(jsonPath("$.detail").value("That order belongs to another stall"));
         mvc.perform(get("/api/vendor/orders").with(VENDOR))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.id == " + snapOrder + ")]").isEmpty());
+                .andExpect(jsonPath("$[?(@.code == '" + snapOrder + "')]").isEmpty());
+    }
+
+    @Test
+    void orderDetailsOnlyShowToTheStudentTheStallAndAdmins() throws Exception {
+        Stall bistro = stall("Bistro / Kathi");
+        Long studentId = studentRepository.findByEmail("student@bennett.edu.in").orElseThrow().getId();
+        Order order = orderService.checkout(studentId, new CreateOrderRequest(
+                List.of(new OrderItemRequest(bistro.getMenuItems().getFirst().getId(), 1)),
+                Map.of(bistro.getId(), LocalTime.of(12, 0)))).getFirst();
+        String url = "/api/orders/" + order.getPublicCode();
+        vendorRepository.save(new Vendor("snapeats@mealdeck.in", "unused", "snapeats@example.com", stall("SnapEats")));
+
+        mvc.perform(get(url)).andExpect(status().isForbidden());
+        mvc.perform(get(url).with(STUDENT))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(order.getId()))
+                .andExpect(jsonPath("$.code").value(order.getPublicCode()))
+                .andExpect(jsonPath("$.customerName").value("Demo Student"));
+        mvc.perform(get(url).with(VENDOR)).andExpect(status().isOk());
+        mvc.perform(get(url).with(ADMIN)).andExpect(status().isOk());
+        // Another student, or another stall's vendor, gets the same 404 as a
+        // missing order, so order numbers can't be probed.
+        mvc.perform(get(url).with(user("someone.else@bennett.edu.in").roles("STUDENT")))
+                .andExpect(status().isNotFound());
+        mvc.perform(get(url).with(user("snapeats@mealdeck.in").roles("VENDOR")))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/orders/ZZZZZZZZZZZZ").with(STUDENT)).andExpect(status().isNotFound());
+        // The sequential id no longer opens an order, even for its owner.
+        mvc.perform(get("/api/orders/" + order.getId()).with(STUDENT)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void myOrdersListsOnlyTheLoggedInStudentsOwnOrders() throws Exception {
+        Stall bistro = stall("Bistro / Kathi");
+        Long studentId = studentRepository.findByEmail("student@bennett.edu.in").orElseThrow().getId();
+        Long otherId = studentRepository.save(new Student("other.student@bennett.edu.in", "unused", "Other Student", null)).getId();
+        CreateOrderRequest oneRoll = new CreateOrderRequest(
+                List.of(new OrderItemRequest(bistro.getMenuItems().getFirst().getId(), 1)), Map.of(bistro.getId(), LocalTime.of(12, 0)));
+        Order mine = orderService.checkout(studentId, oneRoll).getFirst();
+        Order theirs = orderService.checkout(otherId, oneRoll).getFirst();
+
+        mvc.perform(get("/api/orders")).andExpect(status().isForbidden());
+        mvc.perform(get("/api/orders").with(VENDOR)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/orders").with(ADMIN)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/orders").with(STUDENT))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.code == '" + mine.getPublicCode() + "')]").isNotEmpty())
+                .andExpect(jsonPath("$[?(@.code == '" + theirs.getPublicCode() + "')]").isEmpty());
+    }
+
+    @Test
+    void vendorOrderHistoryTakesADate() throws Exception {
+        mvc.perform(get("/api/vendor/orders").param("date", "2026-09-28").with(VENDOR))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+        mvc.perform(get("/api/vendor/orders").param("date", "2026-09-30").with(VENDOR))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/vendor/orders").param("date", "yesterday").with(VENDOR))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
     void unknownOrderStatusIsABadRequest() throws Exception {
-        mvc.perform(patch("/api/vendor/orders/1/status").with(VENDOR)
+        mvc.perform(patch("/api/vendor/orders/ZZZZZZZZZZZZ/status").with(VENDOR)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"EATEN\"}"))
                 .andExpect(status().isBadRequest());
     }
