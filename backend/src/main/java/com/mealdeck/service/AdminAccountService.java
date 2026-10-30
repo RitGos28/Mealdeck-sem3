@@ -1,7 +1,11 @@
 package com.mealdeck.service;
 
+import com.mealdeck.model.MenuItem;
 import com.mealdeck.model.Stall;
 import com.mealdeck.model.Vendor;
+import com.mealdeck.repository.MenuItemRepository;
+import com.mealdeck.repository.OrderRepository;
+import com.mealdeck.repository.ReportRepository;
 import com.mealdeck.repository.StallRepository;
 import com.mealdeck.repository.VendorRepository;
 import com.mealdeck.web.MenuItemRequests.CreateStallRequest;
@@ -21,12 +25,40 @@ public class AdminAccountService {
 
     private final StallRepository stallRepository;
     private final VendorRepository vendorRepository;
+    private final MenuItemRepository menuItemRepository;
+    private final ReportRepository reportRepository;
+    private final OrderRepository orderRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public AdminAccountService(StallRepository stallRepository, VendorRepository vendorRepository, PasswordEncoder passwordEncoder) {
+    public AdminAccountService(StallRepository stallRepository, VendorRepository vendorRepository, MenuItemRepository menuItemRepository,
+            ReportRepository reportRepository, OrderRepository orderRepository, PasswordEncoder passwordEncoder) {
         this.stallRepository = stallRepository;
         this.vendorRepository = vendorRepository;
+        this.menuItemRepository = menuItemRepository;
+        this.reportRepository = reportRepository;
+        this.orderRepository = orderRepository;
         this.passwordEncoder = passwordEncoder;
+    }
+
+    /** Removes a stall that was never ordered from (set up by mistake, or a
+     * placeholder), with its menu, stock reports and vendor login. A stall
+     * with any order history is refused: deleting it would take students'
+     * past orders with it, so close it or remove its vendor instead. */
+    @Transactional
+    public void deleteStall(Long id) {
+        Stall stall = stallRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No stall " + id));
+        long orders = orderRepository.countByStallId(id);
+        if (orders > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, stall.getName() + " has " + orders + " past order"
+                    + (orders == 1 ? "" : "s") + ". Mark it closed or remove its vendor login instead of deleting it.");
+        }
+        for (MenuItem item : menuItemRepository.findByStallId(id)) {
+            reportRepository.deleteByMenuItemId(item.getId());
+            menuItemRepository.delete(item);
+        }
+        vendorRepository.findByStallId(id).ifPresent(vendorRepository::delete);
+        stallRepository.delete(stall);
     }
 
     @Transactional

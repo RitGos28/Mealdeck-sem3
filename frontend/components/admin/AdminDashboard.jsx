@@ -61,6 +61,7 @@ function Stalls({ stalls, vendors, onChange }) {
   async function updateStall(id, values) { try { await api(`/api/admin/stalls/${id}`, { method: "PATCH", body: values }); await onChange(); } catch (err) { setError(err.message); } }
   async function addItem(event, stallId) { event.preventDefault(); const values = newItem[stallId] ?? {}; try { await api(`/api/admin/stalls/${stallId}/menu-items`, { method: "POST", body: { ...values, price: Number(values.price), veg: values.veg !== false } }); setNewItem((current) => ({ ...current, [stallId]: {} })); await onChange(); } catch (err) { setError(err.message); } }
   async function updateItem(stallId, item, values) { try { await api(`/api/admin/stalls/${stallId}/menu-items/${item.id}`, { method: "PATCH", body: values }); await onChange(); } catch (err) { setError(err.message); } }
+  async function deleteStall(stall) { if (!window.confirm(`Delete ${stall.name}, its menu and its vendor login? Only stalls nobody has ordered from can be deleted.`)) return; try { await api(`/api/admin/stalls/${stall.id}`, { method: "DELETE" }); setError(null); await onChange(); } catch (err) { setError(err.message); } }
   async function deleteItem(stallId, item) { if (!window.confirm(`Delete ${item.name}?`)) return; try { await api(`/api/admin/stalls/${stallId}/menu-items/${item.id}`, { method: "DELETE" }); await onChange(); } catch (err) { setError(err.message); } }
   return <section><SectionTitle title="Stalls and menus" description="Create a stall with its vendor account, set availability, and curate every menu item." /><Notice error={error} />
     
@@ -78,7 +79,7 @@ function Stalls({ stalls, vendors, onChange }) {
         <div><h3 className="font-display text-xl font-bold">{stall.name}</h3>
         <p className="text-sm text-gray-500">
           {vendors.find((vendor) => vendor.stallId === stall.id)?.email ?? "No vendor assigned"}</p>
-          </div><StallSettings stall={stall} onSave={updateStall} />
+          </div><div className="flex flex-col items-end gap-2"><StallSettings stall={stall} onSave={updateStall} /><button type="button" className="text-sm font-semibold text-[#a34c43] hover:underline" onClick={() => deleteStall(stall)}>Delete stall</button></div>
           </div><div className="space-y-2">
             {stall.items.map((item) => <ItemRow key={item.id} item={item} onSave={(values) => updateItem(stall.id, item, values)} onDelete={() => deleteItem(stall.id, item)} />)}</div>
             <form onSubmit={(event) => addItem(event, stall.id)} className="mt-4 grid gap-2 border-t border-[#edf1ea] pt-4 sm:grid-cols-[1fr_140px_110px_90px_auto]">

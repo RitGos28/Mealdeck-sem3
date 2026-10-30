@@ -65,6 +65,11 @@ public class AdminController {
         return StallDto.from(menuService.updateStall(id, request));
     }
 
+    @DeleteMapping("/stalls/{id}")
+    public void deleteStall(@PathVariable Long id) {
+        adminAccountService.deleteStall(id);
+    }
+
     @PostMapping("/stalls/{stallId}/menu-items")
     public MenuItemDto addItem(@PathVariable Long stallId, @RequestBody CreateMenuItemRequest request) {
         MenuItem item = menuService.addItem(stallId, request);
