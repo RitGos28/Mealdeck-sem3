@@ -96,7 +96,7 @@ const studentLogin = ({ error = false } = {}) => frame(`
       ${error ? `<div role="alert" style="display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; margin-bottom: 18px; border-radius: 14px; background: #FEF3F2; color: #912018; font-size: 14px; line-height: 1.4">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>
         <span>That email and password don't match. Check for typos, or reset your password.</span></div>` : ""}
-      ${field({ id: "email", label: "Bennett email", type: "email", value: error ? "e23cse0412@bennett.edu.in" : "", auto: "username", extra: 'inputmode="email" placeholder="you@bennett.edu.in" required' })}
+      ${field({ id: "email", label: "Bennett email", type: "email", value: error ? "you@bennett.edu.in" : "", auto: "username", extra: 'inputmode="email" placeholder="you@bennett.edu.in" required' })}
       ${field({ id: "password", label: "Password", type: "password", value: error ? "wrongpass" : "", auto: "current-password", extra: "required", error: error ? "Incorrect password" : "", trailing: show() })}
       <div style="display: flex; justify-content: flex-end; margin: -8px 0 12px">${textLink("Forgot password?")}</div>
       ${primary("Log in")}
@@ -114,7 +114,7 @@ const signupCode = frame(`
   ${band({ back: "Log in", title: "Check your inbox", line: "We emailed you a 6-digit code to confirm your Bennett address." })}
   ${sheet(`
     ${steps(2, 3, "Verify email")}
-    ${sentTo("e23cse0412@bennett.edu.in")}
+    ${sentTo("you@bennett.edu.in")}
     <form>
       ${code("482")}
       <div style="margin-top: 12px">${primary("Verify and continue")}</div>
@@ -127,7 +127,7 @@ const signupCode = frame(`
 const resetPassword = frame(`
   ${band({ back: "Log in", title: "Set a new password", line: "Enter the code we emailed you, then choose a new password." })}
   ${sheet(`
-    ${sentTo("e23cse0412@bennett.edu.in")}
+    ${sentTo("you@bennett.edu.in")}
     <form>
       ${code("482913")}
       <div style="height: 8px"></div>
