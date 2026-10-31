@@ -55,9 +55,9 @@ export default function ReceiptToast({ orders }) {
         {orders.map((order) => (
           <div key={order.id} className="mt-2">
             <p className="font-sans text-xs font-semibold tracking-[.05em] text-muted uppercase">{order.stallName} · #{order.id} · pick up {formatTime(order.pickupTime)}</p>
-            {order.items.map((line) => (
-              <div key={line.menuItemId} className="flex justify-between gap-3 py-0.5 text-[13px]">
-                <span className="truncate">{line.quantity}× {line.menuItemName}</span>
+            {order.items.map((line, i) => (
+              <div key={i} className="flex justify-between gap-3 py-0.5 text-[13px]">
+                <span className="truncate">{line.quantity}× {line.menuItemName}{line.choices && <span className="block text-[12px] text-muted">{line.choices}</span>}</span>
                 <span className="tabular-nums">₹{Number(line.priceAtOrder) * line.quantity}</span>
               </div>
             ))}

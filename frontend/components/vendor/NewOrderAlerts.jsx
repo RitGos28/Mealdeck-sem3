@@ -99,7 +99,7 @@ export function useNewOrderAlerts(orders, watching) {
       if ("Notification" in window && Notification.permission === "granted") {
         const first = fresh[0];
         new Notification(fresh.length === 1 ? `New order #${first.id}` : `${fresh.length} new orders`, {
-          body: fresh.length === 1 ? `${first.customerName} · ${first.items.map((item) => `${item.quantity}× ${item.menuItemName}`).join(", ")}` : "Open MealDeck to accept them.",
+          body: fresh.length === 1 ? `${first.customerName} · ${first.items.map((item) => `${item.quantity}× ${item.menuItemName}${item.choices ? ` (${item.choices})` : ""}`).join(", ")}` : "Open MealDeck to accept them.",
           tag: "mealdeck-new-order",
         });
       }

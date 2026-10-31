@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { api } from "../../lib/api";
+import { formatChoices, parseChoices } from "../../lib/menuDishes";
 
 const inputClass = "w-full rounded-xl border border-[#dbe5d8] bg-white px-3 py-2 text-sm outline-none focus:border-[#477355] focus:ring-2 focus:ring-[#dbead6]";
 const primaryButton = "rounded-xl bg-[#173725] px-3 py-2 text-sm font-semibold text-white hover:bg-[#28543a] disabled:opacity-50";
@@ -10,6 +11,7 @@ const primaryButton = "rounded-xl bg-[#173725] px-3 py-2 text-sm font-semibold t
 function MenuItemEditor({ item, categoriesId, onChanged }) {
   const [name, setName] = useState(item.name);
   const [category, setCategory] = useState(item.category ?? "");
+  const [choices, setChoices] = useState(formatChoices(item.choices));
   const [price, setPrice] = useState(String(item.price));
   const [veg, setVeg] = useState(item.veg);
   const [available, setAvailable] = useState(item.available);
@@ -24,7 +26,7 @@ function MenuItemEditor({ item, categoriesId, onChanged }) {
     try {
       await api(`/api/vendor/menu-items/${item.id}`, {
         method: "PATCH",
-        body: { name, price: Number(price), veg, available, category },
+        body: { name, price: Number(price), veg, available, category, choices: parseChoices(choices) },
       });
       if (imageFile) {
         const formData = new FormData();
@@ -62,6 +64,9 @@ function MenuItemEditor({ item, categoriesId, onChanged }) {
       <label className="mt-3 block text-xs font-bold uppercase tracking-wide text-gray-500">Category
         <input className={`${inputClass} mt-1 normal-case tracking-normal`} list={categoriesId} maxLength={40} placeholder="e.g. Kathi Rolls, Cold Beverages" value={category} onChange={(event) => setCategory(event.target.value)} />
       </label>
+      <label className="mt-3 block text-xs font-bold uppercase tracking-wide text-gray-500">Choices <span className="font-normal normal-case tracking-normal">(free; students must pick one of each)</span>
+        <input className={`${inputClass} mt-1 normal-case tracking-normal`} placeholder="e.g. Bread: Butter Naan ×1 / Butter Roti ×2; Style: Dry / Gravy" value={choices} onChange={(event) => setChoices(event.target.value)} />
+      </label>
       <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-semibold">
         <label className="flex items-center gap-2"><input type="checkbox" checked={veg} onChange={(event) => setVeg(event.target.checked)} /> Vegetarian</label>
         <label className="flex items-center gap-2"><input type="checkbox" checked={available} onChange={(event) => setAvailable(event.target.checked)} /> Available to order</label>
@@ -77,7 +82,7 @@ function MenuItemEditor({ item, categoriesId, onChanged }) {
 }
 
 export default function VendorMenu({ stall, onChanged }) {
-  const [newItem, setNewItem] = useState({ name: "", price: "", veg: true, category: "", imageFile: null });
+  const [newItem, setNewItem] = useState({ name: "", price: "", veg: true, category: "", choices: "", imageFile: null });
   // Each distinct category becomes a row on the student menu; suggesting the
   // existing ones keeps spellings consistent.
   const categories = [...new Set(stall.items.map((item) => item.category).filter(Boolean))];
@@ -92,14 +97,14 @@ export default function VendorMenu({ stall, onChanged }) {
     try {
       const created = await api("/api/vendor/menu-items", {
         method: "POST",
-        body: { name: newItem.name, price: Number(newItem.price), veg: newItem.veg, category: newItem.category },
+        body: { name: newItem.name, price: Number(newItem.price), veg: newItem.veg, category: newItem.category, choices: parseChoices(newItem.choices) },
       });
       if (newItem.imageFile) {
         const formData = new FormData();
         formData.append("image", newItem.imageFile);
         await api(`/api/vendor/menu-items/${created.id}/image`, { method: "POST", formData });
       }
-      setNewItem({ name: "", price: "", veg: true, category: newItem.category, imageFile: null });
+      setNewItem({ name: "", price: "", veg: true, category: newItem.category, choices: "", imageFile: null });
       await onChanged();
     } catch (err) {
       setError(err.message);
@@ -125,6 +130,9 @@ export default function VendorMenu({ stall, onChanged }) {
         </div>
         <label className="mt-3 block text-sm font-semibold text-[#315c3d]">Category <span className="font-normal text-gray-500">(optional — each category is its own row on the menu; type a new name to add one)</span>
           <input className={`${inputClass} mt-1 font-normal`} list={categoriesId} maxLength={40} placeholder="e.g. Kathi Rolls" value={newItem.category} onChange={(event) => setNewItem({ ...newItem, category: event.target.value })} />
+        </label>
+        <label className="mt-3 block text-sm font-semibold text-[#315c3d]">Choices <span className="font-normal text-gray-500">(optional, free: e.g. bread or dry/gravy; sizes with different prices are separate items like &ldquo;Dish (Half)&rdquo;)</span>
+          <input className={`${inputClass} mt-1 font-normal`} placeholder="e.g. Bread: Butter Naan ×1 / Butter Roti ×2; Style: Dry / Gravy" value={newItem.choices} onChange={(event) => setNewItem({ ...newItem, choices: event.target.value })} />
         </label>
         <datalist id={categoriesId}>{categories.map((name) => <option key={name} value={name} />)}</datalist>
         <label className="mt-3 block text-sm font-semibold text-[#315c3d]">Dish image <span className="font-normal text-gray-500">(optional)</span>

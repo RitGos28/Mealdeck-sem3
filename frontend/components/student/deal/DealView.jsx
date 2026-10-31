@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import MenuItemCard from "../../menu/MenuItemCard";
+import { bagCount, dishFor } from "../../../lib/menuDishes";
 import { initials } from "../OrderAgain";
 import { BackLink } from "../BrowseViews";
 import { stallStatus, stallTint } from "../browse";
@@ -304,7 +305,7 @@ function Hand({ deal, demoMode, cart, onAdd, onChangeQuantity, onHome }) {
           <ul>
             {items.map((item) => (
               <li key={item.id}>
-                <MenuItemCard item={item} demoMode={demoMode} sub={item.category} quantity={cart[item.id]?.quantity ?? 0} onAddToCart={() => onAdd(item, stall)} onChangeQuantity={(delta) => onChangeQuantity(item.id, delta)} />
+                <MenuItemCard item={item} dish={dishFor(item)} demoMode={demoMode} sub={item.category} quantity={bagCount(cart, dishFor(item))} onAddToCart={() => onAdd(item, stall)} onChangeQuantity={(delta) => onChangeQuantity(item.id, delta)} />
               </li>
             ))}
           </ul>

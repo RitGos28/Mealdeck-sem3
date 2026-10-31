@@ -57,3 +57,25 @@ export function lineKey(itemId, picked, item) {
   const text = item ? choiceText(item, picked) : "";
   return text ? `${itemId}|${text}` : String(itemId);
 }
+
+// How many of this dish (any size, any choices) are in the bag.
+export function bagCount(cart, dish) {
+  const ids = new Set(dish.items.map((item) => item.id));
+  return Object.values(cart).reduce((sum, entry) => sum + (ids.has(entry.item.id) ? entry.quantity : 0), 0);
+}
+
+// Vendor/admin editing: choices as one line of text,
+// "Bread: Butter Naan ×1 / Butter Roti ×2; Style: Dry / Gravy".
+export function formatChoices(groups) {
+  return (groups ?? []).map((group) => `${group.name}: ${group.options.join(" / ")}`).join("; ");
+}
+
+// The reverse; the server does the real validation (2–8 options, unique...).
+export function parseChoices(text) {
+  return (text ?? "").split(";").map((part) => part.trim()).filter(Boolean).map((part) => {
+    const colon = part.indexOf(":");
+    const name = colon < 0 ? part : part.slice(0, colon).trim();
+    const options = colon < 0 ? [] : part.slice(colon + 1).split("/").map((option) => option.trim()).filter(Boolean);
+    return { name, options };
+  });
+}

@@ -65,9 +65,9 @@ export default function LiveOrderCard({ initialOrder }) {
       )}
 
       <ul className="mt-4 space-y-1.5 text-sm">
-        {order.items.map((item) => (
-          <li key={item.menuItemId} className="flex justify-between gap-3">
-            <span className="text-ink">{item.quantity}× {item.menuItemName}</span>
+        {order.items.map((item, i) => (
+          <li key={i} className="flex justify-between gap-3">
+            <span className="text-ink">{item.quantity}× {item.menuItemName}{item.choices && <span className="block text-[12px] text-muted">{item.choices}</span>}</span>
             <span className="text-muted">₹{item.priceAtOrder * item.quantity}</span>
           </li>
         ))}
