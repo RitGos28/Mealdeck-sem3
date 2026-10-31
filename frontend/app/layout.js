@@ -1,5 +1,6 @@
 import localFont from "next/font/local";
 import "./globals.css";
+import ServiceWorker from "../components/ServiceWorker";
 
 // Self-hosted (app/fonts, SIL OFL), so `next build` never has to reach
 // Google Fonts: a network blip there used to fail the Docker build.
@@ -29,7 +30,9 @@ const dmSerif = localFont({
 
 export const metadata = {
   title: "MealDeck",
-  description: "Live campus food availability, reported by students.",
+  description: "Pre-order from campus food stalls and skip the queue. Pay at the counter when you pick up.",
+  applicationName: "MealDeck",
+  appleWebApp: { capable: true, title: "MealDeck", statusBarStyle: "black-translucent" },
 };
 
 // Tints the mobile browser's toolbar to match the green band.
@@ -40,7 +43,10 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${inter.variable} ${dmSerif.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <ServiceWorker />
+      </body>
     </html>
   );
 }
