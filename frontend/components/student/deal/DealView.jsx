@@ -179,16 +179,16 @@ function DishCard({ entry, demoMode, onDecide }) {
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
       style={{ transform: `translateX(${x}px) rotate(${x / 18}deg)`, transition: dragging ? "none" : "transform .22s ease-out" }}
-      className="absolute inset-x-0 top-0 mx-auto h-[420px] w-full max-w-[300px] cursor-grab touch-pan-y overflow-hidden rounded-3xl border border-line bg-white shadow-[0_22px_40px_-18px_rgba(20,60,38,.55)] select-none active:cursor-grabbing"
+      className="absolute inset-x-0 top-0 mx-auto flex h-[clamp(260px,calc(100svh-322px),420px)] w-full max-w-[300px] cursor-grab touch-pan-y flex-col overflow-hidden rounded-3xl border border-line bg-white shadow-[0_22px_40px_-18px_rgba(20,60,38,.55)] select-none active:cursor-grabbing"
     >
       <Corner item={item} />
       <Corner item={item} flip />
-      <div className="mx-[54px] mt-4 flex h-[188px] items-center justify-center overflow-hidden rounded-[18px]" style={{ background: stallTint(stall) }}>
+      <div className="mx-[54px] mt-4 flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-[18px]" style={{ background: stallTint(stall) }}>
         {item.image
           ? <Image src={item.image} alt="" width={384} height={376} draggable={false} className="size-full object-cover" />
-          : <span className="flex size-28 items-center justify-center rounded-full bg-white font-serif text-4xl text-mint-ink" aria-hidden="true">{initials(item.name)}</span>}
+          : <span className="flex aspect-square h-3/5 max-h-28 items-center justify-center rounded-full bg-white font-serif text-4xl text-mint-ink" aria-hidden="true">{initials(item.name)}</span>}
       </div>
-      <div className="px-6 pt-5 text-center">
+      <div className="shrink-0 px-6 pt-4 pb-12 text-center">
         <p className="truncate text-xs font-semibold tracking-[.05em] text-mint-ink uppercase">{stall.name}{item.category ? ` · ${item.category}` : ""}</p>
         <h2 className="mt-2 line-clamp-2 font-serif text-[28px] leading-[1.1]">{item.name}</h2>
         <p className="mt-2 text-[13px] text-muted">{status.label}</p>
@@ -266,9 +266,9 @@ function Dealing({ deal, demoMode, onBag }) {
   if (!current) return null;
   return (
     <section aria-label="Dealing">
-      <div className="relative h-[436px]">
+      <div className="relative h-[clamp(276px,calc(100svh-306px),436px)]">
         {upcoming.map((entry, i) => (
-          <div key={entry.item.id} aria-hidden="true" className="absolute inset-x-0 top-0 mx-auto h-[420px] w-full max-w-[300px] rounded-3xl border border-line shadow-[0_10px_24px_-14px_rgba(20,60,38,.45)]" style={{ background: stallTint(entry.stall), transform: `translate(${i === 0 ? -10 : 14}px, ${i === 0 ? 4 : 8}px) rotate(${i === 0 ? -4 : 6}deg)`, zIndex: -i }} />
+          <div key={entry.item.id} aria-hidden="true" className="absolute inset-x-0 top-0 mx-auto h-[clamp(260px,calc(100svh-322px),420px)] w-full max-w-[300px] rounded-3xl border border-line shadow-[0_10px_24px_-14px_rgba(20,60,38,.45)]" style={{ background: stallTint(entry.stall), transform: `translate(${i === 0 ? -10 : 14}px, ${i === 0 ? 4 : 8}px) rotate(${i === 0 ? -4 : 6}deg)`, zIndex: -i }} />
         ))}
         <DishCard key={current.item.id} entry={current} demoMode={demoMode} onDecide={deal.decide} />
       </div>
@@ -360,14 +360,14 @@ export function DealHeading({ deal, onHome, onBand = true }) {
   if (deal.phase === "dealing" && deal.current) {
     return (
       <>
-        <div className="mt-1.5"><BackLink label="Home" onClick={onHome} onBand={onBand} /></div>
-        <div className="mt-2 flex items-baseline justify-between gap-3">
+        <div className="mt-1.5 flex items-center justify-between gap-3">
+          <BackLink label="Home" onClick={onHome} onBand={onBand} />
           <h1 className="font-serif text-2xl">Card {deal.index + 1} of {deal.hand.length}</h1>
-          <span className={`text-[13px] ${sub}`}>{filterSummary(deal.filters)} · {deal.kept.length} kept</span>
         </div>
         <div role="progressbar" aria-label="Cards dealt" aria-valuemin={0} aria-valuemax={deal.hand.length} aria-valuenow={deal.index} className="mt-3.5 flex gap-1">
           {deal.hand.map((entry, i) => <span key={entry.item.id} className={`h-1 flex-1 rounded-full ${i <= deal.index ? (onBand ? "bg-white" : "bg-deck") : (onBand ? "bg-white/20" : "bg-line")}`} />)}
         </div>
+        <p className={`mt-1.5 text-xs ${sub}`}>{filterSummary(deal.filters)} · {deal.kept.length} kept</p>
       </>
     );
   }

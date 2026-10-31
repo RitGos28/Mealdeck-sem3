@@ -566,6 +566,7 @@ export default function MenuExperience({ stalls, demoMode }) {
       bandAside={isDesktop || view === "deal" || (view === "home" && !query) ? null : <VegToggle vegOnly={vegOnly} onChange={(veg) => setDiet(veg ? "veg" : "all")} />}
       band={isDesktop ? null : band}
       bag={{ count: itemCount, total, onOpen: openBag }}
+      focus={view === "deal" && deal.phase === "dealing"}
     >
       {(user) => (
         <>
