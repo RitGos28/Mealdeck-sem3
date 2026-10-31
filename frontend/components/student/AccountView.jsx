@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { logout } from "../../lib/logout";
 import StudentShell from "./StudentShell";
+import { DeleteAccountPanel } from "./AccountDeletion";
 import { PassportCard } from "./passport/PassportViews";
 
 const ROLE_LABELS = { VENDOR: "Vendor", ADMIN: "Admin" };
@@ -36,7 +37,7 @@ function RedirectToLogin({ router }) {
   return <p className="py-10 text-center text-muted">Taking you to log in…</p>;
 }
 
-function AccountContent({ user, router }) {
+function AccountContent({ user, router, deletion }) {
   const [leaving, setLeaving] = useState(false);
   const [error, setError] = useState("");
   const dashboard = user.role === "VENDOR" ? "/vendor" : user.role === "ADMIN" ? "/admin" : null;
@@ -84,6 +85,12 @@ function AccountContent({ user, router }) {
         {leaving ? "Logging out…" : "Log out"}
       </button>
       {error && <p role="alert" className="mt-3 text-center text-sm text-danger">{error}</p>}
+
+      {user.role === "STUDENT" && (
+        <section aria-label="Delete account" className="mt-10 border-t border-line pt-6">
+          <DeleteAccountPanel deletion={deletion} />
+        </section>
+      )}
     </div>
   );
 }
@@ -100,10 +107,10 @@ export default function AccountView() {
 
   return (
     <StudentShell active="account" band={band}>
-      {(user) => {
+      {(user, deletion) => {
         if (user === undefined) return <p className="py-10 text-center text-muted" role="status">Loading your account…</p>;
         if (user === null) return <RedirectToLogin router={router} />;
-        return <AccountContent user={user} router={router} />;
+        return <AccountContent user={user} router={router} deletion={deletion} />;
       }}
     </StudentShell>
   );

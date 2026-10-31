@@ -68,7 +68,22 @@ function preferredSlot(slots, preferred) {
   return choice ? toSlotValue(choice.time) : null;
 }
 
-export default function Checkout({ cartItems, total, user, onBack, onPlaced }) {
+// A slot's start as an instant, in campus time today.
+function slotInstant(time) {
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  return new Date(`${today}T${toSlotValue(time)}:00+05:30`);
+}
+
+// Drops slots after `latestPickup` (an ISO instant), if there is one.
+function trimSlots(slots, latestPickup) {
+  if (!slots || !latestPickup) return slots;
+  const cutoff = new Date(latestPickup);
+  return slots.filter((slot) => slotInstant(slot.time) <= cutoff);
+}
+
+// latestPickup: while the account is scheduled for deletion, no pickup can
+// be after this (the server enforces it too), so later slots aren't shown.
+export default function Checkout({ cartItems, total, user, onBack, onPlaced, latestPickup = null }) {
   const router = useRouter();
   const stalls = useMemo(() => groupByStall(cartItems), [cartItems]);
   const [slotsByStall, setSlotsByStall] = useState({});
@@ -86,7 +101,7 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced }) {
   const loadSlots = useCallback(() => Promise.all(stalls.map(({ stallId }) =>
     api(`/api/stalls/${stallId}/queue`).then((snapshot) => [stallId, snapshot], () => [stallId, null]),
   )).then((results) => {
-    const next = Object.fromEntries(results.map(([stallId, snapshot]) => [stallId, snapshot?.slots ?? null]));
+    const next = Object.fromEntries(results.map(([stallId, snapshot]) => [stallId, trimSlots(snapshot?.slots, latestPickup) ?? null]));
     setPausedStalls(Object.fromEntries(results.map(([stallId, snapshot]) => [stallId, Boolean(snapshot?.ordersPaused)])));
     setSlotsByStall(next);
     dropUnbookable(next, setPicked, setNotices);
@@ -95,7 +110,7 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced }) {
     for (const [stallId, snapshot] of results) {
       if (prefilled.current.has(String(stallId)) || !snapshot?.slots || snapshot.ordersPaused) continue;
       prefilled.current.add(String(stallId));
-      const value = preferredSlot(snapshot.slots, preferred);
+      const value = preferredSlot(next[stallId], preferred);
       if (value) prefills[stallId] = value;
     }
     if (Object.keys(prefills).length > 0) {
@@ -104,12 +119,12 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced }) {
         return Object.keys(fill).length > 0 ? { ...current, ...fill } : current;
       });
     }
-  }), [stalls]);
+  }), [stalls, latestPickup]);
 
   function updateFromSnapshot(stallId, snapshot) {
     setPausedStalls((current) => ({ ...current, [stallId]: snapshot.ordersPaused }));
     setSlotsByStall((current) => {
-      const next = { ...current, [stallId]: snapshot.slots };
+      const next = { ...current, [stallId]: trimSlots(snapshot.slots, latestPickup) };
       dropUnbookable(next, setPicked, setNotices);
       return next;
     });

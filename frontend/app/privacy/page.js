@@ -57,8 +57,8 @@ export default function PrivacyPage() {
         </Section>
 
         <Section title="Keeping and deleting it">
-          <p>Your account stays until you ask us to delete it. To delete it, or to ask anything about your data, email <a href={`mailto:${CONTACT}`} className="font-semibold text-[#3f6b3a] hover:underline">{CONTACT}</a> from your Bennett address.</p>
-          <p>Deleting your account removes your login, your account details and your reports. Orders you already placed stay in the stall&apos;s order history, with the name and contact copied onto them at checkout, so the stall&apos;s records still add up.</p>
+          <p>Your account stays until you delete it. Delete it yourself from <strong>Account → Delete my account</strong>: it&apos;s deleted for good 24 hours later, and you can cancel until then. The steps are at <Link href="/account/deletion" className="font-semibold text-[#3f6b3a] hover:underline">mealdeck.in/account/deletion</Link>. Or email <a href={`mailto:${CONTACT}`} className="font-semibold text-[#3f6b3a] hover:underline">{CONTACT}</a> from your Bennett address, which is also the address for any question about your data.</p>
+          <p>Deleting your account removes your login, your account details, your Food passport and your reports. Orders you already placed stay in the stall&apos;s order history so its records still add up, but anonymised: your name and contact are removed from them.</p>
         </Section>
 
         <Link href="/" className="text-sm font-semibold text-[#3f6b3a] hover:underline">← Back to menu</Link>

@@ -155,7 +155,7 @@ class CheckoutTests {
     }
 
     @Test
-    void deletingAStudentKeepsTheirOrdersOnTheVendorsList() {
+    void deletingAStudentKeepsTheirOrdersOnTheVendorsListAnonymised() {
         Stall bistro = stall("Bistro / Kathi");
         Student leaver = studentRepository.save(new Student("leaver@bennett.edu.in", "unused", "Leaver", null));
         Long orderId = orderService.checkout(leaver.getId(), new CreateOrderRequest(
@@ -165,7 +165,9 @@ class CheckoutTests {
 
         Order kept = orderService.getOrder(orderId);
         assertThat(kept.getStudent()).isNull();
-        assertThat(kept.getCustomerName()).isEqualTo("Leaver");
+        assertThat(kept.getCustomerName()).isEqualTo("Deleted student");
+        assertThat(kept.getCustomerContact()).isEqualTo("(deleted)");
+        assertThat(kept.getItems()).isNotEmpty();
     }
 
     @Test

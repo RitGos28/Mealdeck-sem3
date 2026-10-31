@@ -33,6 +33,10 @@ export default function PassportPage({ stallId }) {
   const entry = ready && stallId ? passport.perStall.find(({ stall }) => String(stall.id) === String(stallId)) : null;
 
   let band;
+  const owner = (user) => {
+    const first = user?.name?.trim().split(/\s+/)[0];
+    return first ? `${first}'s food passport` : "Your food passport";
+  };
   if (entry) {
     const stamped = entry.sections.filter((section) => section.tried > 0).length;
     band = (
@@ -43,10 +47,10 @@ export default function PassportPage({ stallId }) {
       </div>
     );
   } else {
-    band = (
+    band = (user) => (
       <div className="mt-2">
         <Back href="/account" label="Account" />
-        <h1 className="font-serif text-3xl leading-tight">Your food passport</h1>
+        <h1 className="font-serif text-3xl leading-tight">{owner(user)}</h1>
         <p className="mt-1 text-sm text-on-deck">{ready ? `${passport.triedCount} of ${passport.total} campus dishes tried` : "Every dish you pick up gets a stamp"}</p>
         {ready && (
           <>
