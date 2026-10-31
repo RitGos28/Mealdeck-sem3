@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import LiveOrderCard from "../../components/orders/LiveOrderCard";
 import ReceiptToast from "../../components/orders/ReceiptToast";
+import FeedbackLink from "../../components/FeedbackLink";
 import StudentShell from "../../components/student/StudentShell";
 import { FINAL_STATUSES, StatusBadge } from "../../lib/orderStatus";
 
@@ -140,6 +141,7 @@ export default async function OrdersPage({ searchParams }) {
           <Link href="/" className="inline-flex h-11 items-center rounded-full border border-field px-5 text-sm font-semibold text-ink hover:border-deck">← Back to menu</Link>
           {!mine && !loggedOut && <Link href="/orders" className="inline-flex h-11 items-center rounded-full border border-field px-5 text-sm font-semibold text-ink hover:border-deck">All my orders →</Link>}
         </div>
+        <p className="mt-6 text-sm text-muted">Something not right? <FeedbackLink className="font-semibold text-deck underline underline-offset-2" /></p>
       </div>
     </StudentShell>
   );
