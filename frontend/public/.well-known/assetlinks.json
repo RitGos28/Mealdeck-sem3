@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "in.mealdeck.app",
+      "sha256_cert_fingerprints": [
+        "64:85:24:81:E8:0A:50:92:A2:42:E6:26:6B:A4:36:E1:D5:59:F8:11:E0:93:58:2A:5D:C9:7C:87:5B:FF:4B:10",
+        "E6:0A:DB:F3:E7:B1:E7:03:3D:9A:2B:FA:CD:34:17:A4:B8:97:86:1A:9F:F8:95:ED:25:02:91:7B:C2:29:EA:2D"
+      ]
+    }
+  }
+]
