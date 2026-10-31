@@ -10,7 +10,8 @@ import StudentShell from "./student/StudentShell";
 import PickupChips from "./student/PickupChips";
 import OrderAgain from "./student/OrderAgain";
 import { BackLink, CravingGrid, SectionTitle, StallList, StallTabs, ViewSwitch, useStallSubtitle } from "./student/BrowseViews";
-import { CRAVINGS, cravingDishes, stallStatus } from "./student/browse";
+import { CRAVINGS, cravingDishes, isDrink, stallStatus } from "./student/browse";
+import { DealBody, DealEntry, DealHeading, useDeal } from "./student/deal/DealView";
 
 // The bag survives the trip to /login and back (ordering needs a login),
 // but only for this tab. Storage can be unavailable (private mode, blocked
@@ -163,12 +164,6 @@ const SORTS = [["relevance", "Relevance"], ["price-asc", "Price: low to high"], 
 const DIETS = [["all", "All"], ["veg", "Veg only"], ["nonveg", "Non-veg"]];
 const KINDS = [["all", "Everything"], ["food", "Food"], ["drinks", "Drinks"]];
 
-// Drinks are told apart by their category ("Cold Beverages", "Chai Nagri"),
-// or by the dish name when the stall hasn't set one.
-const DRINK_WORDS = /beverage|drink|shake|juice|coffee|chai|\btea\b|soda|lassi|mojito|smoothie|cooler|frappe|lemonade|water|cola|coke|pepsi|sprite|latte|cappuccino|espresso|milk/i;
-function isDrink(item) {
-  return DRINK_WORDS.test(item.category ?? "") || (!item.category && DRINK_WORDS.test(item.name));
-}
 
 function SearchField({ value, onChange, onBand = false, placeholder = "Search dishes or drinks" }) {
   return (
@@ -267,9 +262,9 @@ function saveHomeView(view) {
   }
 }
 
-// One client page with three views, picked by the URL so links and the back
-// button work: the stalls home (/), a stall's menu (/?stall=6) and a craving
-// across stalls (/?craving=momos). Staying on one page keeps the bag,
+// One client page with four views, picked by the URL so links and the back
+// button work: the stalls home (/), a stall's menu (/?stall=6), a craving
+// across stalls (/?craving=momos) and the "Deal me a dish" game (/?deal=1). Staying on one page keeps the bag,
 // checkout and the menu data without a reload between views.
 export default function MenuExperience({ stalls, demoMode }) {
   const router = useRouter();
@@ -308,7 +303,9 @@ export default function MenuExperience({ stalls, demoMode }) {
 
   const activeStall = menuStalls.find((stall) => String(stall.id) === params.get("stall")) ?? null;
   const activeCraving = activeStall ? null : CRAVINGS.find((craving) => craving.id === params.get("craving")) ?? null;
-  const view = activeStall ? "stall" : activeCraving ? "craving" : "home";
+  const dealing = !activeStall && !activeCraving && params.has("deal");
+  const view = activeStall ? "stall" : activeCraving ? "craving" : dealing ? "deal" : "home";
+  const deal = useDeal(menuStalls, demoMode);
   const stallSubtitle = useStallSubtitle(activeStall, demoMode);
 
   // Demo data has no hours, so every sample stall counts as open.
@@ -350,6 +347,7 @@ export default function MenuExperience({ stalls, demoMode }) {
   }
   const openStall = (id) => go(`/?stall=${id}`, { replace: view === "stall" });
   const openCraving = (id) => go(`/?craving=${id}`);
+  const openDeal = () => go("/?deal=1");
   function goHome() {
     if (navigated.current) {
       window.history.back();
@@ -426,7 +424,7 @@ export default function MenuExperience({ stalls, demoMode }) {
       ? { back: "Home", title: activeCraving.name, sub: cravingList.length === 0 ? "Nothing matches right now" : `${cravingList.length} dish${cravingList.length === 1 ? "" : "es"} at ${cravingStallCount} stall${cravingStallCount === 1 ? "" : "s"} · ${sort === "price-desc" ? "priciest" : "cheapest"} first` }
       : null;
 
-  const band = heading ? (
+  const band = view === "deal" ? <DealHeading deal={deal} onHome={goHome} /> : heading ? (
     <>
       <div className="mt-1.5"><BackLink label={heading.back} onClick={goHome} /></div>
       <div className="md:flex md:items-end md:justify-between md:gap-8">
@@ -487,6 +485,16 @@ export default function MenuExperience({ stalls, demoMode }) {
   );
 
   function content(user) {
+    if (view === "deal") {
+      return (
+        <>
+          {isDesktop && <div className="max-w-md"><DealHeading deal={deal} onHome={goHome} onBand={false} /></div>}
+          <div className="max-w-md lg:max-w-xl">
+            <DealBody deal={deal} demoMode={demoMode} cart={cart} onAdd={addToCart} onChangeQuantity={changeQuantity} onHome={goHome} />
+          </div>
+        </>
+      );
+    }
     if (view === "stall") {
       return (
         <>
@@ -539,6 +547,7 @@ export default function MenuExperience({ stalls, demoMode }) {
           </section>
         ) : (
           <>
+            <DealEntry stalls={menuStalls} demoMode={demoMode} onOpen={openDeal} />
             <OrderAgain stalls={menuStalls} user={user} onAdd={addToCart} />
             <section>
               <SectionTitle aside={`${menuStalls.length} on campus`}>Stalls</SectionTitle>
@@ -554,7 +563,7 @@ export default function MenuExperience({ stalls, demoMode }) {
     <StudentShell
       active="menu"
       wide
-      bandAside={isDesktop || (view === "home" && !query) ? null : <VegToggle vegOnly={vegOnly} onChange={(veg) => setDiet(veg ? "veg" : "all")} />}
+      bandAside={isDesktop || view === "deal" || (view === "home" && !query) ? null : <VegToggle vegOnly={vegOnly} onChange={(veg) => setDiet(veg ? "veg" : "all")} />}
       band={isDesktop ? null : band}
       bag={{ count: itemCount, total, onOpen: openBag }}
     >

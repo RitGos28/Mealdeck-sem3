@@ -6,8 +6,9 @@ import { api } from "../../lib/api";
 
 const MAX_CARDS = 4;
 
+// Letters only, so "Macaroni (Veg)" is "MV" and "Bistro / Kathi" is "BK".
 export function initials(name) {
-  return name.split(/\s+/).filter(Boolean).map((word) => word[0]).slice(0, 2).join("").toUpperCase();
+  return name.replace(/[^\p{L}\s]/gu, "").split(/\s+/).filter(Boolean).map((word) => word[0]).slice(0, 2).join("").toUpperCase();
 }
 
 // Dishes from the student's past orders that can be ordered right now,

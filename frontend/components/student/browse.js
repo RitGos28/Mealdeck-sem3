@@ -17,6 +17,13 @@ export function stallStatus(stall, demoMode) {
   return { label: "Open", live: true };
 }
 
+// Drinks are told apart by their category ("Cold Beverages", "Chai Nagri"),
+// or by the dish name when the stall hasn't set one.
+const DRINK_WORDS = /beverage|drink|shake|juice|coffee|chai|\btea\b|soda|lassi|mojito|smoothie|cooler|frappe|lemonade|water|cola|coke|pepsi|sprite|latte|cappuccino|espresso|milk/i;
+export function isDrink(item) {
+  return DRINK_WORDS.test(item.category ?? "") || (!item.category && DRINK_WORDS.test(item.name));
+}
+
 // The stall's biggest categories, as a one-line hint of what it serves.
 // Diet-only headings ("Veg", "Non Veg") say nothing about the food, so
 // they're skipped.
