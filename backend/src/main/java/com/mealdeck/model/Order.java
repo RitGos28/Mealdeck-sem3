@@ -54,6 +54,12 @@ public class Order {
     @Column(nullable = false)
     private String customerContact;
 
+    /** One-way code of the student's email (EmailKeys), so the no-show
+     * limit still counts this order after the account is deleted. Wiped
+     * once the order is older than the no-show window. */
+    @Column(length = 64)
+    private String customerEmailKey;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private OrderStatus status = OrderStatus.PLACED;
@@ -94,6 +100,9 @@ public class Order {
     public String getPublicCode() {
         return publicCode;
     }
+
+    public String getCustomerEmailKey() { return customerEmailKey; }
+    public void setCustomerEmailKey(String customerEmailKey) { this.customerEmailKey = customerEmailKey; }
 
     public void setPublicCode(String publicCode) {
         this.publicCode = publicCode;

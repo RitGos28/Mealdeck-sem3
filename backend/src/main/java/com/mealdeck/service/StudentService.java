@@ -23,11 +23,13 @@ public class StudentService {
 
     private final StudentRepository studentRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailStandingService emailStanding;
     private final ReportRepository reportRepository;
     private final SignupCodeService signupCodeService;
     private final OrderRepository orderRepository;
 
-    public StudentService(StudentRepository studentRepository, PasswordEncoder passwordEncoder, ReportRepository reportRepository, SignupCodeService signupCodeService, OrderRepository orderRepository) {
+    public StudentService(StudentRepository studentRepository, PasswordEncoder passwordEncoder, ReportRepository reportRepository, SignupCodeService signupCodeService, OrderRepository orderRepository, EmailStandingService emailStanding) {
+        this.emailStanding = emailStanding;
         this.orderRepository = orderRepository;
         this.studentRepository = studentRepository;
         this.passwordEncoder = passwordEncoder;
@@ -44,9 +46,9 @@ public class StudentService {
     public Student signup(SignupRequest request) {
         String email = SignupCodeService.normalize(request.email());
         if (!EmailDomains.isStudentEmail(email)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Only " + EmailDomains.STUDENT_DOMAIN + " emails are accepted");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, EmailDomains.studentEmailProblem(email));
         }
+        emailStanding.requireCanSignUp(email);
         if (request.password() == null || request.password().length() < MIN_PASSWORD_LENGTH) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Password must be at least " + MIN_PASSWORD_LENGTH + " characters");
@@ -121,7 +123,7 @@ public class StudentService {
     }
 
     private void validateEmail(String email, Long currentId) {
-        if (!EmailDomains.isStudentEmail(email)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only " + EmailDomains.STUDENT_DOMAIN + " emails are accepted");
+        if (!EmailDomains.isStudentEmail(email)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, EmailDomains.studentEmailProblem(email));
         studentRepository.findByEmail(email.trim().toLowerCase()).filter(student -> !student.getId().equals(currentId))
                 .ifPresent(student -> { throw new ResponseStatusException(HttpStatus.CONFLICT, "An account with that email already exists"); });
     }

@@ -120,7 +120,7 @@ export default async function OrdersPage({ searchParams }) {
           <section aria-labelledby="today-heading">
             <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
               <h2 id="today-heading" className="font-serif text-2xl text-ink">Today</h2>
-              <p className="text-sm text-muted">Show the order number at the counter. Pay at pickup (cash or UPI).</p>
+              <p className="text-sm text-muted">Show the order number at the counter. Pay by UPI when you pick up (or card, where the stall takes it). Stalls don&apos;t take cash.</p>
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
               {live.map((order) => <LiveOrderCard key={order.id} initialOrder={order} />)}

@@ -180,6 +180,8 @@ class AccountDeletionTests {
         Student demo = studentRepository.findByEmail("student@bennett.edu.in").orElseThrow();
         askedAgo(demo, Duration.ofHours(25));
 
+        assertThat(accountDeletion.status(demo).protectedAccount()).isTrue();
+
         accountDeletion.deleteDueAccounts();
 
         Student kept = studentRepository.findById(demo.getId()).orElseThrow();

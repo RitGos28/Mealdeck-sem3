@@ -41,9 +41,11 @@ public class AdminController {
     private final AdminAccountService adminAccountService;
     private final StudentService studentService;
     private final com.mealdeck.service.AccountDeletionService accountDeletion;
+    private final com.mealdeck.service.EmailStandingService emailStanding;
 
-    public AdminController(MenuService menuService, OrderService orderService, AnalyticsService analyticsService, AdminAccountService adminAccountService, StudentService studentService, com.mealdeck.service.AccountDeletionService accountDeletion) {
+    public AdminController(MenuService menuService, OrderService orderService, AnalyticsService analyticsService, AdminAccountService adminAccountService, StudentService studentService, com.mealdeck.service.AccountDeletionService accountDeletion, com.mealdeck.service.EmailStandingService emailStanding) {
         this.accountDeletion = accountDeletion;
+        this.emailStanding = emailStanding;
         this.menuService = menuService;
         this.orderService = orderService;
         this.analyticsService = analyticsService;
@@ -121,6 +123,19 @@ public class AdminController {
 
     @DeleteMapping("/students/{id}")
     public void deleteStudent(@PathVariable Long id) { studentService.deleteByAdmin(id); }
+
+    public record FlagEmailRequest(String email, String reason, Integer days) {
+    }
+
+    /** "Suspicious emails": admin flags plus emails paused for no-shows. */
+    @GetMapping("/flagged-emails")
+    public List<com.mealdeck.service.EmailStandingService.Entry> flaggedEmails() { return emailStanding.list(); }
+
+    @PostMapping("/flagged-emails")
+    public com.mealdeck.service.EmailStandingService.Entry flagEmail(@RequestBody FlagEmailRequest request) { return emailStanding.flag(request.email(), request.reason(), request.days()); }
+
+    @DeleteMapping("/flagged-emails/{id}")
+    public void unflagEmail(@PathVariable Long id) { emailStanding.unflag(id); }
 
     /** Cancels a deletion the student scheduled, within its grace period. */
     @DeleteMapping("/students/{id}/deletion")

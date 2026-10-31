@@ -41,8 +41,10 @@ public class SignupCodeService {
     private final CodeMailer mailer;
     private final Clock clock;
     private final com.mealdeck.repository.AdminRepository adminRepository;
+    private final EmailStandingService emailStanding;
 
-    public SignupCodeService(EmailCodeRepository emailCodeRepository, StudentRepository studentRepository, CodeMailer mailer, Clock clock, com.mealdeck.repository.AdminRepository adminRepository) {
+    public SignupCodeService(EmailCodeRepository emailCodeRepository, StudentRepository studentRepository, CodeMailer mailer, Clock clock, com.mealdeck.repository.AdminRepository adminRepository, EmailStandingService emailStanding) {
+        this.emailStanding = emailStanding;
         this.emailCodeRepository = emailCodeRepository;
         this.studentRepository = studentRepository;
         this.mailer = mailer;
@@ -121,9 +123,9 @@ public class SignupCodeService {
     private void requestCode(String rawEmail, Purpose purpose) {
         String email = normalize(rawEmail);
         if (!EmailDomains.isStudentEmail(email)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Only " + EmailDomains.STUDENT_DOMAIN + " emails are accepted");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, EmailDomains.studentEmailProblem(email));
         }
+        if (purpose == Purpose.SIGNUP) emailStanding.requireCanSignUp(email);
         Instant now = Instant.now(clock);
         LocalDate today = LocalDate.now(clock);
         EmailCode row = emailCodeRepository.findByEmail(email).orElseGet(() -> new EmailCode(email));

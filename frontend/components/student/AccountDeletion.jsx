@@ -14,11 +14,11 @@ const LOSSES = [
   ["The comfort of skipping the line", "You'll be the one watching others stroll past, food in hand."],
   ["Live order status and the “Ready now!” moment", "Just hovering at the counter, guessing, like it's 2019."],
   ["Your whole order history", "Even your usual won't remember you."],
-  ["Order again", "Retyping your exact chai order every single time. Every. Single. Time."],
-  ["Every Food passport stamp", "All those momos you bravely tried? No proof it ever happened."],
-  ["Deal me a dish", "Indecision wins. Nobody deals you anything ever again."],
+  ["Order again", "Hunting down your exact chai order every single time. Every. Single. Time."],
+  ["Every Food passport stamp", "All those momos you bravely tried? No proof it was ever you."],
+  ["Ordering what Deal me a dish deals you", "The game still works. The dishes just stay a dream."],
   ["The out-of-stock reports you've made", "Your heroic “they're out of cold coffee” warnings, gone."],
-  ["Your saved name, phone number, email login and password", "We'll forget you completely. That's the point, but still."],
+  ["Your saved name, phone number, email login and password", "We'll forget who you are. That's the point, but still."],
   ["Sign-in and password-reset emails to this address", "Total silence from us. Peaceful, sure. Lonely, too."],
 ];
 
@@ -27,8 +27,8 @@ export function WhatYouLose() {
     <div className="space-y-3 text-sm text-ink">
       <p className="font-serif text-xl text-danger">Wait, are you sure? Here&apos;s what you&apos;d lose.</p>
       <p>
-        <strong>Deleting your account means you can&apos;t use mealdeck.in or any of its related services, including the MealDeck Android app, until you create a new account.</strong>{" "}
-        You will lose, including but not limited to:
+        <strong>Deleting your account means you can&apos;t order on mealdeck.in or in the MealDeck Android app, or use anything that needs an account, until you create a new one.</strong>{" "}
+        You can still browse the menus. You will lose:
       </p>
       <ul className="space-y-2.5">
         {LOSSES.map(([loss, sting]) => (
@@ -58,6 +58,7 @@ export function DeleteAccountPanel({ deletion }) {
     return (
       <section aria-labelledby="deletion-heading" className="rounded-2xl border-2 border-danger/40 bg-[#FBEDE6] p-4">
         <h2 id="deletion-heading" className="font-serif text-xl text-danger">Your account is scheduled for deletion</h2>
+        {status.protectedAccount && <p className="mt-1 rounded-lg bg-white px-3 py-2 text-sm text-ink"><strong>This is a shared demo account,</strong> so it goes through every step but is never actually deleted: when the time is up, the request is simply cleared. Real accounts are deleted for good.</p>}
         <p className="mt-1 text-sm text-ink">It will be deleted for good at <strong>{formatDeletionTime(status.scheduledFor)}</strong>.{" "}
           {status.orderingBlocked ? <strong>It can&apos;t place orders any more.</strong> : <>You can still order until {formatDeletionTime(status.orderingBlockedFrom)}, for pickups before then.</>}
         </p>
