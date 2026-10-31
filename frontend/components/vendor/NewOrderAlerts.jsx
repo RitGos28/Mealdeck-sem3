@@ -56,15 +56,19 @@ export function useNewOrderAlerts(orders, watching) {
   }, []);
 
   // Browsers only let a page make sound after the user has interacted with
-  // it, so the audio is unlocked on the first tap anywhere on the page.
+  // it, so any tap on the page unlocks the audio. iOS Safari only counts a
+  // finished tap (touchend/click), not pointerdown, and suspends the audio
+  // again when the phone locks or the tab is hidden, so every tap re-unlocks
+  // it rather than just the first.
   useEffect(() => {
     if (!enabled) return undefined;
     function unlock() {
       audio.current ??= new AudioContext();
-      audio.current.resume().catch(() => {});
+      if (audio.current.state !== "running") audio.current.resume().catch(() => {});
     }
-    window.addEventListener("pointerdown", unlock, { once: true });
-    return () => window.removeEventListener("pointerdown", unlock);
+    const events = ["touchend", "click", "keydown"];
+    events.forEach((name) => window.addEventListener(name, unlock));
+    return () => events.forEach((name) => window.removeEventListener(name, unlock));
   }, [enabled]);
 
   useEffect(() => {
