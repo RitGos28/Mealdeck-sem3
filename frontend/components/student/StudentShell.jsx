@@ -26,11 +26,12 @@ function tabHref(tab, user) {
 // over a white sheet. Phones and portrait tablets get bottom tabs and a
 // floating bag button; wide screens put the links and bag in the band.
 // `children` may be a function of the current user, so pages don't fetch
-// /api/auth/me a second time.
-export default function StudentShell({ active, band, bandAside, bag, wide = false, children }) {
+// /api/auth/me a second time. `focus` hides the bottom tabs and floating
+// bag on phones, for full-screen moments like dealing cards.
+export default function StudentShell({ active, band, bandAside, bag, wide = false, focus = false, children }) {
   const container = wide ? "max-w-6xl lg:max-w-[1400px]" : "max-w-6xl";
   const [user] = useCurrentUser();
-  const showBag = bag && bag.count > 0;
+  const showBag = bag && bag.count > 0 && !focus;
 
   return (
     <div className="student-shell flex min-h-screen flex-col bg-deck">
@@ -72,7 +73,7 @@ export default function StudentShell({ active, band, bandAside, bag, wide = fals
         </button>
       )}
 
-      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
+      <nav aria-label="Main" className={`fixed inset-x-0 bottom-0 z-20 grid-cols-3 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden ${focus ? "hidden" : "grid"}`}>
         {TABS.map((tab) => (
           <Link key={tab.id} href={tabHref(tab, user)} aria-current={active === tab.id ? "page" : undefined} className={`flex h-16 flex-col items-center justify-center gap-1 text-xs ${active === tab.id ? "font-semibold text-deck" : "font-medium text-muted hover:text-ink"}`}>
             <Icon>{tab.icon}</Icon>{tab.label}

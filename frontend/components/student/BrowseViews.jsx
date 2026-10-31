@@ -11,7 +11,7 @@ export function Chevron({ direction = "right", size = 18 }) {
 }
 
 function StallTile({ stall, size = "size-12 text-base" }) {
-  return <span className={`flex shrink-0 items-center justify-center rounded-[14px] font-serif text-mint-ink ${size}`} style={{ background: stallTint(stall) }} aria-hidden="true">{initials(stall.name.replace(/[^\p{L} ]/gu, ""))}</span>;
+  return <span className={`flex shrink-0 items-center justify-center rounded-[14px] font-serif text-mint-ink ${size}`} style={{ background: stallTint(stall) }} aria-hidden="true">{initials(stall.name)}</span>;
 }
 
 function StatusDot({ status }) {
