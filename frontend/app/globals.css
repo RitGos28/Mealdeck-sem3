@@ -50,3 +50,11 @@
 @media (max-width: 639px) {
   input, select, textarea { font-size: 16px; }
 }
+
+/* The receipt slides down after checkout. The reduced-motion rule above
+   cuts it to an instant appearance. */
+@keyframes receipt-in {
+  from { transform: translateY(-110%); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.receipt-toast { animation: receipt-in .45s cubic-bezier(.2, .9, .3, 1.1) both; }

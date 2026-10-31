@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import LiveOrderCard from "../../components/orders/LiveOrderCard";
+import ReceiptToast from "../../components/orders/ReceiptToast";
 import StudentShell from "../../components/student/StudentShell";
 import { FINAL_STATUSES, StatusBadge } from "../../lib/orderStatus";
 
@@ -68,7 +69,7 @@ function PastOrderRow({ order }) {
 }
 
 export default async function OrdersPage({ searchParams }) {
-  const { codes } = await searchParams;
+  const { codes, placed } = await searchParams;
   const mine = !codes;
   let orders = [];
   let loggedOut = false;
@@ -94,6 +95,7 @@ export default async function OrdersPage({ searchParams }) {
 
   return (
     <StudentShell active="orders" band={band}>
+      {placed === "1" && !mine && <ReceiptToast orders={orders} />}
       <div className="mx-auto max-w-3xl lg:max-w-5xl">
         {failed && <p role="alert" className="rounded-2xl bg-[#fbe9e7] px-4 py-3 text-sm text-danger">Couldn&apos;t reach the server. Refresh to try again.</p>}
 

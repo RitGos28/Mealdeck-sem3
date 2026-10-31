@@ -28,7 +28,8 @@ function Thumb({ item, dimmed }) {
 
 // One dish as a list row: thumbnail, veg mark, name, price, and an add
 // button (or the quantity stepper once it's in the bag).
-export default function MenuItemCard({ item, demoMode, quantity = 0, onAddToCart, onChangeQuantity }) {
+// `sub` names the stall when dishes from several stalls share one list.
+export default function MenuItemCard({ item, demoMode, quantity = 0, onAddToCart, onChangeQuantity, sub }) {
   const router = useRouter();
   const [reporting, setReporting] = useState(false);
   const [locallyUnavailable, setLocallyUnavailable] = useState(false);
@@ -68,6 +69,7 @@ export default function MenuItemCard({ item, demoMode, quantity = 0, onAddToCart
           <VegDot veg={item.veg} />
           <span className={`text-[15px] font-medium lg:line-clamp-2 lg:text-[13.5px] lg:leading-snug ${available ? "text-ink" : "text-muted"}`}>{item.name}</span>
         </div>
+        {sub && <p className="mt-0.5 truncate text-[13px] text-muted">{sub}</p>}
         {available ? (
           <div className="mt-0.5 flex flex-wrap items-center gap-x-3">
             <span className="text-sm text-muted lg:text-[13px] lg:font-semibold lg:text-ink">₹{item.price}</span>

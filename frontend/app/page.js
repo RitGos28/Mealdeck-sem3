@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import MenuExperience from "../components/MealDeckApp";
 import demoStalls from "../data/demoMenu";
 
@@ -25,7 +26,10 @@ export default async function MenuPage() {
     demoMode = true;
   }
 
+  // MenuExperience reads the view from the URL (useSearchParams).
   return (
-    <MenuExperience stalls={stalls} demoMode={demoMode} />
+    <Suspense>
+      <MenuExperience stalls={stalls} demoMode={demoMode} />
+    </Suspense>
   );
 }
