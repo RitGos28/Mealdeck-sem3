@@ -29,10 +29,11 @@ public record OrderDto(
         BigDecimal total,
         List<Item> items) {
 
-    public record Item(Long menuItemId, String menuItemName, int quantity, BigDecimal priceAtOrder) {
+    /** choices: the student's picks as the stall reads them, or null. */
+    public record Item(Long menuItemId, String menuItemName, int quantity, BigDecimal priceAtOrder, String choices) {
 
         static Item from(OrderItem item) {
-            return new Item(item.getMenuItem().getId(), item.getMenuItem().getName(), item.getQuantity(), item.getPriceAtOrder());
+            return new Item(item.getMenuItem().getId(), item.getMenuItem().getName(), item.getQuantity(), item.getPriceAtOrder(), item.getChoices());
         }
     }
 

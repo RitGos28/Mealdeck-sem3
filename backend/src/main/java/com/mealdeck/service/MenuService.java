@@ -139,6 +139,7 @@ public class MenuService {
         Stall stall = getStall(stallId);
         MenuItem item = new MenuItem(stall, request.name(), request.price(), request.veg());
         item.setCategory(cleanCategory(request.category()));
+        item.setChoices(MenuChoices.store(request.choices()));
         return menuItemRepository.save(item);
     }
 
@@ -171,6 +172,9 @@ public class MenuService {
         }
         if (request.category() != null) {
             item.setCategory(cleanCategory(request.category()));
+        }
+        if (request.choices() != null) {
+            item.setChoices(MenuChoices.store(request.choices()));
         }
         if (request.available() != null) {
             item.setAvailable(request.available());

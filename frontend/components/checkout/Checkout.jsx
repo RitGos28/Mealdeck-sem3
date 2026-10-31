@@ -149,7 +149,7 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced, lat
       const orders = await api("/api/orders", {
         method: "POST",
         body: {
-          items: cartItems.map((entry) => ({ menuItemId: entry.item.id, quantity: entry.quantity })),
+          items: cartItems.map((entry) => ({ menuItemId: entry.item.id, quantity: entry.quantity, ...(entry.choices ? { choices: entry.choices } : {}) })),
           pickupTimes: picked,
         },
       });
@@ -178,7 +178,7 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced, lat
           return (
             <section key={stallId}>
               <h3 className="font-serif text-lg">{stallName}</h3>
-              <p className="mb-3 text-sm text-muted">{entries.map((e) => `${e.quantity}× ${e.item.name}`).join(", ")}</p>
+              <p className="mb-3 text-sm text-muted">{entries.map((e) => `${e.quantity}× ${e.item.name}${e.choiceText ? ` (${e.choiceText.replace(/^[^:]+: /, "").replace(/ · [^:]+: /g, ", ")})` : ""}`).join(", ")}</p>
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs font-semibold tracking-[.04em] text-muted uppercase">Pickup time</p>
                 <LiveSlots stallId={stallId} onSnapshot={updateFromSnapshot} onConnect={loadSlots} />

@@ -9,6 +9,7 @@ import Checkout from "./checkout/Checkout";
 import StudentShell from "./student/StudentShell";
 import PickupChips from "./student/PickupChips";
 import OrderAgain from "./student/OrderAgain";
+import { choiceText, dishFor, lineKey, needsSheet } from "../lib/menuDishes";
 import { BackLink, CravingGrid, SectionTitle, StallList, StallTabs, ViewSwitch, useStallSubtitle } from "./student/BrowseViews";
 import { CRAVINGS, cravingDishes, isDrink, stallStatus } from "./student/browse";
 import { DealBody, DealEntry, DealHeading, useDeal } from "./student/deal/DealView";
@@ -101,7 +102,7 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), selec
 
 // The phone/tablet bag: a modal bottom sheet. Focus moves in on open, stays
 // inside while open (Tab wraps), and returns to the bag button on close.
-function BagSheet({ onClose, children }) {
+export function BagSheet({ onClose, children, label = "Your bag" }) {
   const panelRef = useRef(null);
   const onCloseRef = useRef(onClose);
   useEffect(() => {
@@ -145,10 +146,10 @@ function BagSheet({ onClose, children }) {
   return (
     <div className="fixed inset-0 z-30 flex items-end justify-center">
       <div className="absolute inset-0 bg-[#0B1F14]/50" onClick={onClose} aria-hidden="true" />
-      <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Your bag" tabIndex={-1} className="relative max-h-[85vh] w-full overflow-y-auto overscroll-contain rounded-t-3xl bg-white px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-ink outline-none md:max-w-xl md:px-8">
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1} className="relative max-h-[85vh] w-full overflow-y-auto overscroll-contain rounded-t-3xl bg-white px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-ink outline-none md:max-w-xl md:px-8">
         <div className="sticky top-0 z-10 -mx-5 flex items-center justify-between bg-white px-5 pt-2 pb-1 md:-mx-8 md:px-8">
           <span className="mx-auto h-1 w-10 rounded-full bg-field" aria-hidden="true" />
-          <button type="button" onClick={onClose} aria-label="Close bag" className="absolute top-1.5 right-3 flex size-11 items-center justify-center rounded-full text-2xl text-muted hover:bg-[#F4F6F3] hover:text-ink md:right-6">×</button>
+          <button type="button" onClick={onClose} aria-label={`Close ${label.toLowerCase()}`} className="absolute top-1.5 right-3 flex size-11 items-center justify-center rounded-full text-2xl text-muted hover:bg-[#F4F6F3] hover:text-ink md:right-6">×</button>
         </div>
         <div className="pt-3">{children}</div>
       </div>
@@ -279,6 +280,8 @@ export default function MenuExperience({ stalls, demoMode }) {
   const [cartLoaded, setCartLoaded] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  // The dish being customised ({ dish, stall }); CustomiseSheet not built yet (WIP).
+  const [customising, setCustomising] = useState(null); // eslint-disable-line no-unused-vars
   const [search, setSearch] = useState("");
   const [diet, setDiet] = useState("all");
   const [sort, setSort] = useState("relevance");
@@ -317,7 +320,9 @@ export default function MenuExperience({ stalls, demoMode }) {
   // Demo data has no hours, so every sample stall counts as open.
   const openCount = menuStalls.filter((stall) => stallStatus(stall, demoMode).live).length;
 
-  const cartItems = useMemo(() => Object.values(cart), [cart]);
+  // Bags saved before choices existed were keyed by item id alone, which
+  // is still the key for a plain dish, so they load as they are.
+  const cartItems = useMemo(() => Object.entries(cart).map(([key, entry]) => ({ ...entry, key })), [cart]);
   const itemCount = cartItems.reduce((count, entry) => count + entry.quantity, 0);
   const total = cartItems.reduce((sum, entry) => sum + entry.item.price * entry.quantity, 0);
   const query = search.trim().toLowerCase();
@@ -368,17 +373,30 @@ export default function MenuExperience({ stalls, demoMode }) {
     saveHomeView(next);
   }
 
-  function addToCart(item, stall) {
+  // A bag line is a dish plus its free choices: "Veg Manchurian · Gravy"
+  // and "· Dry" are separate lines. Plain dishes keep the item id as key.
+  function addToCart(item, stall, choices = null, quantity = 1) {
+    const key = lineKey(item.id, choices, item);
     setCart((current) => ({
       ...current,
-      [item.id]: {
+      [key]: {
         item,
         stallId: stall.id,
         stallName: stall.name,
-        quantity: (current[item.id]?.quantity ?? 0) + 1,
+        choices: choices && Object.keys(choices).length ? choices : null,
+        choiceText: choiceText(item, choices),
+        quantity: (current[key]?.quantity ?? 0) + quantity,
       },
     }));
   }
+
+  // Every "add" goes through here: dishes with sizes or choices open the
+  // customise sheet, everything else is added straight away.
+  function requestAdd(dish, stall) {
+    if (needsSheet(dish)) setCustomising({ dish, stall });
+    else addToCart(dish.items[0], stall);
+  }
+  const requestAddItem = (item, stall) => requestAdd(dishFor(item), stall);
 
   // `placed=1` makes My orders show the receipt toast once.
   function handlePlaced(orderCodes) {
