@@ -45,6 +45,9 @@ function chime(audio) {
 // after watching starts is what's already there, so it doesn't alert.
 export function useNewOrderAlerts(orders, watching) {
   const [enabled, setEnabled] = useState(true);
+  // null where the browser can't show notifications at all (iOS Safari
+  // outside a Home Screen app, or plain http other than localhost).
+  const [permission, setPermission] = useState(null);
   const seen = useRef(null);
   const audio = useRef(null);
   const unread = useRef(0);
@@ -53,6 +56,7 @@ export function useNewOrderAlerts(orders, watching) {
   // Read after mount, not in useState: the server render has no storage.
   useEffect(() => {
     setEnabled(readEnabled()); // eslint-disable-line react-hooks/set-state-in-effect
+    if ("Notification" in window) setPermission(Notification.permission);
   }, []);
 
   // Browsers only let a page make sound after the user has interacted with
@@ -115,23 +119,37 @@ export function useNewOrderAlerts(orders, watching) {
     if (!next) return;
     audio.current ??= new AudioContext();
     audio.current.resume().then(() => chime(audio.current), () => {});
-    if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
+    askPermission();
   }
 
-  return { enabled, toggle };
+  // Also needs a click: browsers only show the permission prompt from one.
+  function askPermission() {
+    if (!("Notification" in window) || Notification.permission !== "default") return;
+    Notification.requestPermission().then(setPermission, () => {});
+  }
+
+  return { enabled, toggle, permission, askPermission };
 }
 
 export function AlertsToggle({ alerts }) {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={alerts.enabled}
-      onClick={alerts.toggle}
-      title={alerts.enabled ? "A chime and a notification when a new order comes in" : "Turn on new-order alerts"}
-      className={`rounded-full px-3 py-1.5 text-xs font-semibold ${alerts.enabled ? "bg-[#0f2419] text-white hover:bg-[#1a3827]" : "border border-[#c9d1c2] bg-white text-[#12180f] hover:border-[#3f6b3a]"}`}
-    >
-      {alerts.enabled ? "New-order alerts on" : "New-order alerts off"}
-    </button>
+    <>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={alerts.enabled}
+        onClick={alerts.toggle}
+        title={alerts.enabled ? "A chime and a notification when a new order comes in" : "Turn on new-order alerts"}
+        className={`rounded-full px-3 py-1.5 text-xs font-semibold ${alerts.enabled ? "bg-[#0f2419] text-white hover:bg-[#1a3827]" : "border border-[#c9d1c2] bg-white text-[#12180f] hover:border-[#3f6b3a]"}`}
+      >
+        {alerts.enabled ? "🔔 Alerts: on" : "🔕 Alerts: off"}
+      </button>
+      {/* Without this, a vendor who never touches the switch is never asked. */}
+      {alerts.enabled && alerts.permission === "default" && (
+        <button type="button" onClick={alerts.askPermission} className="text-xs font-semibold text-[#3f6b3a] underline underline-offset-2 hover:text-[#0f2419]">
+          Turn on pop-up alerts
+        </button>
+      )}
+    </>
   );
 }
