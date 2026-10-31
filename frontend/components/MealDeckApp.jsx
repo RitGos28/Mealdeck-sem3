@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import MenuSection from "./menu/MenuSection";
+import MenuItemCard from "./menu/MenuItemCard";
 import Cart from "./cart/Cart";
 import Checkout from "./checkout/Checkout";
 import StudentShell from "./student/StudentShell";
 import PickupChips from "./student/PickupChips";
 import OrderAgain from "./student/OrderAgain";
+import { BackLink, CravingGrid, SectionTitle, StallList, StallTabs, ViewSwitch, useStallSubtitle } from "./student/BrowseViews";
+import { CRAVINGS, cravingDishes, stallStatus } from "./student/browse";
 
 // The bag survives the trip to /login and back (ordering needs a login),
 // but only for this tab. Storage can be unavailable (private mode, blocked
@@ -167,12 +170,12 @@ function isDrink(item) {
   return DRINK_WORDS.test(item.category ?? "") || (!item.category && DRINK_WORDS.test(item.name));
 }
 
-function SearchField({ value, onChange, onBand = false }) {
+function SearchField({ value, onChange, onBand = false, placeholder = "Search dishes or drinks" }) {
   return (
     <label className={`flex h-11 items-center gap-2.5 rounded-xl px-3.5 ${onBand ? "bg-white/12 focus-within:ring-2 focus-within:ring-white" : "border border-field bg-white focus-within:border-deck focus-within:ring-2 focus-within:ring-mint"}`}>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className={`shrink-0 ${onBand ? "text-on-deck" : "text-muted"}`} aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg>
-      <span className="sr-only">Search the menu</span>
-      <input type="search" className={`min-w-0 flex-1 bg-transparent text-base outline-none focus-visible:outline-none sm:text-[15px] [&::-webkit-search-cancel-button]:hidden ${onBand ? "text-white placeholder:text-[#B9D3C1]" : "text-ink placeholder:text-muted"}`} value={value} onChange={(event) => onChange(event.target.value)} placeholder="Search dishes or drinks" />
+      <span className="sr-only">{placeholder}</span>
+      <input type="search" className={`min-w-0 flex-1 bg-transparent text-base outline-none focus-visible:outline-none sm:text-[15px] [&::-webkit-search-cancel-button]:hidden ${onBand ? "text-white placeholder:text-[#B9D3C1]" : "text-ink placeholder:text-muted"}`} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} />
       {value && <button type="button" className={`-mr-2 flex size-9 shrink-0 items-center justify-center rounded-full text-lg ${onBand ? "text-on-deck hover:bg-white/10 hover:text-white focus-visible:outline-white" : "text-muted hover:bg-mint hover:text-ink"}`} onClick={() => onChange("")} aria-label="Clear search">×</button>}
     </label>
   );
@@ -195,14 +198,14 @@ function ChoiceList({ label, options, value, onChange }) {
 
 // Wide screens only: search, pickup time, filters and the stalls, in a
 // sticky column beside the menu.
-function SidePanel({ greetingText, stalls, menuStalls, demoMode, openCount, search, onSearch, diet, onDiet, kind, onKind, sort, onSort }) {
+function SidePanel({ greetingText, stalls, menuStalls, demoMode, openCount, search, onSearch, searchPlaceholder, diet, onDiet, kind, onKind, sort, onSort, activeStallId, onOpenStall }) {
   return (
     <aside aria-label="Filters" className="sticky top-5 max-h-[calc(100vh-2.5rem)] space-y-5 overflow-y-auto rounded-2xl bg-[#F4F6F3] p-4 text-[13px]">
       <div>
         <h1 className="font-serif text-[22px] leading-tight" suppressHydrationWarning>{greetingText}</h1>
         <p className="mt-0.5 text-muted">{openCount === 0 ? "No stalls open right now" : `${openCount} stall${openCount === 1 ? "" : "s"} open`} · pick up between classes</p>
       </div>
-      <SearchField value={search} onChange={onSearch} />
+      <SearchField value={search} onChange={onSearch} placeholder={searchPlaceholder} />
       <div>
         <p className="mb-2 text-xs font-semibold tracking-[.04em] text-muted uppercase">Pickup time</p>
         <PickupChips stalls={stalls} variant="panel" />
@@ -211,24 +214,24 @@ function SidePanel({ greetingText, stalls, menuStalls, demoMode, openCount, sear
       <ChoiceList label="Show" options={KINDS} value={kind} onChange={onKind} />
       <ChoiceList label="Diet" options={DIETS} value={diet} onChange={onDiet} />
       <ChoiceList label="Sort by" options={SORTS} value={sort} onChange={onSort} />
-      <StallNav stalls={menuStalls} demoMode={demoMode} />
+      <StallNav stalls={menuStalls} demoMode={demoMode} activeId={activeStallId} onOpen={onOpenStall} />
     </aside>
   );
 }
 
-// Wide screens only: a sticky list of stalls that jumps to each menu, with
-// what's happening at each one.
-function StallNav({ stalls, demoMode }) {
+// Wide screens only: a sticky list of stalls that opens each one's page,
+// with what's happening at each.
+function StallNav({ stalls, demoMode, activeId, onOpen }) {
   return (
     <nav aria-label="Stalls">
       <p className="mb-2 text-xs font-semibold tracking-[.04em] text-muted uppercase">Stalls</p>
       <ul className="space-y-1">
         {stalls.map((stall) => {
-          const status = stall.closedToday ? "Closed today" : stall.ordersPaused ? "Paused" : !demoMode && !stall.open ? "Closed now" : "Open";
-          const live = status === "Open";
+          const { label: status, live } = stallStatus(stall, demoMode);
+          const active = String(stall.id) === String(activeId);
           return (
             <li key={stall.id}>
-              <a href={`#menu-${stall.id}`} className="flex min-h-10 items-center justify-between gap-2 rounded-xl px-2 py-2 hover:bg-white">
+              <a href={`/?stall=${stall.id}`} aria-current={active ? "page" : undefined} onClick={(event) => { event.preventDefault(); onOpen(stall.id); }} className={`flex min-h-10 items-center justify-between gap-2 rounded-xl px-2 py-2 ${active ? "bg-white shadow-[0_1px_3px_rgba(0,0,0,.08)]" : "hover:bg-white"}`}>
                 <span className="min-w-0">
                   <span className="block truncate font-serif text-[15px] leading-tight">{stall.name}</span>
                   <span className={`flex items-center gap-1.5 text-xs ${live ? "text-deck" : "text-muted"}`}>
@@ -245,8 +248,32 @@ function StallNav({ stalls, demoMode }) {
   );
 }
 
+// Which home view the student last picked, remembered on this device.
+const HOME_VIEW_KEY = "mealdeck.homeView";
+
+function loadHomeView() {
+  try {
+    return localStorage.getItem(HOME_VIEW_KEY) === "craving" ? "craving" : "stall";
+  } catch {
+    return "stall";
+  }
+}
+
+function saveHomeView(view) {
+  try {
+    localStorage.setItem(HOME_VIEW_KEY, view);
+  } catch {
+    // Not remembered; it still switches for this visit.
+  }
+}
+
+// One client page with three views, picked by the URL so links and the back
+// button work: the stalls home (/), a stall's menu (/?stall=6) and a craving
+// across stalls (/?craving=momos). Staying on one page keeps the bag,
+// checkout and the menu data without a reload between views.
 export default function MenuExperience({ stalls, demoMode }) {
   const router = useRouter();
+  const params = useSearchParams();
   const [cart, setCart] = useState({});
   const [cartLoaded, setCartLoaded] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
@@ -255,6 +282,8 @@ export default function MenuExperience({ stalls, demoMode }) {
   const [diet, setDiet] = useState("all");
   const [sort, setSort] = useState("relevance");
   const [kind, setKind] = useState("all");
+  const [homeView, setHomeView] = useState("stall");
+  const navigated = useRef(false);
   const vegOnly = diet === "veg";
   const isDesktop = useIsDesktop();
 
@@ -262,6 +291,7 @@ export default function MenuExperience({ stalls, demoMode }) {
   useEffect(() => {
     setCart(loadCart()); // eslint-disable-line react-hooks/set-state-in-effect
     setCartLoaded(true);
+    setHomeView(loadHomeView());
   }, []);
 
   useEffect(() => {
@@ -276,25 +306,63 @@ export default function MenuExperience({ stalls, demoMode }) {
     })),
   })), [stalls]);
 
+  const activeStall = menuStalls.find((stall) => String(stall.id) === params.get("stall")) ?? null;
+  const activeCraving = activeStall ? null : CRAVINGS.find((craving) => craving.id === params.get("craving")) ?? null;
+  const view = activeStall ? "stall" : activeCraving ? "craving" : "home";
+  const stallSubtitle = useStallSubtitle(activeStall, demoMode);
+
   // Demo data has no hours, so every sample stall counts as open.
-  const openCount = demoMode
-    ? stalls.length
-    : stalls.filter((stall) => stall.open && !stall.ordersPaused && !stall.closedToday).length;
+  const openCount = menuStalls.filter((stall) => stallStatus(stall, demoMode).live).length;
 
   const cartItems = useMemo(() => Object.values(cart), [cart]);
   const itemCount = cartItems.reduce((count, entry) => count + entry.quantity, 0);
   const total = cartItems.reduce((sum, entry) => sum + entry.item.price * entry.quantity, 0);
   const query = search.trim().toLowerCase();
   const filtering = Boolean(query) || diet !== "all" || kind !== "all";
-  const visibleStalls = useMemo(() => {
-    const matches = (item) => (diet === "all" || (diet === "veg") === item.veg)
-      && (kind === "all" || (kind === "drinks") === isDrink(item))
-      && item.name.toLowerCase().includes(query);
-    const order = (items) => sort === "relevance" ? items : [...items].sort((a, b) => sort === "price-asc" ? a.price - b.price : b.price - a.price);
-    return menuStalls
-      .map((stall) => ({ ...stall, items: order(filtering ? stall.items.filter(matches) : stall.items) }))
-      .filter((stall) => !filtering || stall.items.length > 0);
-  }, [menuStalls, filtering, query, diet, kind, sort]);
+
+  const matches = (item) => (diet === "all" || (diet === "veg") === item.veg)
+    && (kind === "all" || (kind === "drinks") === isDrink(item))
+    && item.name.toLowerCase().includes(query);
+  const order = (items) => sort === "relevance" ? items : [...items].sort((a, b) => sort === "price-asc" ? a.price - b.price : b.price - a.price);
+
+  // Home only turns into search results once something is typed.
+  const searchResults = view === "home" && query
+    ? menuStalls.map((stall) => ({ ...stall, items: order(stall.items.filter(matches)) })).filter((stall) => stall.items.length > 0)
+    : [];
+  const stallMatches = view === "home" && query ? menuStalls.filter((stall) => stall.name.toLowerCase().includes(query)) : [];
+  const stallMenu = activeStall ? { ...activeStall, items: order(filtering ? activeStall.items.filter(matches) : activeStall.items) } : null;
+  const cravingList = activeCraving
+    ? cravingDishes(activeCraving, menuStalls, demoMode).filter(({ item }) => matches(item)).sort((a, b) => sort === "price-desc" ? b.item.price - a.item.price : a.item.price - b.item.price)
+    : [];
+  const cravingStallCount = new Set(cravingList.map(({ stall }) => stall.id)).size;
+
+  // Views change with pushState (Next keeps useSearchParams in step), so
+  // the back button walks back through them. Hopping between stall tabs
+  // replaces the entry instead, so back goes to wherever the tabs began.
+  function go(url, { replace = false } = {}) {
+    if (replace) window.history.replaceState(null, "", url);
+    else {
+      window.history.pushState(null, "", url);
+      navigated.current = true;
+    }
+    setSearch("");
+    window.scrollTo({ top: 0 });
+  }
+  const openStall = (id) => go(`/?stall=${id}`, { replace: view === "stall" });
+  const openCraving = (id) => go(`/?craving=${id}`);
+  function goHome() {
+    if (navigated.current) {
+      window.history.back();
+      setSearch("");
+    } else {
+      go("/");
+    }
+  }
+
+  function changeHomeView(next) {
+    setHomeView(next);
+    saveHomeView(next);
+  }
 
   function addToCart(item, stall) {
     setCart((current) => ({
@@ -308,11 +376,12 @@ export default function MenuExperience({ stalls, demoMode }) {
     }));
   }
 
+  // `placed=1` makes My orders show the receipt toast once.
   function handlePlaced(orderCodes) {
     setCart({});
     setCheckingOut(false);
     setSheetOpen(false);
-    router.push(`/orders?codes=${orderCodes.join(",")}`);
+    router.push(`/orders?codes=${orderCodes.join(",")}&placed=1`);
   }
 
   function changeQuantity(itemId, change) {
@@ -350,26 +419,142 @@ export default function MenuExperience({ stalls, demoMode }) {
       : <Cart cartItems={cartItems} itemCount={itemCount} total={total} changeQuantity={changeQuantity} onCheckout={() => setCheckingOut(true)} demoMode={demoMode} user={user} />;
   }
 
-  const band = (
+  const searchPlaceholder = activeStall ? `Search ${activeStall.name}` : activeCraving ? `Search ${activeCraving.name.toLowerCase()}` : "Search dishes, drinks or stalls";
+  const heading = activeStall
+    ? { back: "All stalls", title: activeStall.name, sub: stallSubtitle }
+    : activeCraving
+      ? { back: "Home", title: activeCraving.name, sub: cravingList.length === 0 ? "Nothing matches right now" : `${cravingList.length} dish${cravingList.length === 1 ? "" : "es"} at ${cravingStallCount} stall${cravingStallCount === 1 ? "" : "s"} · ${sort === "price-desc" ? "priciest" : "cheapest"} first` }
+      : null;
+
+  const band = heading ? (
     <>
-      <div className="mt-3.5 md:mt-6 md:flex md:items-end md:justify-between md:gap-8 lg:mt-3">
+      <div className="mt-1.5"><BackLink label={heading.back} onClick={goHome} /></div>
+      <div className="md:flex md:items-end md:justify-between md:gap-8">
+        <div className="min-w-0">
+          <h1 className="font-serif text-[30px] leading-[1.1] md:text-4xl">{heading.title}</h1>
+          <p className="mt-0.5 text-sm text-on-deck">{heading.sub}</p>
+        </div>
+        <div className="mt-3.5 md:mt-0 md:w-80"><SearchField value={search} onChange={setSearch} onBand placeholder={searchPlaceholder} /></div>
+      </div>
+    </>
+  ) : (
+    <>
+      <div className="mt-3.5 md:mt-6 md:flex md:items-end md:justify-between md:gap-8">
         <div>
-          <h1 className="font-serif text-[30px] leading-[1.1] md:text-4xl lg:text-[26px]" suppressHydrationWarning>{greeting()}</h1>
+          <h1 className="font-serif text-[30px] leading-[1.1] md:text-4xl" suppressHydrationWarning>{greeting()}</h1>
           <p className="mt-0.5 text-sm text-on-deck">
             {openCount === 0 ? "No stalls open right now" : `${openCount} stall${openCount === 1 ? "" : "s"} open`} · pick up between classes
           </p>
         </div>
-        {!isDesktop && <div className="mt-3.5 md:mt-0 md:w-80"><SearchField value={search} onChange={setSearch} onBand /></div>}
+        <div className="mt-3.5 md:mt-0 md:w-80"><SearchField value={search} onChange={setSearch} onBand placeholder={searchPlaceholder} /></div>
       </div>
-      {!isDesktop && <PickupChips stalls={stalls} />}
+      <PickupChips stalls={stalls} />
     </>
   );
+
+  // Desktop has no band, so stall and craving pages head their own column.
+  const desktopHeading = isDesktop && heading && (
+    <div>
+      <BackLink label={heading.back} onClick={goHome} onBand={false} />
+      <h1 className="font-serif text-[28px] leading-tight">{heading.title}</h1>
+      <p className="mt-0.5 text-sm text-muted">{heading.sub}</p>
+    </div>
+  );
+
+  const showsFilters = view === "stall" || (view === "home" && query);
+  const filterRow = !isDesktop && showsFilters && (
+    <div className="flex items-center justify-between gap-3">
+      <div role="group" aria-label="Show" className="flex rounded-full bg-[#F0F3EF] p-0.5">
+        {KINDS.map(([id, text]) => (
+          <button key={id} type="button" aria-pressed={kind === id} onClick={() => setKind(id)} className={`h-9 rounded-full px-3 text-[13px] transition-colors ${kind === id ? "bg-white font-semibold text-ink shadow-[0_1px_3px_rgba(0,0,0,.1)]" : "font-medium text-muted hover:text-ink"}`}>{id === "all" ? "All" : text}</button>
+        ))}
+      </div>
+      <label className="flex items-center gap-2 text-sm text-muted">
+        <span className="sr-only">Sort</span>
+        <select value={sort} onChange={(event) => setSort(event.target.value)} className="h-10 rounded-full border border-field bg-white px-3 text-sm font-semibold text-ink outline-none focus:border-deck">
+          {SORTS.map(([id, text]) => <option key={id} value={id}>{text}</option>)}
+        </select>
+      </label>
+    </div>
+  );
+
+  const noMatches = (message) => (
+    <div className="rounded-2xl border border-dashed border-field px-6 py-12 text-center">
+      <p className="font-serif text-xl">No dishes found</p>
+      <p className="mt-1 text-sm text-muted">{message}</p>
+      <button type="button" className="mt-3 h-11 rounded-full px-4 text-sm font-semibold text-deck underline underline-offset-4 hover:bg-mint" onClick={clearFilters}>Show everything</button>
+    </div>
+  );
+
+  function content(user) {
+    if (view === "stall") {
+      return (
+        <>
+          {!isDesktop && <StallTabs stalls={menuStalls} activeId={activeStall.id} onOpen={openStall} />}
+          {desktopHeading}
+          {filterRow}
+          {stallMenu.items.length > 0
+            ? <MenuSection key={activeStall.id} stall={stallMenu} demoMode={demoMode} cart={cart} onAddToCart={addToCart} onChangeQuantity={changeQuantity} expandAll={filtering} isDesktop={isDesktop} bare />
+            : noMatches(query ? `Nothing at ${activeStall.name} matches "${search.trim()}".` : "Nothing on this menu matches those filters.")}
+        </>
+      );
+    }
+    if (view === "craving") {
+      return (
+        <>
+          {desktopHeading}
+          {cravingList.length > 0 ? (
+            <ul className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 lg:grid-cols-[repeat(auto-fill,minmax(172px,1fr))] lg:gap-3">
+              {cravingList.map(({ item, stall }) => (
+                <li key={item.id}>
+                  <MenuItemCard item={item} demoMode={demoMode} sub={stall.name} quantity={cart[item.id]?.quantity ?? 0} onAddToCart={() => addToCart(item, stall)} onChangeQuantity={(delta) => changeQuantity(item.id, delta)} />
+                </li>
+              ))}
+            </ul>
+          ) : noMatches("Try the other filters, or another craving.")}
+        </>
+      );
+    }
+    if (query) {
+      const dishCount = searchResults.reduce((count, stall) => count + stall.items.length, 0);
+      return (
+        <>
+          {filterRow}
+          <p className="text-sm text-muted">{dishCount} dish{dishCount === 1 ? "" : "es"} at {searchResults.length} stall{searchResults.length === 1 ? "" : "s"}</p>
+          {stallMatches.length > 0 && <StallList stalls={stallMatches} demoMode={demoMode} onOpen={openStall} />}
+          {searchResults.length > 0
+            ? <div>{searchResults.map((stall) => <MenuSection key={stall.id} stall={stall} demoMode={demoMode} cart={cart} onAddToCart={addToCart} onChangeQuantity={changeQuantity} expandAll isDesktop={isDesktop} />)}</div>
+            : stallMatches.length === 0 && noMatches("Try another search, or browse every stall.")}
+        </>
+      );
+    }
+    return (
+      <>
+        <ViewSwitch view={homeView} onChange={changeHomeView} />
+        {demoMode && <p className="rounded-2xl bg-mint px-4 py-3 text-sm text-mint-ink">Showing sample menu data. Start the backend to load live availability.</p>}
+        {homeView === "craving" ? (
+          <section>
+            <SectionTitle>What are you craving?</SectionTitle>
+            <CravingGrid stalls={menuStalls} demoMode={demoMode} onOpen={openCraving} />
+          </section>
+        ) : (
+          <>
+            <OrderAgain stalls={menuStalls} user={user} onAdd={addToCart} />
+            <section>
+              <SectionTitle aside={`${menuStalls.length} on campus`}>Stalls</SectionTitle>
+              {menuStalls.length > 0 ? <StallList stalls={menuStalls} demoMode={demoMode} onOpen={openStall} /> : <p className="py-10 text-center text-muted">No stalls yet.</p>}
+            </section>
+          </>
+        )}
+      </>
+    );
+  }
 
   return (
     <StudentShell
       active="menu"
       wide
-      bandAside={isDesktop ? null : <VegToggle vegOnly={vegOnly} onChange={(veg) => setDiet(veg ? "veg" : "all")} />}
+      bandAside={isDesktop || (view === "home" && !query) ? null : <VegToggle vegOnly={vegOnly} onChange={(veg) => setDiet(veg ? "veg" : "all")} />}
       band={isDesktop ? null : band}
       bag={{ count: itemCount, total, onOpen: openBag }}
     >
@@ -378,41 +563,10 @@ export default function MenuExperience({ stalls, demoMode }) {
           <div className="mx-auto max-w-3xl lg:grid lg:max-w-none lg:grid-cols-[220px_minmax(0,1fr)_280px] lg:gap-7 xl:grid-cols-[230px_minmax(0,1fr)_300px] xl:gap-8">
             {isDesktop && (
               <div className="hidden lg:block">
-                <SidePanel greetingText={greeting()} stalls={stalls} menuStalls={menuStalls} demoMode={demoMode} openCount={openCount} search={search} onSearch={setSearch} diet={diet} onDiet={setDiet} kind={kind} onKind={setKind} sort={sort} onSort={setSort} />
+                <SidePanel greetingText={greeting()} stalls={stalls} menuStalls={menuStalls} demoMode={demoMode} openCount={openCount} search={search} onSearch={setSearch} searchPlaceholder={searchPlaceholder} diet={diet} onDiet={setDiet} kind={kind} onKind={setKind} sort={sort} onSort={setSort} activeStallId={activeStall?.id} onOpenStall={openStall} />
               </div>
             )}
-            <div className="min-w-0 space-y-6">
-              {!isDesktop && (
-                <div className="flex items-center justify-between gap-3">
-                  <div role="group" aria-label="Show" className="flex rounded-full bg-[#F0F3EF] p-0.5">
-                    {KINDS.map(([id, text]) => (
-                      <button key={id} type="button" aria-pressed={kind === id} onClick={() => setKind(id)} className={`h-9 rounded-full px-3 text-[13px] transition-colors ${kind === id ? "bg-white font-semibold text-ink shadow-[0_1px_3px_rgba(0,0,0,.1)]" : "font-medium text-muted hover:text-ink"}`}>{id === "all" ? "All" : text}</button>
-                    ))}
-                  </div>
-                  <label className="flex items-center gap-2 text-sm text-muted">
-                    <span className="sr-only">Sort</span>
-                    <select value={sort} onChange={(event) => setSort(event.target.value)} className="h-10 rounded-full border border-field bg-white px-3 text-sm font-semibold text-ink outline-none focus:border-deck">
-                      {SORTS.map(([id, text]) => <option key={id} value={id}>{text}</option>)}
-                    </select>
-                  </label>
-                </div>
-              )}
-              <OrderAgain stalls={menuStalls} user={user} onAdd={addToCart} />
-              {demoMode && <p className="rounded-2xl bg-mint px-4 py-3 text-sm text-mint-ink">Showing sample menu data. Start the backend to load live availability.</p>}
-              {!demoMode && menuStalls.length === 0 && <p className="py-10 text-center text-muted">No stalls yet.</p>}
-              {menuStalls.length > 0 && (
-                <div>
-                  {visibleStalls.map((stall) => <MenuSection key={stall.id} stall={stall} demoMode={demoMode} cart={cart} onAddToCart={addToCart} onChangeQuantity={changeQuantity} expandAll={filtering} isDesktop={isDesktop} />)}
-                  {visibleStalls.length === 0 && (
-                    <div className="rounded-2xl border border-dashed border-field px-6 py-12 text-center">
-                      <p className="font-serif text-xl">No dishes found</p>
-                      <p className="mt-1 text-sm text-muted">{query ? "Try another search, or browse every stall." : "Nothing on today's menu matches those filters."}</p>
-                      <button type="button" className="mt-3 h-11 rounded-full px-4 text-sm font-semibold text-deck underline underline-offset-4 hover:bg-mint" onClick={clearFilters}>Show everything</button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <div className="min-w-0 space-y-6">{content(user)}</div>
             {isDesktop && (
               <div id="bag" tabIndex={-1} className="hidden scroll-mt-6 outline-none lg:block">
                 <div className="sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto">{bagContent(user)}</div>

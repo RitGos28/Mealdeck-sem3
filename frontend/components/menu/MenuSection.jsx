@@ -11,7 +11,7 @@ const FOLD_OVER = 12;
 // How many unfinished orders the stall has right now, from its live queue
 // snapshot. Null while loading, on error, in demo mode, or when the stall
 // isn't taking orders (the chip says why instead).
-function useQueueLength(stall, demoMode) {
+export function useQueueLength(stall, demoMode) {
   const [length, setLength] = useState(null);
   const skip = demoMode || stall.closedToday || stall.ordersPaused;
   useEffect(() => {
@@ -102,8 +102,9 @@ function ItemRow({ stall, items, demoMode, cart, onAddToCart, onChangeQuantity }
 }
 
 // `expandAll` (set while searching or filtering) opens everything, so a
-// match is never hidden inside a folded group.
-export default function MenuSection({ stall, demoMode, cart, onAddToCart, onChangeQuantity, expandAll = false, isDesktop = false }) {
+// match is never hidden inside a folded group. `bare` drops the stall's own
+// heading, for the stall page where the band already names it.
+export default function MenuSection({ stall, demoMode, cart, onAddToCart, onChangeQuantity, expandAll = false, isDesktop = false, bare = false }) {
   const queueLength = useQueueLength(stall, demoMode);
   const headingId = `stall-${stall.id}`;
   const [stallOpen, setStallOpen] = useState(true);
@@ -112,7 +113,7 @@ export default function MenuSection({ stall, demoMode, cart, onAddToCart, onChan
   // Category folding is a phone/tablet thing; wide screens show compact rows.
   const foldable = named && !isDesktop && stall.items.length > FOLD_OVER;
   const [openGroups, setOpenGroups] = useState(() => new Set());
-  const open = stallOpen || expandAll;
+  const open = stallOpen || expandAll || bare;
 
   function toggleGroup(name) {
     setOpenGroups((current) => {
@@ -124,7 +125,7 @@ export default function MenuSection({ stall, demoMode, cart, onAddToCart, onChan
 
   return (
     <section id={`menu-${stall.id}`} aria-labelledby={headingId} className="mt-6 scroll-mt-6 first:mt-0 lg:mt-7">
-      <div className="flex items-center justify-between gap-3 border-b border-line pb-1.5 lg:mb-2 lg:border-0 lg:pb-0">
+      <div className={`flex items-center justify-between gap-3 border-b border-line pb-1.5 lg:mb-2 lg:border-0 lg:pb-0 ${bare ? "sr-only" : ""}`}>
         <h2 id={headingId} className="min-w-0">
           <button type="button" onClick={() => setStallOpen((value) => !value)} aria-expanded={open} className="-ml-1 flex min-h-11 items-center gap-1.5 rounded-lg px-1 text-left font-serif text-[22px] leading-tight hover:text-deck lg:min-h-9 lg:text-xl">
             {stall.name}
