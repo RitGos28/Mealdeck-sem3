@@ -4,6 +4,7 @@ import { useState } from "react";
 import { api, formatInstant, formatTime } from "../../lib/api";
 import { LiveIndicator, useLiveTopic } from "../../lib/liveQueue";
 import { FINAL_STATUSES, STATUS_LABELS, STATUS_STYLES } from "../../lib/orderStatus";
+import { NewStampWatcher } from "../student/passport/PassportViews";
 
 // The server renders the order once; after that its stall's live queue
 // keeps the status and place in line current. A finished order drops out
@@ -11,6 +12,9 @@ import { FINAL_STATUSES, STATUS_LABELS, STATUS_STYLES } from "../../lib/orderSta
 export default function LiveOrderCard({ initialOrder }) {
   const [order, setOrder] = useState(initialOrder);
   const [ahead, setAhead] = useState(null);
+  // Only an order seen live gets the "New stamp!" moment, not one that was
+  // already picked up when the page opened.
+  const [wasLive] = useState(() => !FINAL_STATUSES.includes(initialOrder.status));
   const final = FINAL_STATUSES.includes(order.status);
 
   function applySnapshot(snapshot) {
@@ -69,6 +73,7 @@ export default function LiveOrderCard({ initialOrder }) {
         ))}
       </ul>
       <div className="mt-3 flex justify-between border-t border-line pt-3 font-semibold text-ink"><span>Total</span><span>₹{order.total}</span></div>
+      <NewStampWatcher order={order} wasLive={wasLive} />
     </article>
   );
 }

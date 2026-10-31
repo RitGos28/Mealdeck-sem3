@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { logout } from "../../lib/logout";
 import StudentShell from "./StudentShell";
+import { PassportCard } from "./passport/PassportViews";
 
 const ROLE_LABELS = { VENDOR: "Vendor", ADMIN: "Admin" };
 
@@ -53,6 +54,7 @@ function AccountContent({ user, router }) {
 
   return (
     <div className="mx-auto max-w-xl">
+      {user.role === "STUDENT" && <PassportCard />}
       <section aria-label="Signed in as" className="flex items-center gap-4">
         <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-mint font-serif text-2xl text-mint-ink" aria-hidden="true">
           {user.email?.[0]?.toUpperCase() ?? "?"}
