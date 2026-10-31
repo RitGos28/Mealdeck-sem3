@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useCurrentUser } from "../../lib/useCurrentUser";
+import { useAccountDeletion } from "../../lib/useAccountDeletion";
+import { DeletionWarnings } from "./AccountDeletion";
 
 const TABS = [
   { id: "menu", label: "Menu", href: "/", icon: <path d="M4 6h16M4 12h16M4 18h10" /> },
@@ -25,12 +27,14 @@ function tabHref(tab, user) {
 // The student app's frame: a deep-green band (logo, page heading, controls)
 // over a white sheet. Phones and portrait tablets get bottom tabs and a
 // floating bag button; wide screens put the links and bag in the band.
-// `children` may be a function of the current user, so pages don't fetch
-// /api/auth/me a second time. `focus` hides the bottom tabs and floating
+// `children` may be a function of the current user (and the account's
+// deletion status), so pages don't fetch /api/auth/me a second time; `band`
+// may be too, to greet the student by name. `focus` hides the bottom tabs and floating
 // bag on phones, for full-screen moments like dealing cards.
 export default function StudentShell({ active, band, bandAside, bag, wide = false, focus = false, children }) {
   const container = wide ? "max-w-6xl lg:max-w-[1400px]" : "max-w-6xl";
   const [user] = useCurrentUser();
+  const deletion = useAccountDeletion(user);
   const showBag = bag && bag.count > 0 && !focus;
 
   return (
@@ -53,13 +57,15 @@ export default function StudentShell({ active, band, bandAside, bag, wide = fals
               )}
             </div>
           </div>
-          {band}
+          {typeof band === "function" ? band(user) : band}
         </div>
       </header>
 
+      <DeletionWarnings deletion={deletion} />
+
       <main className="flex-1 rounded-t-3xl bg-white text-ink">
         <div className={`mx-auto ${container} px-5 pt-6 pb-32 sm:px-8 lg:pt-5 lg:pb-16`}>
-          {typeof children === "function" ? children(user) : children}
+          {typeof children === "function" ? children(user, deletion) : children}
         </div>
       </main>
 

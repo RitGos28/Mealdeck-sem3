@@ -7,7 +7,11 @@ public class AuthDtos {
     public record LoginRequest(String email, String password) {
     }
 
-    public record MeResponse(String role, String email, Long stallId) {
+    /** name: a student's own name, for greeting them; null otherwise. */
+    public record MeResponse(String role, String email, Long stallId, String name) {
+        public MeResponse(String role, String email, Long stallId) {
+            this(role, email, stallId, null);
+        }
     }
 
     public record MessageResponse(String message) {

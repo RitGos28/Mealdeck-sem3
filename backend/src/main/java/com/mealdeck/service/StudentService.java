@@ -88,6 +88,8 @@ public class StudentService {
 
     public List<Student> list() { return studentRepository.findAll(); }
 
+    public java.util.Optional<Student> findByEmail(String email) { return studentRepository.findByEmail(email); }
+
     @Transactional
     public Student createByAdmin(CreateStudentRequest request) {
         validateEmail(request.email(), null);

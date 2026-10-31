@@ -83,6 +83,12 @@ function useIsDesktop() {
   return useSyncExternalStore(subscribeDesktop, () => window.matchMedia(DESKTOP_QUERY).matches, () => true);
 }
 
+// "Good evening, Ritwik": the student's first name when they're logged in.
+function greetingFor(user) {
+  const first = user?.name?.trim().split(/\s+/)[0];
+  return first ? `${greeting()}, ${first}` : greeting();
+}
+
 // Campus time of day, whatever the device's time zone.
 function greeting() {
   const hour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", hourCycle: "h23" }).format(new Date()));
@@ -411,10 +417,13 @@ export default function MenuExperience({ stalls, demoMode }) {
     setKind("all");
   }
 
-  function bagContent(user) {
-    return checkingOut && cartItems.length > 0 && user?.role === "STUDENT"
-      ? <Checkout cartItems={cartItems} total={total} user={user} onBack={() => setCheckingOut(false)} onPlaced={handlePlaced} />
-      : <Cart cartItems={cartItems} itemCount={itemCount} total={total} changeQuantity={changeQuantity} onCheckout={() => setCheckingOut(true)} demoMode={demoMode} user={user} />;
+  // deletion: the account's deletion status (from StudentShell). In the
+  // final hour there's no checkout; before that, no pickups past the cutoff.
+  function bagContent(user, deletion) {
+    const status = deletion?.status;
+    return checkingOut && cartItems.length > 0 && user?.role === "STUDENT" && !status?.orderingBlocked
+      ? <Checkout cartItems={cartItems} total={total} user={user} onBack={() => setCheckingOut(false)} onPlaced={handlePlaced} latestPickup={status?.orderingBlockedFrom ?? null} />
+      : <Cart cartItems={cartItems} itemCount={itemCount} total={total} changeQuantity={changeQuantity} onCheckout={() => setCheckingOut(true)} demoMode={demoMode} user={user} orderingBlocked={Boolean(status?.orderingBlocked)} />;
   }
 
   const searchPlaceholder = activeStall ? `Search ${activeStall.name}` : activeCraving ? `Search ${activeCraving.name.toLowerCase()}` : "Search dishes, drinks or stalls";
@@ -424,7 +433,7 @@ export default function MenuExperience({ stalls, demoMode }) {
       ? { back: "Home", title: activeCraving.name, sub: cravingList.length === 0 ? "Nothing matches right now" : `${cravingList.length} dish${cravingList.length === 1 ? "" : "es"} at ${cravingStallCount} stall${cravingStallCount === 1 ? "" : "s"} · ${sort === "price-desc" ? "priciest" : "cheapest"} first` }
       : null;
 
-  const band = view === "deal" ? <DealHeading deal={deal} onHome={goHome} /> : heading ? (
+  const band = (user) => view === "deal" ? <DealHeading deal={deal} onHome={goHome} /> : heading ? (
     <>
       <div className="mt-1.5"><BackLink label={heading.back} onClick={goHome} /></div>
       <div className="md:flex md:items-end md:justify-between md:gap-8">
@@ -439,7 +448,7 @@ export default function MenuExperience({ stalls, demoMode }) {
     <>
       <div className="mt-3.5 md:mt-6 md:flex md:items-end md:justify-between md:gap-8">
         <div>
-          <h1 className="font-serif text-[30px] leading-[1.1] md:text-4xl" suppressHydrationWarning>{greeting()}</h1>
+          <h1 className="font-serif text-[30px] leading-[1.1] md:text-4xl" suppressHydrationWarning>{greetingFor(user)}</h1>
           <p className="mt-0.5 text-sm text-on-deck">
             {openCount === 0 ? "No stalls open right now" : `${openCount} stall${openCount === 1 ? "" : "s"} open`} · pick up between classes
           </p>
@@ -568,22 +577,22 @@ export default function MenuExperience({ stalls, demoMode }) {
       bag={{ count: itemCount, total, onOpen: openBag }}
       focus={view === "deal" && deal.phase === "dealing"}
     >
-      {(user) => (
+      {(user, deletion) => (
         <>
           <div className="mx-auto max-w-3xl lg:grid lg:max-w-none lg:grid-cols-[220px_minmax(0,1fr)_280px] lg:gap-7 xl:grid-cols-[230px_minmax(0,1fr)_300px] xl:gap-8">
             {isDesktop && (
               <div className="hidden lg:block">
-                <SidePanel greetingText={greeting()} stalls={stalls} menuStalls={menuStalls} demoMode={demoMode} openCount={openCount} search={search} onSearch={setSearch} searchPlaceholder={searchPlaceholder} diet={diet} onDiet={setDiet} kind={kind} onKind={setKind} sort={sort} onSort={setSort} activeStallId={activeStall?.id} onOpenStall={openStall} />
+                <SidePanel greetingText={greetingFor(user)} stalls={stalls} menuStalls={menuStalls} demoMode={demoMode} openCount={openCount} search={search} onSearch={setSearch} searchPlaceholder={searchPlaceholder} diet={diet} onDiet={setDiet} kind={kind} onKind={setKind} sort={sort} onSort={setSort} activeStallId={activeStall?.id} onOpenStall={openStall} />
               </div>
             )}
             <div className="min-w-0 space-y-6">{content(user)}</div>
             {isDesktop && (
               <div id="bag" tabIndex={-1} className="hidden scroll-mt-6 outline-none lg:block">
-                <div className="sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto">{bagContent(user)}</div>
+                <div className="sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto">{bagContent(user, deletion)}</div>
               </div>
             )}
           </div>
-          {!isDesktop && sheetOpen && <BagSheet onClose={() => setSheetOpen(false)}>{bagContent(user)}</BagSheet>}
+          {!isDesktop && sheetOpen && <BagSheet onClose={() => setSheetOpen(false)}>{bagContent(user, deletion)}</BagSheet>}
         </>
       )}
     </StudentShell>

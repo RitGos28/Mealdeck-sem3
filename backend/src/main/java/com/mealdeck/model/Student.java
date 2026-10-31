@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import java.time.Instant;
 
 @Entity
 public class Student {
@@ -23,6 +24,11 @@ public class Student {
     private String name;
 
     private String phone;
+
+    /** Set when the student asks to delete their account; the account is
+     * deleted for good a grace period later (AccountDeletionService), and
+     * clearing it cancels. Null when no deletion is pending. */
+    private Instant deletionRequestedAt;
 
     protected Student() {
     }
@@ -58,4 +64,6 @@ public class Student {
     public void setName(String name) { this.name = name; }
     public void setPhone(String phone) { this.phone = phone; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    public Instant getDeletionRequestedAt() { return deletionRequestedAt; }
+    public void setDeletionRequestedAt(Instant deletionRequestedAt) { this.deletionRequestedAt = deletionRequestedAt; }
 }

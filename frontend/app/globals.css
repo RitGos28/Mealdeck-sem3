@@ -66,3 +66,17 @@
   to { transform: none; opacity: 1; }
 }
 .new-stamp { animation: stamp-in .35s cubic-bezier(.2, .9, .3, 1.3) both; }
+
+/* Final hour before an account is deleted: a slow red glow pulses around
+   the edges of the screen. With reduced motion it's a steady glow. */
+@keyframes deletion-pulse {
+  from { box-shadow: inset 0 0 40px 6px rgba(190, 40, 30, .18); }
+  to { box-shadow: inset 0 0 90px 22px rgba(190, 40, 30, .42); }
+}
+.deletion-pulse {
+  box-shadow: inset 0 0 60px 12px rgba(190, 40, 30, .3);
+  animation: deletion-pulse 1.6s ease-in-out infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .deletion-pulse { animation: none !important; }
+}

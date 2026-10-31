@@ -40,8 +40,10 @@ public class AdminController {
     private final AnalyticsService analyticsService;
     private final AdminAccountService adminAccountService;
     private final StudentService studentService;
+    private final com.mealdeck.service.AccountDeletionService accountDeletion;
 
-    public AdminController(MenuService menuService, OrderService orderService, AnalyticsService analyticsService, AdminAccountService adminAccountService, StudentService studentService) {
+    public AdminController(MenuService menuService, OrderService orderService, AnalyticsService analyticsService, AdminAccountService adminAccountService, StudentService studentService, com.mealdeck.service.AccountDeletionService accountDeletion) {
+        this.accountDeletion = accountDeletion;
         this.menuService = menuService;
         this.orderService = orderService;
         this.analyticsService = analyticsService;
@@ -119,6 +121,10 @@ public class AdminController {
 
     @DeleteMapping("/students/{id}")
     public void deleteStudent(@PathVariable Long id) { studentService.deleteByAdmin(id); }
+
+    /** Cancels a deletion the student scheduled, within its grace period. */
+    @DeleteMapping("/students/{id}/deletion")
+    public void cancelStudentDeletion(@PathVariable Long id) { accountDeletion.cancel(id); }
 
     private OrderStatus parseStatus(String value) {
         try {

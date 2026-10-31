@@ -113,7 +113,10 @@ public class AuthController {
         Long stallId = "VENDOR".equals(role)
                 ? vendorRepository.findByEmail(authentication.getName()).map(v -> v.getStall().getId()).orElse(null)
                 : null;
-        return new MeResponse(role, authentication.getName(), stallId);
+        String name = "STUDENT".equals(role)
+                ? studentService.findByEmail(authentication.getName()).map(student -> student.getName()).orElse(null)
+                : null;
+        return new MeResponse(role, authentication.getName(), stallId, name);
     }
 
     /** Authenticates against the shared UserDetailsService, then rejects the

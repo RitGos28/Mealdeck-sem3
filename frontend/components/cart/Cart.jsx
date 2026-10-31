@@ -5,7 +5,7 @@ const primaryButton = "mt-4 flex h-12 w-full items-center justify-center gap-1.5
 
 // Ordering needs a student login: logged-out visitors are sent to log in
 // (the bag is kept, see MealDeckApp), vendors and admins are told why not.
-function CheckoutButton({ user, demoMode, onCheckout }) {
+function CheckoutButton({ user, demoMode, onCheckout, orderingBlocked }) {
   if (demoMode) {
     return <><button className={primaryButton} disabled>Choose pickup time</button><p className="mt-2 text-center text-xs text-muted">Checkout needs the backend running.</p></>;
   }
@@ -18,12 +18,15 @@ function CheckoutButton({ user, demoMode, onCheckout }) {
   if (user.role !== "STUDENT") {
     return <><button className={primaryButton} disabled>Choose pickup time</button><p className="mt-2 text-center text-xs text-muted">Pre-orders need a student account.</p></>;
   }
+  if (orderingBlocked) {
+    return <><button className={primaryButton} disabled>Choose pickup time</button><p className="mt-2 text-center text-xs text-danger">Ordering is paused while this account is scheduled for deletion. <Link href="/account/deletion" className="font-semibold underline">Read more</Link></p></>;
+  }
   return <button className={primaryButton} onClick={onCheckout}>Choose pickup time <span aria-hidden="true">→</span></button>;
 }
 
 // Bordered card in the desktop bag column; flat inside the phone bottom
 // sheet, which brings its own frame.
-export default function Cart({ cartItems, itemCount, total, changeQuantity, onCheckout, demoMode, user }) {
+export default function Cart({ cartItems, itemCount, total, changeQuantity, onCheckout, demoMode, user, orderingBlocked = false }) {
   return (
     <aside aria-labelledby="bag-heading" className="h-fit bg-white text-ink lg:rounded-3xl lg:border lg:border-line lg:p-5">
       <div className="mb-4 flex items-baseline justify-between">
@@ -38,7 +41,7 @@ export default function Cart({ cartItems, itemCount, total, changeQuantity, onCh
           <div className="border-t border-line pt-4">
             <div className="flex justify-between text-base font-semibold"><span>Total</span><span>₹{total}</span></div>
             <p className="mt-1 text-xs text-muted">Pay at the counter when you pick up.</p>
-            <CheckoutButton user={user} demoMode={demoMode} onCheckout={onCheckout} />
+            <CheckoutButton user={user} demoMode={demoMode} onCheckout={onCheckout} orderingBlocked={orderingBlocked} />
           </div>
         </div>
       )}

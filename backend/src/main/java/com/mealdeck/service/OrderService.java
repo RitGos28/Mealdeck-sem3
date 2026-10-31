@@ -43,6 +43,7 @@ public class OrderService {
     private final SlotService slotService;
     private final ApplicationEventPublisher events;
     private final Clock clock;
+    private final AccountDeletionService accountDeletion;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -51,7 +52,8 @@ public class OrderService {
             StudentRepository studentRepository,
             SlotService slotService,
             ApplicationEventPublisher events,
-            Clock clock) {
+            Clock clock,
+            AccountDeletionService accountDeletion) {
         this.orderRepository = orderRepository;
         this.stallRepository = stallRepository;
         this.studentRepository = studentRepository;
@@ -59,6 +61,7 @@ public class OrderService {
         this.menuItemRepository = menuItemRepository;
         this.slotService = slotService;
         this.clock = clock;
+        this.accountDeletion = accountDeletion;
     }
 
     /** A cart can hold items from several stalls; each vendor must only ever
@@ -74,6 +77,7 @@ public class OrderService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Log in as a student to order"));
         Map<Long, LocalTime> pickupTimes = request.pickupTimes() != null ? request.pickupTimes() : Map.of();
         LocalDate today = slotService.today();
+        accountDeletion.requireCanOrder(student, pickupTimes.values(), today);
 
         Map<Long, Order> ordersByStall = new LinkedHashMap<>();
         for (OrderItemRequest line : request.items()) {

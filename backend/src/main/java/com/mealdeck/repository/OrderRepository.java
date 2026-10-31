@@ -35,10 +35,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Object[]> countActiveBySlot(@Param("stallId") Long stallId, @Param("date") LocalDate date);
 
     /** Before deleting a student account: their orders stay on the vendor's
-     * history under the name/contact copied at checkout. */
+     * history (items, prices, times) so the stall's records still add up,
+     * but anonymised: the name and contact copied at checkout are wiped. */
     @Modifying(clearAutomatically = true)
-    @Query("update Order o set o.student = null where o.student.id = :studentId")
+    @Query("update Order o set o.student = null, o.customerName = 'Deleted student', o.customerContact = '(deleted)' where o.student.id = :studentId")
     void detachStudent(@Param("studentId") Long studentId);
+
+    /** Whether the student has an order a stall is still working on. */
+    boolean existsByStudentIdAndStatusIn(Long studentId, java.util.Collection<com.mealdeck.model.OrderStatus> statuses);
 
     @Query("select distinct o.stall.id from Order o where o.pickupDate = :date")
     List<Long> findStallIdsWithOrdersOn(@Param("date") LocalDate date);
