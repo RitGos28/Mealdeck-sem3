@@ -7,6 +7,7 @@ import VendorMenu from "./VendorMenu";
 import { api, formatInstant, formatTime } from "../../lib/api";
 import { LiveIndicator, useLiveTopic } from "../../lib/liveQueue";
 import { FINAL_STATUSES, StatusBadge } from "../../lib/orderStatus";
+import { AlertsToggle, useNewOrderAlerts } from "./NewOrderAlerts";
 
 // New orders arrive over the live socket; this slow refresh only covers a
 // socket that can't connect at all.
@@ -212,6 +213,7 @@ export default function VendorOrders() {
   // The public queue topic carries no names or phone numbers, so a push is
   // only a cue to reload the full list through the logged-in vendor API.
   const connected = useLiveTopic(stall && viewingToday ? `/topic/stalls/${stall.id}/queue` : null, { onMessage: load, onConnect: load });
+  const alerts = useNewOrderAlerts(orders, viewingToday);
 
   function handleUpdated(updated) {
     setOrders((current) => current.map((order) => (order.id === updated.id ? updated : order)));
@@ -266,6 +268,7 @@ export default function VendorOrders() {
               <div className="flex flex-wrap items-center gap-4">
                 {stall && <SlotCapacity key={stall.slotCapacity} stall={stall} onSaved={setStall} />}
                 {stall && <PauseOrders stall={stall} onSaved={setStall} />}
+                {stall && <AlertsToggle alerts={alerts} />}
               </div>
               {stall && <LiveIndicator connected={connected} />}
             </div>
