@@ -76,14 +76,17 @@ public class AccountDeletionService {
 
     /** scheduledFor: when the account will be deleted, or null if no
      * deletion is pending. orderingBlocked: true in the final window. */
-    public record Status(Instant scheduledFor, Instant orderingBlockedFrom, boolean orderingBlocked, long graceMinutes) {
+    /** protectedAccount: a demo/reviewer account that goes through the
+     * flow but is never deleted; the UI says so rather than pretend. */
+    public record Status(Instant scheduledFor, Instant orderingBlockedFrom, boolean orderingBlocked, long graceMinutes, boolean protectedAccount) {
     }
 
     public Status status(Student student) {
-        if (student.getDeletionRequestedAt() == null) return new Status(null, null, false, grace.toMinutes());
+        boolean isProtected = protectedEmails.contains(student.getEmail().toLowerCase());
+        if (student.getDeletionRequestedAt() == null) return new Status(null, null, false, grace.toMinutes(), isProtected);
         Instant deleteAt = deleteAt(student);
         Instant blockedFrom = deleteAt.minus(finalWindow);
-        return new Status(deleteAt, blockedFrom, !clock.instant().isBefore(blockedFrom), grace.toMinutes());
+        return new Status(deleteAt, blockedFrom, !clock.instant().isBefore(blockedFrom), grace.toMinutes(), isProtected);
     }
 
     @Transactional
@@ -117,7 +120,7 @@ public class AccountDeletionService {
         if (student.getDeletionRequestedAt() == null) return;
         Status status = status(student);
         if (status.orderingBlocked()) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "This account is scheduled for deletion and can't place orders. Cancel the deletion to order again.");
         }
         for (LocalTime time : pickupTimes) {

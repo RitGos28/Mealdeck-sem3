@@ -118,7 +118,7 @@ class AccountDeletionTests {
         Student student = askedAgo(newStudent(), Duration.ofHours(23).plusMinutes(30));
 
         assertThat(accountDeletion.status(student).orderingBlocked()).isTrue();
-        assertRejected(() -> orderAt(student, LocalTime.NOON), HttpStatus.FORBIDDEN);
+        assertRejected(() -> orderAt(student, LocalTime.NOON), HttpStatus.CONFLICT);
     }
 
     @Test
@@ -179,6 +179,8 @@ class AccountDeletionTests {
         // The public demo login is protected by default (application.properties).
         Student demo = studentRepository.findByEmail("student@bennett.edu.in").orElseThrow();
         askedAgo(demo, Duration.ofHours(25));
+
+        assertThat(accountDeletion.status(demo).protectedAccount()).isTrue();
 
         accountDeletion.deleteDueAccounts();
 

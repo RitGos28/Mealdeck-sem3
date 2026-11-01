@@ -223,7 +223,7 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced, lat
 
         <div>
           <div className="mb-1 flex justify-between text-base font-semibold"><span>Total</span><span>₹{total}</span></div>
-          <p className="mb-3 text-xs text-muted">Pay at the counter when you pick up (cash or UPI). Collect within 15 minutes of it being ready, or it&apos;s marked a no-show.</p>
+          <p className="mb-3 text-xs text-muted">Pay at the counter when you pick up: UPI, or card where the stall takes it. Stalls don&apos;t take cash. Collect within 15 minutes of it being ready, or it&apos;s marked a no-show.</p>
           <button className="flex h-12 w-full items-center justify-center rounded-full bg-deck text-[15px] font-semibold text-white transition-colors hover:bg-deck-hover disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-deck" disabled={!ready || placing}>
             {placing ? "Placing order…" : ready ? "Place pre-order" : "Pick a pickup time"}
           </button>

@@ -44,6 +44,7 @@ public class OrderService {
     private final ApplicationEventPublisher events;
     private final Clock clock;
     private final AccountDeletionService accountDeletion;
+    private final EmailStandingService emailStanding;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -53,7 +54,9 @@ public class OrderService {
             SlotService slotService,
             ApplicationEventPublisher events,
             Clock clock,
-            AccountDeletionService accountDeletion) {
+            AccountDeletionService accountDeletion,
+            EmailStandingService emailStanding) {
+        this.emailStanding = emailStanding;
         this.orderRepository = orderRepository;
         this.stallRepository = stallRepository;
         this.studentRepository = studentRepository;
@@ -78,6 +81,8 @@ public class OrderService {
         Map<Long, LocalTime> pickupTimes = request.pickupTimes() != null ? request.pickupTimes() : Map.of();
         LocalDate today = slotService.today();
         accountDeletion.requireCanOrder(student, pickupTimes.values(), today);
+        emailStanding.requireCanOrder(student);
+        String emailKey = emailStanding.keyFor(student.getEmail());
 
         Map<Long, Order> ordersByStall = new LinkedHashMap<>();
         for (OrderItemRequest line : request.items()) {
@@ -93,7 +98,9 @@ public class OrderService {
             Order order = ordersByStall.computeIfAbsent(item.getStall().getId(), stallId -> {
                 LocalTime pickupTime = pickupTimes.get(stallId);
                 slotService.requireBookable(item.getStall(), pickupTime);
-                return new Order(item.getStall(), student, today, pickupTime);
+                Order created = new Order(item.getStall(), student, today, pickupTime);
+                created.setCustomerEmailKey(emailKey);
+                return created;
             });
             order.addItem(new OrderItem(order, item, line.quantity(), item.getPrice()));
         }

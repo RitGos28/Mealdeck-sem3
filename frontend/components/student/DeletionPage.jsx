@@ -51,7 +51,13 @@ export default function DeletionPage() {
 
           <section>
             <h2 className="mb-3 font-serif text-2xl">What&apos;s kept, and for how long</h2>
-            <p>The orders you placed stay on the stalls&apos; records, so their sales and stock still add up: the items, prices, pickup time and order number. They&apos;re <strong>anonymised</strong> when your account is deleted. Your name and contact details are removed from them, and they&apos;re no longer linked to you. Nothing else is kept.</p>
+            <p>The orders you placed stay on the stalls&apos; records, so their sales and stock still add up: the items, prices, pickup time and order number. They&apos;re <strong>anonymised</strong> when your account is deleted. Your name and contact details are removed from them, and they&apos;re no longer linked to you.</p>
+            <p className="mt-3">Two things stay a little longer, so deleting an account can&apos;t be used to dodge the limit on uncollected pre-orders:</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              <li>Orders from the last <strong>30 days</strong> keep a scrambled, one-way code made from your email. It isn&apos;t your email and can&apos;t be turned back into it; it can only tell us the same email signed up again. It&apos;s wiped once each order is 30 days old.</li>
+              <li>If an admin flagged your email for abuse (pranks, repeated no-shows), the flag stays until it expires or is removed: the same kind of code, plus a partly hidden address like <span className="whitespace-nowrap">ri•••@bennett.edu.in</span>.</li>
+            </ul>
+            <p className="mt-3">Nothing else is kept.</p>
           </section>
 
           <p className="text-sm text-muted">More in our <Link href="/privacy" className="font-semibold text-deck underline">privacy notice</Link>. MealDeck is an independent student project, not an official Bennett University service.</p>

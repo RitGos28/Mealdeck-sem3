@@ -59,6 +59,7 @@ export default function PrivacyPage() {
         <Section title="Keeping and deleting it">
           <p>Your account stays until you delete it. Delete it yourself from <strong>Account → Delete my account</strong>: it&apos;s deleted for good 24 hours later, and you can cancel until then. The steps are at <Link href="/account/deletion" className="font-semibold text-[#3f6b3a] hover:underline">mealdeck.in/account/deletion</Link>. Or email <a href={`mailto:${CONTACT}`} className="font-semibold text-[#3f6b3a] hover:underline">{CONTACT}</a> from your Bennett address, which is also the address for any question about your data.</p>
           <p>Deleting your account removes your login, your account details, your Food passport and your reports. Orders you already placed stay in the stall&apos;s order history so its records still add up, but anonymised: your name and contact are removed from them.</p>
+          <p>So that deleting an account can&apos;t reset the limit on uncollected pre-orders, orders from the last 30 days keep a one-way code made from your email (not the email itself; it can&apos;t be turned back into it). It&apos;s wiped once each order is 30 days old. If an admin has flagged an email for abuse, that flag (the same kind of code and a partly hidden address, like ri•••@bennett.edu.in) stays until it expires or is removed, even after the account is deleted.</p>
         </Section>
 
         <Link href="/" className="text-sm font-semibold text-[#3f6b3a] hover:underline">← Back to menu</Link>

@@ -3,6 +3,8 @@ package com.mealdeck.model;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -31,7 +33,11 @@ public class EmailCode {
 
     private String codeHash;
 
+    // Plain text, not a MySQL ENUM: ddl-auto=update never edits an ENUM's
+    // value list, so a new value would be rejected ("Data truncated").
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(length = 32)
     private Purpose purpose;
 
     private Instant expiresAt;

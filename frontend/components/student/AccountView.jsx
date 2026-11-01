@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { logout } from "../../lib/logout";
 import StudentShell from "./StudentShell";
 import { DeleteAccountPanel } from "./AccountDeletion";
+import FeedbackLink from "../FeedbackLink";
 import { PassportCard } from "./passport/PassportViews";
 
 const ROLE_LABELS = { VENDOR: "Vendor", ADMIN: "Admin" };
@@ -78,6 +79,15 @@ function AccountContent({ user, router, deletion }) {
         {/* Orders and the password reset (/api/auth/student/password-reset) are student-only. */}
         {!dashboard && <Row href="/orders" hint="Live status and past pre-orders">My orders</Row>}
         {!dashboard && <Row href="/login?mode=forgot" hint="We'll email you a code">Change password</Row>}
+        <li>
+          <FeedbackLink className="flex min-h-14 items-center gap-3 px-4 py-3 hover:bg-mint/40">
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium text-ink">Send feedback</span>
+              <span className="block text-sm text-muted">Found a bug or have an idea? Tell us</span>
+            </span>
+            <Chevron />
+          </FeedbackLink>
+        </li>
         <Row href="/privacy">How we use your details</Row>
       </ul>
 
