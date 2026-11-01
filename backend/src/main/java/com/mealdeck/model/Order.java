@@ -4,6 +4,8 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -60,8 +62,11 @@ public class Order {
     @Column(length = 64)
     private String customerEmailKey;
 
+    // Plain text, not a MySQL ENUM: ddl-auto=update never edits an ENUM's
+    // value list, so a new value would be rejected ("Data truncated").
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(nullable = false, length = 32)
     private OrderStatus status = OrderStatus.PLACED;
 
     @Column(nullable = false)
