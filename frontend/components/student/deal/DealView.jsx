@@ -6,7 +6,7 @@ import MenuItemCard from "../../menu/MenuItemCard";
 import { bagCount, dishFor } from "../../../lib/menuDishes";
 import { initials } from "../OrderAgain";
 import { BackLink } from "../BrowseViews";
-import { stallStatus, stallTint } from "../browse";
+import { dealable, stallStatus, stallTint } from "../browse";
 import { DEFAULT_FILTERS, HAND_SIZE, dealHand, dealPool, filterSummary } from "./dealPool";
 
 // "Deal me a dish": an optional minigame for when you can't decide. Ten
@@ -192,7 +192,7 @@ function DishCard({ entry, demoMode, onDecide }) {
       <div className="shrink-0 px-6 pt-4 pb-12 text-center">
         <p className="truncate text-xs font-semibold tracking-[.05em] text-mint-ink uppercase">{stall.name}{item.category ? ` · ${item.category}` : ""}</p>
         <h2 className="mt-2 line-clamp-2 font-serif text-[28px] leading-[1.1]">{item.name}</h2>
-        <p className="mt-2 text-[13px] text-muted">{status.label}</p>
+        <p className="mt-2 text-[13px] text-muted">{status.listing ? "Menu only · order at the counter" : status.label}</p>
       </div>
       {hint !== 0 && (
         <span aria-hidden="true" className={`absolute top-6 rounded-lg border-2 px-2 py-0.5 text-sm font-bold tracking-[.08em] uppercase ${hint > 0 ? "left-1/2 -translate-x-1/2 border-deck text-deck" : "left-1/2 -translate-x-1/2 border-danger text-danger"}`}>
@@ -277,7 +277,10 @@ function Dealing({ deal, demoMode, onBag }) {
         <RoundButton label="Undo last card" caption="Undo" small onClick={deal.undo} disabled={deal.index === 0}>{Glyph.undo}</RoundButton>
         <RoundButton label={`Skip ${current.item.name}`} caption="Skip" onClick={() => deal.decide(false)}>{Glyph.skip}</RoundButton>
         <RoundButton label={`Keep ${current.item.name}`} caption="Keep" primary onClick={() => deal.decide(true)}>{Glyph.keep}</RoundButton>
-        <RoundButton label={`Add ${current.item.name} to bag now`} caption="Bag it" small onClick={() => onBag(current.item, current.stall, () => deal.decide(true))}><span className="text-2xl leading-none">+</span></RoundButton>
+        {current.stall.listingOnly
+          // Menu-only stall: nothing to bag; you'd order at its counter.
+          ? <span className="flex w-14 flex-col items-center gap-1 pt-1 text-center text-[11px] leading-tight text-muted">Order at the counter</span>
+          : <RoundButton label={`Add ${current.item.name} to bag now`} caption="Bag it" small onClick={() => onBag(current.item, current.stall, () => deal.decide(true))}><span className="text-2xl leading-none">+</span></RoundButton>}
       </div>
       {deal.kept.length > 0 && (
         <button type="button" onClick={deal.showHand} className="mx-auto mt-4 flex h-11 items-center rounded-full px-4 text-sm font-semibold text-deck underline underline-offset-4 hover:bg-mint">See your hand ({deal.kept.length})</button>
@@ -305,7 +308,7 @@ function Hand({ deal, demoMode, cart, onAdd, onChangeQuantity, onHome }) {
           <ul>
             {items.map((item) => (
               <li key={item.id}>
-                <MenuItemCard item={item} dish={dishFor(item)} demoMode={demoMode} sub={item.category} quantity={bagCount(cart, dishFor(item))} onAddToCart={() => onAdd(item, stall)} onChangeQuantity={(delta) => onChangeQuantity(item.id, delta)} />
+                <MenuItemCard item={item} dish={dishFor(item)} demoMode={demoMode} sub={item.category} browseOnly={stall.listingOnly} quantity={bagCount(cart, dishFor(item))} onAddToCart={() => onAdd(item, stall)} onChangeQuantity={(delta) => onChangeQuantity(item.id, delta)} />
               </li>
             ))}
           </ul>
@@ -383,7 +386,7 @@ export function DealHeading({ deal, onHome, onBand = true }) {
 
 // The way in, on the home page: a small card, never in the way of ordering.
 export function DealEntry({ stalls, demoMode, onOpen }) {
-  const teaser = stalls.filter((stall) => stallStatus(stall, demoMode).live).flatMap((stall) => {
+  const teaser = stalls.filter((stall) => dealable(stall, demoMode)).flatMap((stall) => {
     const item = stall.items.find((dish) => dish.available);
     return item ? [{ item, stall }] : [];
   }).slice(0, 3);

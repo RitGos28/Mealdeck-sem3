@@ -1,5 +1,5 @@
 // "Deal me a dish": which dishes can be dealt, and dealing a hand of them.
-import { isDrink, stallStatus } from "../browse";
+import { dealable, isDrink } from "../browse";
 
 export const HAND_SIZE = 10;
 const PER_STALL = 3;
@@ -8,11 +8,12 @@ const ADD_ON = /add-?on|\bextra\b/i;
 export const DEFAULT_FILTERS = { vegOnly: false, under150: false, kind: "food" };
 
 // Every dish that could be dealt with these filters: available, at a stall
-// taking orders right now, and not an add-on. Each entry is { item, stall }.
+// open right now (taking pre-orders, or menu only: order at the counter),
+// and not an add-on. Each entry is { item, stall }.
 export function dealPool(stalls, filters, demoMode) {
   const pool = [];
   for (const stall of stalls) {
-    if (!stallStatus(stall, demoMode).live) continue;
+    if (!dealable(stall, demoMode)) continue;
     for (const item of stall.items) {
       if (!item.available || ADD_ON.test(item.name)) continue;
       if (filters.vegOnly && !item.veg) continue;
