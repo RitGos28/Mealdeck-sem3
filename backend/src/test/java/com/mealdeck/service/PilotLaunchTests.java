@@ -69,6 +69,12 @@ class PilotLaunchTests {
     }
 
     @Test
+    void aNewStallIsMenuOnlyUntilAnAdminOpensIt() {
+        // No stall takes pre-orders before its owner has agreed.
+        assertThat(stallRepository.save(new Stall("New Stall")).isListingOnly()).isTrue();
+    }
+
+    @Test
     void onlyAnAdminDecidesWhetherAStallTakesPreOrders() throws Exception {
         var mvc = MockMvcBuilders.webAppContextSetup(context).apply(SecurityMockMvcConfigurers.springSecurity()).build();
         mvc.perform(patch("/api/vendor/stall").with(user("bistro@mealdeck.in").roles("VENDOR"))

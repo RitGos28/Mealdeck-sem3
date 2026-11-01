@@ -44,10 +44,11 @@ public class Stall {
      * turned off by hand. */
     private Boolean ordersPaused;
 
-    /** Admin-only: the menu is shown but the stall takes no pre-orders
-     * (pilot launch: only stalls that agreed take orders). Unlike
-     * ordersPaused it never resets by itself. Nullable for the same
-     * ddl-auto=update reason; null means taking pre-orders. */
+    /** Admin-only: the menu is shown but the stall takes no pre-orders.
+     * Only stalls whose owner has agreed take orders, so a stall is menu
+     * only until an admin sets this to false: null (every existing row
+     * after ddl-auto=update, and every new stall) means menu only. Unlike
+     * ordersPaused it never resets by itself. */
     private Boolean listingOnly;
 
     protected Stall() {
@@ -102,7 +103,7 @@ public class Stall {
     }
 
     public boolean isListingOnly() {
-        return Boolean.TRUE.equals(listingOnly);
+        return !Boolean.FALSE.equals(listingOnly);
     }
 
     public void setListingOnly(boolean listingOnly) {

@@ -86,6 +86,8 @@ public class DemoDataSeeder implements CommandLineRunner {
         snapEats.setCloseTime(LocalTime.of(22, 0));
         quench.setOpenTime(LocalTime.of(8, 0));
         quench.setCloseTime(LocalTime.of(18, 0));
+        // Sample stalls take pre-orders; real ones start menu only.
+        stalls.forEach(stall -> stall.setListingOnly(false));
         stallRepository.saveAll(List.of(bistro, snapEats, quench));
 
         menuItemRepository.saveAll(List.of(
