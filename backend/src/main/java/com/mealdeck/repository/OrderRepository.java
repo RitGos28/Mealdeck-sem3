@@ -13,6 +13,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
+    long countByStallId(Long stallId);
+
     // Fetch join so OrderDto.from() can read items/menuItem/stall outside the
     // transaction without a LazyInitializationException (open-in-view is off,
     // same reasoning as StallRepository.findAllWithMenuItems).
