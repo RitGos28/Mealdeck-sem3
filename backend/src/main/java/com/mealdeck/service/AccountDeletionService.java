@@ -120,7 +120,7 @@ public class AccountDeletionService {
         if (student.getDeletionRequestedAt() == null) return;
         Status status = status(student);
         if (status.orderingBlocked()) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "This account is scheduled for deletion and can't place orders. Cancel the deletion to order again.");
         }
         for (LocalTime time : pickupTimes) {

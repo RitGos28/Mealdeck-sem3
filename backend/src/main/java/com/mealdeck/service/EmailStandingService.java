@@ -71,13 +71,14 @@ public class EmailStandingService {
     public void requireCanOrder(Student student) {
         String key = emailKeys.key(student.getEmail());
         activeFlag(key).ifPresent(flag -> {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Pre-ordering is paused for this account. Email ritwik@mealdeck.in if you think this is a mistake.");
+            // 409, not 403: the student is logged in; 403 sends checkout to the login page.
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Pre-ordering is paused for this account. Email ritwik@mealdeck.in if you think this is a mistake.");
         });
         LocalDate today = LocalDate.now(clock.withZone(CAMPUS));
         List<LocalDate> noShows = orderRepository.noShowDates(key, today.minusDays(windowDays - 1L));
         if (noShows.size() >= limit) {
             LocalDate until = noShows.get(limit - 1).plusDays(windowDays);
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "You didn't collect " + noShows.size() + " pre-orders in the last " + windowDays + " days, so pre-ordering is paused until "
                             + until.format(DAY) + ". You can still buy at the counter.");
         }

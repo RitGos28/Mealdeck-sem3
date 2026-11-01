@@ -80,7 +80,7 @@ class EmailStandingTests {
         orderAs(student);  // one no-show: still fine
         noShow(orderRepository.findAll().stream().filter(o -> EMAIL.equals(o.getCustomerContact()) && o.getStatus() == OrderStatus.PLACED).findFirst().orElseThrow());
 
-        assertRejected(() -> orderAs(student), HttpStatus.FORBIDDEN);
+        assertRejected(() -> orderAs(student), HttpStatus.CONFLICT);
     }
 
     @Test
@@ -92,7 +92,7 @@ class EmailStandingTests {
         em.flush();  // in real life the re-sign-up is a separate, later transaction
 
         Student again = student();
-        assertRejected(() -> orderAs(again), HttpStatus.FORBIDDEN);
+        assertRejected(() -> orderAs(again), HttpStatus.CONFLICT);
     }
 
     @Test
@@ -113,7 +113,7 @@ class EmailStandingTests {
         var entry = emailStanding.flag(EMAIL, "Prank orders at two stalls", null);
         assertThat(entry.hint()).isEqualTo("pr•••@bennett.edu.in");
 
-        assertRejected(() -> orderAs(student), HttpStatus.FORBIDDEN);
+        assertRejected(() -> orderAs(student), HttpStatus.CONFLICT);
         assertRejected(() -> emailStanding.requireCanSignUp(EMAIL), HttpStatus.FORBIDDEN);
 
         emailStanding.unflag(entry.id());
