@@ -49,6 +49,11 @@ services:
       MAIL_FROM: ${MAIL_FROM:-MealDeck <noreply@mealdeck.in>}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_REAL_EMAIL: ${ADMIN_REAL_EMAIL:-}
+      # Accounts the deletion flow never deletes (demo student, Play
+      # reviewers), comma-separated; also left out of the pitch numbers.
+      ACCOUNT_DELETION_PROTECTED: ${ACCOUNT_DELETION_PROTECTED:-student@bennett.edu.in}
+      # Your own test logins, left out of the admin Overview's pitch numbers.
+      PITCH_TEST_ACCOUNTS: ${PITCH_TEST_ACCOUNTS:-}
       MEALDECK_UPLOAD_DIR: /app/uploads
       # One JSON object per log line (Elastic Common Schema), so logs can be
       # searched by level, logger or message. Set here, not in
