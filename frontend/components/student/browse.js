@@ -11,6 +11,8 @@ export function stallTint(stall) {
 // What the student can do at this stall right now. Demo data has no hours,
 // so sample stalls always count as open.
 export function stallStatus(stall, demoMode) {
+  // Pilot launch: menu shown, pre-orders not open at this stall (yet).
+  if (stall.listingOnly) return { label: "Menu only", live: false, listing: true };
   if (stall.closedToday) return { label: "Closed today", live: false };
   if (stall.ordersPaused) return { label: "Paused", live: false, paused: true };
   if (!demoMode && !stall.open) return { label: "Closed now", live: false };

@@ -30,6 +30,10 @@ public class Student {
      * clearing it cancels. Null when no deletion is pending. */
     private Instant deletionRequestedAt;
 
+    /** When the account was made. Null for accounts made before this was
+     * recorded (2026-11), so "joined this week" never guesses. */
+    private Instant createdAt;
+
     protected Student() {
     }
 
@@ -38,6 +42,11 @@ public class Student {
         this.passwordHash = passwordHash;
         this.name = name;
         this.phone = phone;
+        this.createdAt = Instant.now();
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
     }
 
     public Long getId() {

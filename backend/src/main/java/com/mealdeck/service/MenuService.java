@@ -128,6 +128,9 @@ public class MenuService {
         if (request.ordersPaused() != null) {
             stall.setOrdersPaused(request.ordersPaused());
         }
+        if (request.listingOnly() != null) {
+            stall.setListingOnly(request.listingOnly());
+        }
         stallRepository.save(stall);
         // Capacity and closed-today both change which slots are bookable.
         events.publishEvent(new QueueChangedEvent(stallId));

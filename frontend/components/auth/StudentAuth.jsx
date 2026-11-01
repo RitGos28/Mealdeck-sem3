@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import NotOfficial from "../layout/NotOfficial";
 import { useState } from "react";
 import AuthForm from "./AuthForm";
 import Field from "./Field";
@@ -35,6 +36,7 @@ export default function StudentAuth({ next, initialMode = "login" }) {
       {mode === "reset" && <StudentSignup key="reset" reset redirectTo={next} onBack={() => setMode("login")} />}
       <p className="mt-5 text-center text-sm text-gray-500">Run a stall? <Link href="/vendor/login" className="font-semibold text-[#3f6b3a] hover:underline">Vendor login</Link></p>
       <p className="mt-2 text-center text-xs text-gray-500"><Link href="/privacy" className="hover:underline">How we use your details</Link></p>
+      <NotOfficial className="mt-4 text-gray-500" />
     </>
   );
 }

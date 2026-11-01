@@ -38,17 +38,19 @@ public class AdminController {
     private final MenuService menuService;
     private final OrderService orderService;
     private final AnalyticsService analyticsService;
+    private final com.mealdeck.service.PitchService pitchService;
     private final AdminAccountService adminAccountService;
     private final StudentService studentService;
     private final com.mealdeck.service.AccountDeletionService accountDeletion;
     private final com.mealdeck.service.EmailStandingService emailStanding;
 
-    public AdminController(MenuService menuService, OrderService orderService, AnalyticsService analyticsService, AdminAccountService adminAccountService, StudentService studentService, com.mealdeck.service.AccountDeletionService accountDeletion, com.mealdeck.service.EmailStandingService emailStanding) {
+    public AdminController(MenuService menuService, OrderService orderService, AnalyticsService analyticsService, com.mealdeck.service.PitchService pitchService, AdminAccountService adminAccountService, StudentService studentService, com.mealdeck.service.AccountDeletionService accountDeletion, com.mealdeck.service.EmailStandingService emailStanding) {
         this.accountDeletion = accountDeletion;
         this.emailStanding = emailStanding;
         this.menuService = menuService;
         this.orderService = orderService;
         this.analyticsService = analyticsService;
+        this.pitchService = pitchService;
         this.adminAccountService = adminAccountService;
         this.studentService = studentService;
     }
@@ -96,6 +98,11 @@ public class AdminController {
         OrderStatus next = parseStatus(request.status());
         Order order = orderService.advanceStatus(stallId, orderService.getOrderByCode(code).getId(), next);
         return OrderDto.from(order);
+    }
+
+    @GetMapping("/pitch")
+    public PitchDto pitch() {
+        return pitchService.summarize();
     }
 
     @GetMapping("/analytics")
