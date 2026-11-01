@@ -16,7 +16,7 @@ export function initials(name) {
 function reorderable(orders, stalls) {
   const byId = new Map();
   for (const stall of stalls) {
-    if (stall.ordersPaused || stall.closedToday) continue;
+    if (stall.ordersPaused || stall.closedToday || stall.listingOnly) continue;
     for (const item of stall.items) {
       if (item.available) byId.set(String(item.id), { item, stall });
     }

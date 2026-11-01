@@ -55,7 +55,7 @@ function campusMinutesNow() {
 // last slot that ends by the latest closing among stalls taking orders.
 // Mirrors SlotService: a slot must start after now and end by closing.
 function pickupTimes(stalls, now) {
-  const taking = stalls.filter((stall) => !stall.closedToday && !stall.ordersPaused);
+  const taking = stalls.filter((stall) => !stall.closedToday && !stall.ordersPaused && !stall.listingOnly);
   if (taking.length === 0) return [];
   const open = Math.min(...taking.map((stall) => (stall.openTime ? toMinutes(stall.openTime) : DEFAULT_OPEN)));
   const close = Math.max(...taking.map((stall) => (stall.closeTime ? toMinutes(stall.closeTime) : DEFAULT_CLOSE)));

@@ -94,6 +94,10 @@ public class OrderService {
             if (!item.isAvailable()) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, item.getName() + " is out of stock");
             }
+            if (item.getStall().isListingOnly()) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        item.getStall().getName() + " isn't taking pre-orders yet. Order at the counter for now");
+            }
 
             Order order = ordersByStall.computeIfAbsent(item.getStall().getId(), stallId -> {
                 LocalTime pickupTime = pickupTimes.get(stallId);

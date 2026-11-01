@@ -90,7 +90,7 @@ function suggest(orders, tried, menu, stalls) {
   }
   const usualKey = [...counts.entries()].filter(([key]) => menu.has(key)).sort((a, b) => b[1] - a[1])[0]?.[0];
   const usual = usualKey ? menu.get(usualKey) : null;
-  const orderable = (stall, item) => item.available && !stall.closedToday && !stall.ordersPaused && !tried.has(String(item.id));
+  const orderable = (stall, item) => item.available && !stall.closedToday && !stall.ordersPaused && !stall.listingOnly && !tried.has(String(item.id));
   const picks = [];
   const add = (stall, item, why) => {
     if (picks.length < 3 && !picks.some((pick) => pick.item.id === item.id)) picks.push({ stall, item, why });

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "../layout/Header";
+import PitchView from "./PitchView";
 import { api } from "../../lib/api";
 import { formatChoices, parseChoices } from "../../lib/menuDishes";
 
@@ -20,7 +21,7 @@ function SectionTitle({ title, description }) {
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [tab, setTab] = useState("stalls");
+  const [tab, setTab] = useState("overview");
   const [data, setData] = useState({ stalls: [], vendors: [], students: [] });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -42,12 +43,13 @@ export default function AdminDashboard() {
     return () => clearTimeout(timer);
   }, [load]);
   const refresh = async () => { setLoading(true); await load(); };
-  const tabs = [["stalls", "Stalls & menu"], ["vendors", "Vendors"], ["students", "Students"]];
+  const tabs = [["overview", "Overview"], ["stalls", "Stalls & menu"], ["vendors", "Vendors"], ["students", "Students"]];
 
   return <><Header /><main className="mx-auto max-w-6xl px-4 py-8 pb-16 sm:px-6">
     <div className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#5d8764]">Administration</p><h1 className="font-display text-3xl font-bold tracking-tight">MealDeck control room</h1><p className="mt-1 text-sm text-gray-500">Manage the people and menu behind today&apos;s service.</p></div><button className={subtle} onClick={refresh} disabled={loading}>{loading ? "Refreshing…" : "Refresh data"}</button></div>
     <Notice error={error} />
     <nav className="mb-7 flex flex-wrap gap-2" aria-label="Admin sections">{tabs.map(([id, label]) => <button key={id} onClick={() => setTab(id)} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === id ? "bg-[#173725] text-white" : "bg-white text-[#477355] ring-1 ring-[#dce6d8] hover:bg-[#f3f7f1]"}`}>{label}</button>)}</nav>
+    {tab === "overview" && <PitchView key={loading ? "loading" : "ready"} />}
     {!loading && tab === "stalls" && <Stalls stalls={data.stalls} vendors={data.vendors} onChange={refresh} />}
     {!loading && tab === "vendors" && <Vendors vendors={data.vendors} onChange={refresh} />}
     {!loading && tab === "students" && <Students students={data.students} onChange={refresh} />}
@@ -93,8 +95,8 @@ function Stalls({ stalls, vendors, onChange }) {
 }
 
 function StallSettings({ stall, onSave }) {
-  const [openTime, setOpenTime] = useState(stall.openTime?.slice(0, 5) ?? ""); const [closeTime, setCloseTime] = useState(stall.closeTime?.slice(0, 5) ?? ""); const [closedToday, setClosedToday] = useState(stall.closedToday); const [slotCapacity, setSlotCapacity] = useState(String(stall.slotCapacity ?? 15));
-  return <form onSubmit={(e) => { e.preventDefault(); onSave(stall.id, { openTime: openTime || null, closeTime: closeTime || null, closedToday, slotCapacity: Number(slotCapacity) }); }} className="flex flex-wrap items-center gap-2 text-sm"><label>Open <input className="ml-1 rounded border px-1 py-1" type="time" value={openTime} onChange={(e) => setOpenTime(e.target.value)} /></label><label>Close <input className="ml-1 rounded border px-1 py-1" type="time" value={closeTime} onChange={(e) => setCloseTime(e.target.value)} /></label><label>Per slot <input className="ml-1 w-16 rounded border px-1 py-1" type="number" min="1" max="200" required value={slotCapacity} onChange={(e) => setSlotCapacity(e.target.value)} /></label><label className="flex items-center gap-1"><input type="checkbox" checked={closedToday} onChange={(e) => setClosedToday(e.target.checked)} />Closed today</label><button className={subtle}>Save hours</button></form>;
+  const [openTime, setOpenTime] = useState(stall.openTime?.slice(0, 5) ?? ""); const [closeTime, setCloseTime] = useState(stall.closeTime?.slice(0, 5) ?? ""); const [closedToday, setClosedToday] = useState(stall.closedToday); const [slotCapacity, setSlotCapacity] = useState(String(stall.slotCapacity ?? 15)); const [takingOrders, setTakingOrders] = useState(!stall.listingOnly);
+  return <form onSubmit={(e) => { e.preventDefault(); onSave(stall.id, { openTime: openTime || null, closeTime: closeTime || null, closedToday, slotCapacity: Number(slotCapacity), listingOnly: !takingOrders }); }} className="flex flex-wrap items-center gap-2 text-sm"><label>Open <input className="ml-1 rounded border px-1 py-1" type="time" value={openTime} onChange={(e) => setOpenTime(e.target.value)} /></label><label>Close <input className="ml-1 rounded border px-1 py-1" type="time" value={closeTime} onChange={(e) => setCloseTime(e.target.value)} /></label><label>Per slot <input className="ml-1 w-16 rounded border px-1 py-1" type="number" min="1" max="200" required value={slotCapacity} onChange={(e) => setSlotCapacity(e.target.value)} /></label><label className="flex items-center gap-1"><input type="checkbox" checked={closedToday} onChange={(e) => setClosedToday(e.target.checked)} />Closed today</label><label className={`flex items-center gap-1 rounded-full px-2 py-1 font-semibold ${takingOrders ? "bg-[#e3f1df] text-[#173725]" : "bg-[#F0F2EF] text-gray-600"}`} title="Off: students see the menu marked Menu only, and can't pre-order"><input type="checkbox" checked={takingOrders} onChange={(e) => setTakingOrders(e.target.checked)} />Taking pre-orders</label><button className={subtle}>Save</button></form>;
 }
 
 function ItemRow({ item, onSave, onDelete }) {

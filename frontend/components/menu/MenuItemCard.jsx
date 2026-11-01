@@ -33,7 +33,8 @@ function Thumb({ item, dimmed }) {
 // `dish` (lib/menuDishes) groups sizes and carries free choices: a dish with
 // either shows "from ₹…", a hint, and an Add button that opens the
 // customise sheet; quantity is then the dish's total in the bag.
-export default function MenuItemCard({ item: itemProp, dish, demoMode, quantity = 0, onAddToCart, onChangeQuantity, sub }) {
+// `browseOnly`: the stall isn't taking pre-orders yet, so no add button.
+export default function MenuItemCard({ item: itemProp, dish, demoMode, quantity = 0, onAddToCart, onChangeQuantity, sub, browseOnly = false }) {
   const router = useRouter();
   const [reporting, setReporting] = useState(false);
   const [locallyUnavailable, setLocallyUnavailable] = useState(false);
@@ -87,7 +88,8 @@ export default function MenuItemCard({ item: itemProp, dish, demoMode, quantity 
           <div className="mt-0.5 flex flex-wrap items-center gap-x-3">
             <span className="text-sm text-muted lg:text-[13px] lg:font-semibold lg:text-ink">{sized ? `from ₹${minPrice}` : `₹${item.price}`}</span>
             {/* A size group spans several items, so sold-out is reported per size by the stall instead. */}
-            {!sized && (
+            {/* Not on menu-only stalls either: nobody can order there yet. */}
+            {!sized && !browseOnly && (
               <button type="button" className="-my-2 py-2 text-left text-xs text-muted underline-offset-2 hover:text-ink hover:underline disabled:cursor-default disabled:opacity-60" disabled={reporting} onClick={handleReport}>
                 {reporting ? "Reporting…" : "Report out of stock"}
               </button>
@@ -98,7 +100,7 @@ export default function MenuItemCard({ item: itemProp, dish, demoMode, quantity 
         )}
         {reportMessage && <p className="mt-0.5 text-xs text-muted" role="status">{reportMessage}</p>}
       </div>
-      {available && (
+      {available && !browseOnly && (
         // On wide-screen cards it sits on the photo's bottom corner.
         <div className="shrink-0 lg:absolute lg:top-[calc(7rem-1.375rem)] lg:right-2.5 lg:origin-right lg:scale-[.82] lg:rounded-full lg:bg-white lg:shadow-[0_6px_16px_-6px_rgba(20,40,30,.35)]">
           {custom ? (

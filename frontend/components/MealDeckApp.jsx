@@ -14,6 +14,7 @@ import { bagCount, choiceText, dishFor, groupDishes, lineKey, needsSheet } from 
 // Menu sections that are combos or meals ("Classic Indian Combos", "Veg Mini Meal", "Pick A Meal").
 const COMBO = /combo|meal|thali/i;
 import BagSheet from "./BagSheet";
+import NotOfficial from "./layout/NotOfficial";
 import CustomiseSheet from "./menu/CustomiseSheet";
 import { BackLink, CravingGrid, SectionTitle, StallList, StallTabs, ViewSwitch, useStallSubtitle } from "./student/BrowseViews";
 import { CRAVINGS, cravingDishes, isDrink, stallStatus } from "./student/browse";
@@ -254,7 +255,9 @@ export default function MenuExperience({ stalls, demoMode }) {
       ...item,
       image: imageForDish(item),
     })),
-  })), [stalls]);
+  // Stalls taking pre-orders first (pilot launch), otherwise in their own
+  // order; sort is stable, so the server's order holds within each group.
+  })).sort((a, b) => Number(Boolean(a.listingOnly)) - Number(Boolean(b.listingOnly))), [stalls]);
 
   const activeStall = menuStalls.find((stall) => String(stall.id) === params.get("stall")) ?? null;
   const activeCraving = activeStall ? null : CRAVINGS.find((craving) => craving.id === params.get("craving")) ?? null;
@@ -490,6 +493,11 @@ export default function MenuExperience({ stalls, demoMode }) {
         <>
           {!isDesktop && <StallTabs stalls={menuStalls} activeId={activeStall.id} onOpen={openStall} />}
           {desktopHeading}
+          {activeStall.listingOnly && (
+            <p className="rounded-2xl bg-[#F0F2EF] px-4 py-3 text-sm text-ink">
+              <strong>{activeStall.name} isn&apos;t taking pre-orders on MealDeck yet.</strong> Here&apos;s the menu so you can decide; order at the counter for now.
+            </p>
+          )}
           {filterRow}
           {stallMenu.items.length > 0
             ? <MenuSection key={activeStall.id} stall={stallMenu} demoMode={demoMode} cart={cart} onAddToCart={requestAdd} onChangeQuantity={changeQuantity} expandAll={filtering} isDesktop={isDesktop} bare />
@@ -521,7 +529,7 @@ export default function MenuExperience({ stalls, demoMode }) {
             <ul className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 lg:grid-cols-[repeat(auto-fill,minmax(172px,1fr))] lg:gap-3">
               {cravingList.map(({ item, stall }) => (
                 <li key={item.id}>
-                  <MenuItemCard item={item} demoMode={demoMode} sub={stall.name} dish={dishFor(item)} quantity={bagCount(cart, dishFor(item))} onAddToCart={() => requestAddItem(item, stall)} onChangeQuantity={(delta) => changeQuantity(item.id, delta)} />
+                  <MenuItemCard item={item} demoMode={demoMode} sub={stall.name} browseOnly={stall.listingOnly} dish={dishFor(item)} quantity={bagCount(cart, dishFor(item))} onAddToCart={() => requestAddItem(item, stall)} onChangeQuantity={(delta) => changeQuantity(item.id, delta)} />
                 </li>
               ))}
             </ul>
@@ -586,7 +594,10 @@ export default function MenuExperience({ stalls, demoMode }) {
                 <SidePanel greetingText={greetingFor(user)} stalls={stalls} menuStalls={menuStalls} demoMode={demoMode} openCount={openCount} search={search} onSearch={setSearch} searchPlaceholder={searchPlaceholder} diet={diet} onDiet={setDiet} kind={kind} onKind={setKind} sort={sort} onSort={setSort} activeStallId={activeStall?.id} onOpenStall={openStall} />
               </div>
             )}
-            <div className="min-w-0 space-y-6">{content(user)}</div>
+            <div className="min-w-0 space-y-6">
+              {content(user)}
+              <NotOfficial className="pt-6 pb-2" />
+            </div>
             {isDesktop && (
               <div id="bag" tabIndex={-1} className="hidden scroll-mt-6 outline-none lg:block">
                 <div className="sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto">{bagContent(user, deletion)}</div>

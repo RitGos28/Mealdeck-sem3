@@ -22,7 +22,11 @@ public class MenuItemRequests {
         }
     }
 
-    public record UpdateStallRequest(java.time.LocalTime openTime, java.time.LocalTime closeTime, Boolean closedToday, Integer slotCapacity, Boolean ordersPaused) {
+    /** listingOnly is admin-only; the vendor endpoint refuses it. */
+    public record UpdateStallRequest(java.time.LocalTime openTime, java.time.LocalTime closeTime, Boolean closedToday, Integer slotCapacity, Boolean ordersPaused, Boolean listingOnly) {
+        public UpdateStallRequest(java.time.LocalTime openTime, java.time.LocalTime closeTime, Boolean closedToday, Integer slotCapacity, Boolean ordersPaused) {
+            this(openTime, closeTime, closedToday, slotCapacity, ordersPaused, null);
+        }
     }
 
     public record CreateStallRequest(String stallName, String vendorEmail, String vendorPassword, String vendorRealEmail) {

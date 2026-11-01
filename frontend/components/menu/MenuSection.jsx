@@ -14,7 +14,7 @@ const FOLD_OVER = 12;
 // isn't taking orders (the chip says why instead).
 export function useQueueLength(stall, demoMode) {
   const [length, setLength] = useState(null);
-  const skip = demoMode || stall.closedToday || stall.ordersPaused;
+  const skip = demoMode || stall.closedToday || stall.ordersPaused || stall.listingOnly;
   useEffect(() => {
     if (skip) return;
     let cancelled = false;
@@ -28,6 +28,7 @@ export function useQueueLength(stall, demoMode) {
 }
 
 function StallMeta({ stall, queueLength }) {
+  if (stall.listingOnly) return <span className="shrink-0 rounded-full bg-[#F0F2EF] px-2.5 py-1 text-xs font-semibold text-muted">Menu only</span>;
   if (stall.closedToday) return <span className="shrink-0 rounded-full bg-[#F0F2EF] px-2.5 py-1 text-xs font-semibold text-muted">Closed today</span>;
   if (stall.ordersPaused) return <span className="shrink-0 rounded-full bg-[#FBEDE6] px-2.5 py-1 text-xs font-semibold text-danger">Paused</span>;
   if (queueLength === null) return null;
@@ -90,6 +91,7 @@ function ItemRow({ stall, items, demoMode, cart, onAddToCart, onChangeQuantity }
             <MenuItemCard
               dish={dish}
               demoMode={demoMode}
+              browseOnly={stall.listingOnly}
               quantity={bagCount(cart, dish)}
               onAddToCart={() => onAddToCart(dish, stall)}
               onChangeQuantity={(delta) => onChangeQuantity(dish.items[0].id, delta)}

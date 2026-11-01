@@ -8,6 +8,7 @@ import StudentShell from "./StudentShell";
 import { DeleteAccountPanel } from "./AccountDeletion";
 import FeedbackLink from "../FeedbackLink";
 import { PassportCard } from "./passport/PassportViews";
+import NotOfficial from "../layout/NotOfficial";
 
 const ROLE_LABELS = { VENDOR: "Vendor", ADMIN: "Admin" };
 
@@ -120,7 +121,12 @@ export default function AccountView() {
       {(user, deletion) => {
         if (user === undefined) return <p className="py-10 text-center text-muted" role="status">Loading your account…</p>;
         if (user === null) return <RedirectToLogin router={router} />;
-        return <AccountContent user={user} router={router} deletion={deletion} />;
+        return (
+          <>
+            <AccountContent user={user} router={router} deletion={deletion} />
+            <NotOfficial className="mt-10 pb-4" />
+          </>
+        );
       }}
     </StudentShell>
   );

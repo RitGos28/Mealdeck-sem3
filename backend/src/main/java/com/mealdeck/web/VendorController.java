@@ -59,6 +59,10 @@ public class VendorController {
     @PatchMapping("/stall")
     public StallDto updateStall(Authentication authentication, @RequestBody UpdateStallRequest request) {
         Stall stall = ownStall(authentication);
+        if (request.listingOnly() != null) {
+            // Which stalls take pre-orders is decided by MealDeck, not the stall.
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only an admin can change whether a stall takes pre-orders");
+        }
         return StallDto.from(menuService.updateStall(stall.getId(), request));
     }
 
