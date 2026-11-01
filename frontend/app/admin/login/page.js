@@ -1,17 +1,12 @@
 import AuthCard from "../../../components/auth/AuthCard";
-import AuthForm from "../../../components/auth/AuthForm";
-import Field from "../../../components/auth/Field";
+import AdminLogin from "../../../components/auth/AdminLogin";
 
 export const metadata = { title: "Admin login · MealDeck" };
 
 export default function AdminLoginPage() {
   return (
-    <AuthCard title="Admin login" subtitle="Manage stalls, menus, vendors, and student accounts.">
-      <AuthForm endpoint="/api/auth/admin/login" submitLabel="Log in" redirectTo="/admin">
-        <Field label="Email" name="email" type="email" autoComplete="username" required />
-        <Field label="Password" name="password" type="password" autoComplete="current-password" required />
-      </AuthForm>
+    <AuthCard title="Admin login" subtitle="We email a one-time code to the admin's inbox. There's no admin password.">
+      <AdminLogin />
     </AuthCard>
   );
 }
-  

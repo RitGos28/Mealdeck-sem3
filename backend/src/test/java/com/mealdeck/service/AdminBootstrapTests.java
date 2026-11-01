@@ -122,4 +122,12 @@ class AdminBootstrapTests {
                 .andExpect(status().isOk());
         assertThat(mailer.sentTo("nobody@mealdeck.in")).isFalse();
     }
+
+    @Test
+    void theDemoVendorsStallIsHiddenFromStudents(@Autowired com.mealdeck.service.AdminAccountService accounts) throws Exception {
+        accounts.createStallWithVendor(new com.mealdeck.web.MenuItemRequests.CreateStallRequest("MealDeck Demo", "vendor@mealdeck.in", "vendor123", null));
+        MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).apply(SecurityMockMvcConfigurers.springSecurity()).build();
+        String body = mvc.perform(get("/api/stalls")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(body).doesNotContain("MealDeck Demo").contains("Bistro / Kathi");
+    }
 }
