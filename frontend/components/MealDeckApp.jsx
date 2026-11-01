@@ -348,11 +348,16 @@ export default function MenuExperience({ stalls, demoMode }) {
 
   // Every "add" goes through here: dishes with sizes or choices open the
   // customise sheet, everything else is added straight away.
-  function requestAdd(dish, stall) {
-    if (needsSheet(dish)) setCustomising({ dish, stall });
-    else addToCart(dish.items[0], stall);
+  // `onAdded` runs only once the dish is really in the bag (not if the
+  // customise sheet is dismissed), e.g. so the deal counts it as bagged.
+  function requestAdd(dish, stall, onAdded) {
+    if (needsSheet(dish)) setCustomising({ dish, stall, onAdded });
+    else {
+      addToCart(dish.items[0], stall);
+      onAdded?.();
+    }
   }
-  const requestAddItem = (item, stall) => requestAdd(dishFor(item), stall);
+  const requestAddItem = (item, stall, onAdded) => requestAdd(dishFor(item), stall, onAdded);
 
   // `placed=1` makes My orders show the receipt toast once.
   function handlePlaced(orderCodes) {
@@ -594,7 +599,10 @@ export default function MenuExperience({ stalls, demoMode }) {
               key={customising.dish.key}
               dish={customising.dish}
               lastLine={cartItems.filter((entry) => customising.dish.items.some((item) => item.id === entry.item.id)).at(-1)}
-              onAdd={(item, choices, quantity) => addToCart(item, customising.stall, choices, quantity)}
+              onAdd={(item, choices, quantity) => {
+                addToCart(item, customising.stall, choices, quantity);
+                customising.onAdded?.();
+              }}
               onClose={() => setCustomising(null)}
             />
           )}

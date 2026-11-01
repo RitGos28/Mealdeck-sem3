@@ -128,6 +128,17 @@ class SecurityRulesTests {
     }
 
     @Test
+    void orderChoicesArriveAsJsonAndAreChecked() throws Exception {
+        // The picks map binds from JSON; a plain dish refuses any picks.
+        Stall bistro = stall("Bistro / Kathi");
+        Long itemId = bistro.getMenuItems().getFirst().getId();
+        String body = "{\"items\":[{\"menuItemId\":" + itemId + ",\"quantity\":1,\"choices\":{\"Bread\":\"Naan\"}}],\"pickupTimes\":{\"" + bistro.getId() + "\":\"12:00\"}}";
+        mvc.perform(post("/api/orders").with(STUDENT).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("has no choices to make")));
+    }
+
+    @Test
     void vendorEndpointsActOnlyOnTheCallersOwnStall() throws Exception {
         Stall snapEats = stall("SnapEats");
         MenuItem coffee = snapEats.getMenuItems().getFirst();

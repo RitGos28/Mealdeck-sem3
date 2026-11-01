@@ -41,7 +41,7 @@ public class MenuItem {
     private String category;
 
     /** Free choices, "Name=option1|option2" per line (see MenuChoices); null when none. */
-    @Column(length = 1000)
+    @Column(length = 1500)
     private String choices;
 
     protected MenuItem() {

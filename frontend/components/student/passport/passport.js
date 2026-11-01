@@ -120,5 +120,11 @@ function suggest(orders, tried, menu, stalls) {
 // The dishes in this picked-up order that earned a new stamp: ones never
 // picked up in any earlier order.
 export function newStampsFrom(order, passport) {
-  return (order.items ?? []).filter((line) => passport.tried.get(String(line.menuItemId))?.firstOrderId === order.id);
+  // One stamp per dish, even when an order has it twice (e.g. Dry and Gravy).
+  const seen = new Set();
+  return (order.items ?? []).filter((line) => {
+    if (seen.has(line.menuItemId)) return false;
+    seen.add(line.menuItemId);
+    return passport.tried.get(String(line.menuItemId))?.firstOrderId === order.id;
+  });
 }

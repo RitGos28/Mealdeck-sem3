@@ -25,13 +25,27 @@ function write(key, value) {
   }
 }
 
+// Keeps only picks that are valid for this item's own groups, so switching
+// size (or a menu edit since) never leaves a pick the server would refuse.
+function validPicks(item, choices) {
+  const out = {};
+  for (const group of item.choices ?? []) {
+    const pick = choices?.[group.name];
+    if (pick && group.options.includes(pick)) out[group.name] = pick;
+  }
+  return out;
+}
+
+const orderable = (variant) => variant.item.available !== false;
+
 function initialPick(dish) {
   const last = read(LAST_KEY, {})[dish.key];
-  const byLabel = (label) => dish.variants.find((v) => v.label === label);
+  const live = dish.variants.filter(orderable);
+  const byLabel = (label) => live.find((v) => v.label === label);
   let variant = last && byLabel(last.label);
   if (!variant) {
     const portion = read(PORTION_KEY, null);
-    variant = (portion && dish.variants.find((v) => v.label?.toLowerCase().startsWith(portion.toLowerCase()))) || dish.variants[0];
+    variant = (portion && live.find((v) => v.label?.toLowerCase().startsWith(portion.toLowerCase()))) || live[0] || dish.variants[0];
   }
   const choices = {};
   for (const group of variant.item.choices ?? []) {
@@ -52,13 +66,18 @@ export default function CustomiseSheet({ dish, lastLine, onAdd, onClose }) {
   const item = pick.variant.item;
   const groups = item.choices ?? [];
   const missing = groups.filter((group) => !pick.choices[group.name]);
+  // "Repeat last" only when that exact size is still orderable and its
+  // remembered picks still match the dish's current choices.
+  const lastVariant = lastLine ? dish.variants.find((v) => v.item.id === lastLine.item.id) : null;
+  const lastPicks = lastVariant ? validPicks(lastVariant.item, lastLine.choices) : null;
+  const canRepeat = lastVariant && orderable(lastVariant) && (lastVariant.item.choices ?? []).every((group) => lastPicks[group.name]);
   const available = item.available !== false;
 
   function add(variant, choices, qty) {
     write(LAST_KEY, { ...read(LAST_KEY, {}), [dish.key]: { label: variant.label, choices } });
     const word = variant.label?.split(/[\s,]/)[0];
     if (dish.variants.length > 1 && word) write(PORTION_KEY, word);
-    onAdd(variant.item, choices, qty);
+    onAdd(variant.item, validPicks(variant.item, choices), qty);
     onClose();
   }
 
@@ -70,8 +89,8 @@ export default function CustomiseSheet({ dish, lastLine, onAdd, onClose }) {
           {dish.category && <p className="text-sm text-muted">{dish.category}</p>}
         </div>
 
-        {lastLine && (
-          <button type="button" onClick={() => add(dish.variants.find((v) => v.item.id === lastLine.item.id) ?? pick.variant, lastLine.choices ?? {}, 1)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-deck/30 bg-mint px-4 py-3 text-left">
+        {canRepeat && (
+          <button type="button" onClick={() => add(lastVariant, lastPicks, 1)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-deck/30 bg-mint px-4 py-3 text-left">
             <span className="min-w-0"><span className="block text-xs font-semibold tracking-[.04em] text-mint-ink uppercase">Repeat last</span><span className="block truncate text-sm font-medium">{[dish.variants.length > 1 ? dish.variants.find((v) => v.item.id === lastLine.item.id)?.label : null, ...Object.values(lastLine.choices ?? {})].filter(Boolean).join(" · ") || dish.base}</span></span>
             <span className="shrink-0 rounded-full bg-deck px-3 py-1.5 text-sm font-semibold text-white">Add again</span>
           </button>
@@ -83,7 +102,7 @@ export default function CustomiseSheet({ dish, lastLine, onAdd, onClose }) {
             {dish.variants.map((variant) => (
               <label key={variant.item.id} className={`flex min-h-12 items-center justify-between gap-3 rounded-xl px-2 ${variant.item.available === false ? "opacity-50" : "cursor-pointer hover:bg-[#F6F8F5]"}`}>
                 <span className="flex items-center gap-3">
-                  <input type="radio" name="size" checked={pick.variant === variant} disabled={variant.item.available === false} onChange={() => setPick({ variant, choices: pick.choices })} className="size-5 accent-[#163D29]" />
+                  <input type="radio" name="size" checked={pick.variant === variant} disabled={variant.item.available === false} onChange={() => setPick({ variant, choices: validPicks(variant.item, pick.choices) })} className="size-5 accent-[#163D29]" />
                   <span className="text-[15px]">{variant.label}{variant.item.available === false ? " · sold out" : ""}</span>
                 </span>
                 <span className="text-[15px] font-medium tabular-nums">₹{variant.item.price}</span>
