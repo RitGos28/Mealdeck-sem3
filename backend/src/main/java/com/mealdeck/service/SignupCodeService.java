@@ -40,12 +40,14 @@ public class SignupCodeService {
     private final StudentRepository studentRepository;
     private final CodeMailer mailer;
     private final Clock clock;
+    private final com.mealdeck.repository.AdminRepository adminRepository;
 
-    public SignupCodeService(EmailCodeRepository emailCodeRepository, StudentRepository studentRepository, CodeMailer mailer, Clock clock) {
+    public SignupCodeService(EmailCodeRepository emailCodeRepository, StudentRepository studentRepository, CodeMailer mailer, Clock clock, com.mealdeck.repository.AdminRepository adminRepository) {
         this.emailCodeRepository = emailCodeRepository;
         this.studentRepository = studentRepository;
         this.mailer = mailer;
         this.clock = clock;
+        this.adminRepository = adminRepository;
     }
 
     public static String normalize(String email) {
@@ -66,6 +68,54 @@ public class SignupCodeService {
     @Transactional
     public void requestPasswordResetCode(String rawEmail) {
         requestCode(rawEmail, Purpose.PASSWORD_RESET);
+    }
+
+    /** Admins have no password: each login is a code emailed to the
+     * admin's real inbox (Admin.realEmail), with the same limits as student
+     * codes. The same answer whether or not the login exists. If the email
+     * can't be sent, the code goes to the server log instead, so the owner
+     * (who can read that log) isn't locked out by a mail outage. */
+    @Transactional
+    public void requestAdminLoginCode(String rawEmail) {
+        String email = normalize(rawEmail);
+        if (!EmailDomains.isStaffEmail(email)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Admin logins are " + EmailDomains.STAFF_DOMAIN + " addresses");
+        }
+        Instant now = Instant.now(clock);
+        LocalDate today = LocalDate.now(clock);
+        EmailCode row = emailCodeRepository.findByEmail(email).orElseGet(() -> new EmailCode(email));
+        requireAllowedToSend(row, now, today);
+        com.mealdeck.model.Admin admin = adminRepository.findByEmail(email).orElse(null);
+        if (admin == null || admin.getRealEmail() == null || admin.getRealEmail().isBlank()) {
+            row.issue(Purpose.ADMIN_LOGIN, null, null, now, today);
+            emailCodeRepository.save(row);
+            return;
+        }
+        String code = String.format("%06d", RANDOM.nextInt(1_000_000));
+        row.issue(Purpose.ADMIN_LOGIN, hash(email, code), now.plus(CODE_TTL), now, today);
+        emailCodeRepository.save(row);
+        try {
+            mailer.sendAdminLoginCode(admin.getRealEmail(), code);
+        } catch (CodeMailer.MailFailedException e) {
+            log.warn("Couldn't email the admin login code for {}; here it is instead: {}", email, code, e);
+        }
+    }
+
+    /** A code check that keeps a wrong guess's count even though it then
+     * fails (its own transaction, not rolled back by the 400). */
+    @Transactional(noRollbackFor = ResponseStatusException.class)
+    public void consumeAdminLogin(String rawEmail, String code) {
+        consume(normalize(rawEmail), code, Purpose.ADMIN_LOGIN);
+    }
+
+    private void requireAllowedToSend(EmailCode row, Instant now, LocalDate today) {
+        if (row.getLastSentAt() != null && row.getLastSentAt().plus(RESEND_COOLDOWN).isAfter(now)) {
+            long wait = Duration.between(now, row.getLastSentAt().plus(RESEND_COOLDOWN)).toSeconds() + 1;
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Wait " + wait + " seconds before asking for another code");
+        }
+        if (today.equals(row.getSendDay()) && row.getSendsToday() >= MAX_SENDS_PER_DAY) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Too many codes today. Try again tomorrow");
+        }
     }
 
     private void requestCode(String rawEmail, Purpose purpose) {

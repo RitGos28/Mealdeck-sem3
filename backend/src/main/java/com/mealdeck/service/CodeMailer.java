@@ -10,6 +10,10 @@ public interface CodeMailer {
     /** Throws MailFailedException if the email couldn't be handed off. */
     void sendPasswordResetCode(String email, String code);
 
+    /** An admin's login code, to their real inbox. Throws MailFailedException
+     * if the email couldn't be handed off. */
+    void sendAdminLoginCode(String email, String code);
+
     class MailFailedException extends RuntimeException {
 
         public MailFailedException(String message, Throwable cause) {

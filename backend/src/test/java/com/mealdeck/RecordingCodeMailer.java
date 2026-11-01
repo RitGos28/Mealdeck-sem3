@@ -25,6 +25,11 @@ public class RecordingCodeMailer implements CodeMailer {
         sendSignupCode(email, code);
     }
 
+    @Override
+    public void sendAdminLoginCode(String email, String code) {
+        sendSignupCode(email, code);
+    }
+
     public String lastCodeFor(String email) {
         return lastCode.get(email);
     }
