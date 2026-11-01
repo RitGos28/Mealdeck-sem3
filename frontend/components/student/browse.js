@@ -19,6 +19,14 @@ export function stallStatus(stall, demoMode) {
   return { label: "Open", live: true };
 }
 
+// Whether "Deal me a dish" can deal from this stall: one taking orders, or
+// a menu-only stall that's open now (you'd order at its counter). Not a
+// stall that's closed or has paused.
+export function dealable(stall, demoMode) {
+  if (stallStatus(stall, demoMode).live) return true;
+  return Boolean(stall.listingOnly) && !stall.closedToday && !stall.ordersPaused && (demoMode || stall.open);
+}
+
 // Drinks are told apart by their category ("Cold Beverages", "Chai Nagri"),
 // or by the dish name when the stall hasn't set one.
 const DRINK_WORDS = /beverage|drink|shake|juice|coffee|chai|\btea\b|soda|lassi|mojito|smoothie|cooler|frappe|lemonade|water|cola|coke|pepsi|sprite|latte|cappuccino|espresso|milk/i;
