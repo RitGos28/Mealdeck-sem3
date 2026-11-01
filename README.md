@@ -68,7 +68,7 @@ With the `demo` profile (`./run.sh --demo`, and the tests), an empty database is
 | Admin   | admin@mealdeck.in      | admin123   |
 | Student | student@bennett.edu.in | student123 |
 
-These passwords are public, so the seeding never runs in production. A production database starts empty apart from one admin, created from `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD` in the env file (see `.env.example`); add stalls and vendors from the admin dashboard.
+These passwords are public, so the seeding never runs in production. A production database starts empty apart from one admin, created from `ADMIN_EMAIL` and `ADMIN_PASSWORD` in the env file (see `.env.example`); add stalls and vendors from the admin dashboard.
 
 ### Environment variables
 

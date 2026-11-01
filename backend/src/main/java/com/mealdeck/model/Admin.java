@@ -44,6 +44,10 @@ public class Admin {
         return passwordHash;
     }
 
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
     public String getRealEmail() {
         return realEmail;
     }
