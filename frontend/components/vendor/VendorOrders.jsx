@@ -54,7 +54,13 @@ function OrderCard({ order, onUpdated, readOnly }) {
         <StatusBadge status={order.status} />
       </div>
       <ul className="mb-3 text-sm">
-        {order.items.map((item) => <li key={item.menuItemId}>{item.quantity}× {item.menuItemName}</li>)}
+        {order.items.map((item, i) => (
+          <li key={i}>
+            {item.quantity}× {item.menuItemName}
+            {/* The student's picks, bold so the counter can't miss them. */}
+            {item.choices && <span className="block pl-5 text-[13px] font-bold text-[#163D29]">{item.choices}</span>}
+          </li>
+        ))}
       </ul>
       {order.noShowAt && <p className="mb-3 text-xs font-semibold text-[#9a4a3f]">Auto no-show at {formatInstant(order.noShowAt)} if not collected</p>}
       <div className="flex flex-wrap items-center gap-2">

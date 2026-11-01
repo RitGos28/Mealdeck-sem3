@@ -37,7 +37,7 @@ export default function Cart({ cartItems, itemCount, total, changeQuantity, onCh
         <p className="rounded-2xl bg-[#F4F6F3] px-4 py-6 text-center text-sm text-muted">Your bag is empty. Tap + on a dish to add it.</p>
       ) : (
         <div className="space-y-4">
-          {cartItems.map((entry) => <CartItem key={entry.item.id} entry={entry} changeQuantity={changeQuantity} />)}
+          {cartItems.map((entry) => <CartItem key={entry.key ?? entry.item.id} entry={entry} changeQuantity={changeQuantity} />)}
           <div className="border-t border-line pt-4">
             <div className="flex justify-between text-base font-semibold"><span>Total</span><span>₹{total}</span></div>
             <p className="mt-1 text-xs text-muted">Pay at the counter when you pick up.</p>

@@ -102,7 +102,10 @@ public class OrderService {
                 created.setCustomerEmailKey(emailKey);
                 return created;
             });
-            order.addItem(new OrderItem(order, item, line.quantity(), item.getPrice()));
+            // Free choices are checked against the dish's own options, so an
+            // order only ever carries picks the stall actually offers.
+            String choices = MenuChoices.describe(item.getChoices(), line.choices(), item.getName());
+            order.addItem(new OrderItem(order, item, line.quantity(), item.getPrice(), choices));
         }
 
         // Lock in ascending stall id, so two carts spanning the same stalls

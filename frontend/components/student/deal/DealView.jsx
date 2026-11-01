@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import MenuItemCard from "../../menu/MenuItemCard";
+import { bagCount, dishFor } from "../../../lib/menuDishes";
 import { initials } from "../OrderAgain";
 import { BackLink } from "../BrowseViews";
 import { stallStatus, stallTint } from "../browse";
@@ -276,7 +277,7 @@ function Dealing({ deal, demoMode, onBag }) {
         <RoundButton label="Undo last card" caption="Undo" small onClick={deal.undo} disabled={deal.index === 0}>{Glyph.undo}</RoundButton>
         <RoundButton label={`Skip ${current.item.name}`} caption="Skip" onClick={() => deal.decide(false)}>{Glyph.skip}</RoundButton>
         <RoundButton label={`Keep ${current.item.name}`} caption="Keep" primary onClick={() => deal.decide(true)}>{Glyph.keep}</RoundButton>
-        <RoundButton label={`Add ${current.item.name} to bag now`} caption="Bag it" small onClick={() => { onBag(current.item, current.stall); deal.decide(true); }}><span className="text-2xl leading-none">+</span></RoundButton>
+        <RoundButton label={`Add ${current.item.name} to bag now`} caption="Bag it" small onClick={() => onBag(current.item, current.stall, () => deal.decide(true))}><span className="text-2xl leading-none">+</span></RoundButton>
       </div>
       {deal.kept.length > 0 && (
         <button type="button" onClick={deal.showHand} className="mx-auto mt-4 flex h-11 items-center rounded-full px-4 text-sm font-semibold text-deck underline underline-offset-4 hover:bg-mint">See your hand ({deal.kept.length})</button>
@@ -304,7 +305,7 @@ function Hand({ deal, demoMode, cart, onAdd, onChangeQuantity, onHome }) {
           <ul>
             {items.map((item) => (
               <li key={item.id}>
-                <MenuItemCard item={item} demoMode={demoMode} sub={item.category} quantity={cart[item.id]?.quantity ?? 0} onAddToCart={() => onAdd(item, stall)} onChangeQuantity={(delta) => onChangeQuantity(item.id, delta)} />
+                <MenuItemCard item={item} dish={dishFor(item)} demoMode={demoMode} sub={item.category} quantity={bagCount(cart, dishFor(item))} onAddToCart={() => onAdd(item, stall)} onChangeQuantity={(delta) => onChangeQuantity(item.id, delta)} />
               </li>
             ))}
           </ul>

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "../layout/Header";
 import { api } from "../../lib/api";
+import { formatChoices, parseChoices } from "../../lib/menuDishes";
 
 const input = "w-full rounded-xl border border-[#e0e8dc] bg-white px-3 py-2 text-sm outline-none focus:border-[#477355] focus:ring-2 focus:ring-[#dbead6]";
 const button = "rounded-xl bg-[#173725] px-3 py-2 text-sm font-semibold text-white hover:bg-[#28543a] disabled:opacity-50";
@@ -97,8 +98,8 @@ function StallSettings({ stall, onSave }) {
 }
 
 function ItemRow({ item, onSave, onDelete }) {
-  const [name, setName] = useState(item.name); const [category, setCategory] = useState(item.category ?? ""); const [price, setPrice] = useState(item.price); const [veg, setVeg] = useState(item.veg); const [available, setAvailable] = useState(item.available);
-  return <form onSubmit={(e) => { e.preventDefault(); onSave({ name, price: Number(price), veg, available, category }); }} className="grid gap-2 rounded-xl bg-[#fafcf9] p-3 sm:grid-cols-[1fr_140px_100px_82px_100px_auto_auto]"><input className={input} value={name} onChange={(e) => setName(e.target.value)} /><input className={input} maxLength={40} placeholder="Category" value={category} onChange={(e) => setCategory(e.target.value)} /><input className={input} type="number" min="1" value={price} onChange={(e) => setPrice(e.target.value)} /><label className="flex items-center gap-1 text-sm"><input type="checkbox" checked={veg} onChange={(e) => setVeg(e.target.checked)} />Veg</label><label className="flex items-center gap-1 text-sm"><input type="checkbox" checked={available} onChange={(e) => setAvailable(e.target.checked)} />Available</label><button className={subtle}>Save</button><button type="button" className="text-sm font-semibold text-[#a34c43]" onClick={onDelete}>Delete</button></form>;
+  const [name, setName] = useState(item.name); const [category, setCategory] = useState(item.category ?? ""); const [price, setPrice] = useState(item.price); const [veg, setVeg] = useState(item.veg); const [available, setAvailable] = useState(item.available); const [choices, setChoices] = useState(formatChoices(item.choices));
+  return <form onSubmit={(e) => { e.preventDefault(); onSave({ name, price: Number(price), veg, available, category, choices: parseChoices(choices) }); }} className="grid gap-2 rounded-xl bg-[#fafcf9] p-3 sm:grid-cols-[1fr_140px_100px_82px_100px_auto_auto]"><input className={input} value={name} onChange={(e) => setName(e.target.value)} /><input className={input} maxLength={40} placeholder="Category" value={category} onChange={(e) => setCategory(e.target.value)} /><input className={input} type="number" min="1" value={price} onChange={(e) => setPrice(e.target.value)} /><label className="flex items-center gap-1 text-sm"><input type="checkbox" checked={veg} onChange={(e) => setVeg(e.target.checked)} />Veg</label><label className="flex items-center gap-1 text-sm"><input type="checkbox" checked={available} onChange={(e) => setAvailable(e.target.checked)} />Available</label><button className={subtle}>Save</button><button type="button" className="text-sm font-semibold text-[#a34c43]" onClick={onDelete}>Delete</button><input className={`${input} sm:col-span-full`} placeholder="Choices (free): Bread: Butter Naan ×1 / Butter Roti ×2; Style: Dry / Gravy" value={choices} onChange={(e) => setChoices(e.target.value)} /></form>;
 }
 
 function Vendors({ vendors, onChange }) {

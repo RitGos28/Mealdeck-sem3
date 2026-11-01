@@ -46,7 +46,7 @@ function formatDay(isoDate) {
 }
 
 function itemsSummary(items = []) {
-  return items.map((item) => `${item.quantity}× ${item.menuItemName}`).join(", ");
+  return items.map((item) => `${item.quantity}× ${item.menuItemName}${item.choices ? ` (${item.choices})` : ""}`).join(", ");
 }
 
 // A finished order, or one from an earlier day: one row, linking to its card.

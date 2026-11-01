@@ -40,6 +40,10 @@ public class MenuItem {
     @Column(length = 40)
     private String category;
 
+    /** Free choices, "Name=option1|option2" per line (see MenuChoices); null when none. */
+    @Column(length = 1500)
+    private String choices;
+
     protected MenuItem() {
     }
 
@@ -112,5 +116,13 @@ public class MenuItem {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public String getChoices() {
+        return choices;
+    }
+
+    public void setChoices(String choices) {
+        this.choices = choices;
     }
 }

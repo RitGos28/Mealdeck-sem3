@@ -9,6 +9,12 @@ import Checkout from "./checkout/Checkout";
 import StudentShell from "./student/StudentShell";
 import PickupChips from "./student/PickupChips";
 import OrderAgain from "./student/OrderAgain";
+import { bagCount, choiceText, dishFor, groupDishes, lineKey, needsSheet } from "../lib/menuDishes";
+
+// Menu sections that are combos or meals ("Classic Indian Combos", "Veg Mini Meal", "Pick A Meal").
+const COMBO = /combo|meal|thali/i;
+import BagSheet from "./BagSheet";
+import CustomiseSheet from "./menu/CustomiseSheet";
 import { BackLink, CravingGrid, SectionTitle, StallList, StallTabs, ViewSwitch, useStallSubtitle } from "./student/BrowseViews";
 import { CRAVINGS, cravingDishes, isDrink, stallStatus } from "./student/browse";
 import { DealBody, DealEntry, DealHeading, useDeal } from "./student/deal/DealView";
@@ -95,65 +101,6 @@ function greeting() {
   if (hour >= 5 && hour < 12) return "Good morning";
   if (hour >= 12 && hour < 17) return "Good afternoon";
   return "Good evening";
-}
-
-const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
-// The phone/tablet bag: a modal bottom sheet. Focus moves in on open, stays
-// inside while open (Tab wraps), and returns to the bag button on close.
-function BagSheet({ onClose, children }) {
-  const panelRef = useRef(null);
-  const onCloseRef = useRef(onClose);
-  useEffect(() => {
-    onCloseRef.current = onClose;
-  });
-
-  useEffect(() => {
-    const opener = document.activeElement;
-    const panel = panelRef.current;
-    panel?.focus();
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    function handleKeyDown(event) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onCloseRef.current();
-        return;
-      }
-      if (event.key !== "Tab" || !panel) return;
-      const focusable = [...panel.querySelectorAll(FOCUSABLE)];
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && (document.activeElement === first || document.activeElement === panel)) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    }
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = overflow;
-      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
-    };
-  }, []);
-
-  return (
-    <div className="fixed inset-0 z-30 flex items-end justify-center">
-      <div className="absolute inset-0 bg-[#0B1F14]/50" onClick={onClose} aria-hidden="true" />
-      <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Your bag" tabIndex={-1} className="relative max-h-[85vh] w-full overflow-y-auto overscroll-contain rounded-t-3xl bg-white px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-ink outline-none md:max-w-xl md:px-8">
-        <div className="sticky top-0 z-10 -mx-5 flex items-center justify-between bg-white px-5 pt-2 pb-1 md:-mx-8 md:px-8">
-          <span className="mx-auto h-1 w-10 rounded-full bg-field" aria-hidden="true" />
-          <button type="button" onClick={onClose} aria-label="Close bag" className="absolute top-1.5 right-3 flex size-11 items-center justify-center rounded-full text-2xl text-muted hover:bg-[#F4F6F3] hover:text-ink md:right-6">×</button>
-        </div>
-        <div className="pt-3">{children}</div>
-      </div>
-    </div>
-  );
 }
 
 function VegToggle({ vegOnly, onChange }) {
@@ -279,6 +226,8 @@ export default function MenuExperience({ stalls, demoMode }) {
   const [cartLoaded, setCartLoaded] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  // The dish being customised in the sheet: { dish, stall }, or null.
+  const [customising, setCustomising] = useState(null);
   const [search, setSearch] = useState("");
   const [diet, setDiet] = useState("all");
   const [sort, setSort] = useState("relevance");
@@ -310,14 +259,17 @@ export default function MenuExperience({ stalls, demoMode }) {
   const activeStall = menuStalls.find((stall) => String(stall.id) === params.get("stall")) ?? null;
   const activeCraving = activeStall ? null : CRAVINGS.find((craving) => craving.id === params.get("craving")) ?? null;
   const dealing = !activeStall && !activeCraving && params.has("deal");
-  const view = activeStall ? "stall" : activeCraving ? "craving" : dealing ? "deal" : "home";
+  const combos = !activeStall && !activeCraving && !dealing && params.has("combos");
+  const view = activeStall ? "stall" : activeCraving ? "craving" : dealing ? "deal" : combos ? "combos" : "home";
   const deal = useDeal(menuStalls, demoMode);
   const stallSubtitle = useStallSubtitle(activeStall, demoMode);
 
   // Demo data has no hours, so every sample stall counts as open.
   const openCount = menuStalls.filter((stall) => stallStatus(stall, demoMode).live).length;
 
-  const cartItems = useMemo(() => Object.values(cart), [cart]);
+  // Bags saved before choices existed were keyed by item id alone, which
+  // is still the key for a plain dish, so they load as they are.
+  const cartItems = useMemo(() => Object.entries(cart).map(([key, entry]) => ({ ...entry, key })), [cart]);
   const itemCount = cartItems.reduce((count, entry) => count + entry.quantity, 0);
   const total = cartItems.reduce((sum, entry) => sum + entry.item.price * entry.quantity, 0);
   const query = search.trim().toLowerCase();
@@ -354,6 +306,15 @@ export default function MenuExperience({ stalls, demoMode }) {
   const openStall = (id) => go(`/?stall=${id}`, { replace: view === "stall" });
   const openCraving = (id) => go(`/?craving=${id}`);
   const openDeal = () => go("/?deal=1");
+  const openCombos = () => go("/?combos=1");
+
+  // Combos & meals across open stalls: one row per dish (sizes grouped),
+  // cheapest first, filtered like the craving list.
+  const comboDishes = view === "combos"
+    ? menuStalls.filter((stall) => stallStatus(stall, demoMode).live).flatMap((stall) =>
+      groupDishes(stall.items.filter((item) => COMBO.test(item.category ?? "") && item.available && matches(item))).map((dish) => ({ dish, stall })))
+      .sort((a, b) => Math.min(...a.dish.items.map((i) => Number(i.price))) - Math.min(...b.dish.items.map((i) => Number(i.price))))
+    : [];
   function goHome() {
     if (navigated.current) {
       window.history.back();
@@ -368,17 +329,35 @@ export default function MenuExperience({ stalls, demoMode }) {
     saveHomeView(next);
   }
 
-  function addToCart(item, stall) {
+  // A bag line is a dish plus its free choices: "Veg Manchurian · Gravy"
+  // and "· Dry" are separate lines. Plain dishes keep the item id as key.
+  function addToCart(item, stall, choices = null, quantity = 1) {
+    const key = lineKey(item.id, choices, item);
     setCart((current) => ({
       ...current,
-      [item.id]: {
+      [key]: {
         item,
         stallId: stall.id,
         stallName: stall.name,
-        quantity: (current[item.id]?.quantity ?? 0) + 1,
+        choices: choices && Object.keys(choices).length ? choices : null,
+        choiceText: choiceText(item, choices),
+        quantity: (current[key]?.quantity ?? 0) + quantity,
       },
     }));
   }
+
+  // Every "add" goes through here: dishes with sizes or choices open the
+  // customise sheet, everything else is added straight away.
+  // `onAdded` runs only once the dish is really in the bag (not if the
+  // customise sheet is dismissed), e.g. so the deal counts it as bagged.
+  function requestAdd(dish, stall, onAdded) {
+    if (needsSheet(dish)) setCustomising({ dish, stall, onAdded });
+    else {
+      addToCart(dish.items[0], stall);
+      onAdded?.();
+    }
+  }
+  const requestAddItem = (item, stall, onAdded) => requestAdd(dishFor(item), stall, onAdded);
 
   // `placed=1` makes My orders show the receipt toast once.
   function handlePlaced(orderCodes) {
@@ -429,6 +408,8 @@ export default function MenuExperience({ stalls, demoMode }) {
   const searchPlaceholder = activeStall ? `Search ${activeStall.name}` : activeCraving ? `Search ${activeCraving.name.toLowerCase()}` : "Search dishes, drinks or stalls";
   const heading = activeStall
     ? { back: "All stalls", title: activeStall.name, sub: stallSubtitle }
+    : view === "combos"
+      ? { back: "Home", title: "Combos & meals", sub: comboDishes.length === 0 ? "Nothing matches right now" : `${comboDishes.length} combos at ${new Set(comboDishes.map(({ stall }) => stall.id)).size} stalls · cheapest first` }
     : activeCraving
       ? { back: "Home", title: activeCraving.name, sub: cravingList.length === 0 ? "Nothing matches right now" : `${cravingList.length} dish${cravingList.length === 1 ? "" : "es"} at ${cravingStallCount} stall${cravingStallCount === 1 ? "" : "s"} · ${sort === "price-desc" ? "priciest" : "cheapest"} first` }
       : null;
@@ -499,7 +480,7 @@ export default function MenuExperience({ stalls, demoMode }) {
         <>
           {isDesktop && <div className="max-w-md"><DealHeading deal={deal} onHome={goHome} onBand={false} /></div>}
           <div className="max-w-md lg:max-w-xl">
-            <DealBody deal={deal} demoMode={demoMode} cart={cart} onAdd={addToCart} onChangeQuantity={changeQuantity} onHome={goHome} />
+            <DealBody deal={deal} demoMode={demoMode} cart={cart} onAdd={requestAddItem} onChangeQuantity={changeQuantity} onHome={goHome} />
           </div>
         </>
       );
@@ -511,8 +492,24 @@ export default function MenuExperience({ stalls, demoMode }) {
           {desktopHeading}
           {filterRow}
           {stallMenu.items.length > 0
-            ? <MenuSection key={activeStall.id} stall={stallMenu} demoMode={demoMode} cart={cart} onAddToCart={addToCart} onChangeQuantity={changeQuantity} expandAll={filtering} isDesktop={isDesktop} bare />
+            ? <MenuSection key={activeStall.id} stall={stallMenu} demoMode={demoMode} cart={cart} onAddToCart={requestAdd} onChangeQuantity={changeQuantity} expandAll={filtering} isDesktop={isDesktop} bare />
             : noMatches(query ? `Nothing at ${activeStall.name} matches "${search.trim()}".` : "Nothing on this menu matches those filters.")}
+        </>
+      );
+    }
+    if (view === "combos") {
+      return (
+        <>
+          {desktopHeading}
+          {comboDishes.length > 0 ? (
+            <ul className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 lg:grid-cols-[repeat(auto-fill,minmax(172px,1fr))] lg:gap-3">
+              {comboDishes.map(({ dish, stall }) => (
+                <li key={`${stall.id}|${dish.key}`}>
+                  <MenuItemCard dish={dish} demoMode={demoMode} sub={`${stall.name} · ${dish.category}`} quantity={bagCount(cart, dish)} onAddToCart={() => requestAdd(dish, stall)} onChangeQuantity={(delta) => changeQuantity(dish.items[0].id, delta)} />
+                </li>
+              ))}
+            </ul>
+          ) : noMatches("No combos match those filters right now.")}
         </>
       );
     }
@@ -524,7 +521,7 @@ export default function MenuExperience({ stalls, demoMode }) {
             <ul className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 lg:grid-cols-[repeat(auto-fill,minmax(172px,1fr))] lg:gap-3">
               {cravingList.map(({ item, stall }) => (
                 <li key={item.id}>
-                  <MenuItemCard item={item} demoMode={demoMode} sub={stall.name} quantity={cart[item.id]?.quantity ?? 0} onAddToCart={() => addToCart(item, stall)} onChangeQuantity={(delta) => changeQuantity(item.id, delta)} />
+                  <MenuItemCard item={item} demoMode={demoMode} sub={stall.name} dish={dishFor(item)} quantity={bagCount(cart, dishFor(item))} onAddToCart={() => requestAddItem(item, stall)} onChangeQuantity={(delta) => changeQuantity(item.id, delta)} />
                 </li>
               ))}
             </ul>
@@ -540,7 +537,7 @@ export default function MenuExperience({ stalls, demoMode }) {
           <p className="text-sm text-muted">{dishCount} dish{dishCount === 1 ? "" : "es"} at {searchResults.length} stall{searchResults.length === 1 ? "" : "s"}</p>
           {stallMatches.length > 0 && <StallList stalls={stallMatches} demoMode={demoMode} onOpen={openStall} />}
           {searchResults.length > 0
-            ? <div>{searchResults.map((stall) => <MenuSection key={stall.id} stall={stall} demoMode={demoMode} cart={cart} onAddToCart={addToCart} onChangeQuantity={changeQuantity} expandAll isDesktop={isDesktop} />)}</div>
+            ? <div>{searchResults.map((stall) => <MenuSection key={stall.id} stall={stall} demoMode={demoMode} cart={cart} onAddToCart={requestAdd} onChangeQuantity={changeQuantity} expandAll isDesktop={isDesktop} />)}</div>
             : stallMatches.length === 0 && noMatches("Try another search, or browse every stall.")}
         </>
       );
@@ -557,7 +554,11 @@ export default function MenuExperience({ stalls, demoMode }) {
         ) : (
           <>
             <DealEntry stalls={menuStalls} demoMode={demoMode} onOpen={openDeal} />
-            <OrderAgain stalls={menuStalls} user={user} onAdd={addToCart} />
+            <button type="button" onClick={openCombos} className="flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl border border-line px-4 py-3 text-left hover:bg-[#F6F8F5]">
+              <span><span className="block font-serif text-lg leading-tight">Combos &amp; meals</span><span className="block text-[13px] text-muted">Mini meals, thalis and combos from every stall, cheapest first</span></span>
+              <span aria-hidden="true" className="text-xl text-muted">›</span>
+            </button>
+            <OrderAgain stalls={menuStalls} user={user} onAdd={requestAddItem} />
             <section>
               <SectionTitle aside={`${menuStalls.length} on campus`}>Stalls</SectionTitle>
               {menuStalls.length > 0 ? <StallList stalls={menuStalls} demoMode={demoMode} onOpen={openStall} /> : <p className="py-10 text-center text-muted">No stalls yet.</p>}
@@ -593,6 +594,18 @@ export default function MenuExperience({ stalls, demoMode }) {
             )}
           </div>
           {!isDesktop && sheetOpen && <BagSheet onClose={() => setSheetOpen(false)}>{bagContent(user, deletion)}</BagSheet>}
+          {customising && (
+            <CustomiseSheet
+              key={customising.dish.key}
+              dish={customising.dish}
+              lastLine={cartItems.filter((entry) => customising.dish.items.some((item) => item.id === entry.item.id)).at(-1)}
+              onAdd={(item, choices, quantity) => {
+                addToCart(item, customising.stall, choices, quantity);
+                customising.onAdded?.();
+              }}
+              onClose={() => setCustomising(null)}
+            />
+          )}
         </>
       )}
     </StudentShell>

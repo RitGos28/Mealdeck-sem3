@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../lib/api";
 import MenuItemCard from "./MenuItemCard";
+import { bagCount, groupDishes } from "../../lib/menuDishes";
 
 // Phones start a big menu with its categories folded, so a stall with 150
 // dishes is a short list of headings rather than a very long scroll.
@@ -84,14 +85,14 @@ function ItemRow({ stall, items, demoMode, cart, onAddToCart, onChangeQuantity }
     <div className="relative">
       <Arrow direction={-1} onClick={() => scrollBy(-1)} hidden={edges.start} />
       <ul ref={rowRef} className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 lg:-mx-1 lg:flex lg:snap-x lg:gap-3 lg:overflow-x-auto lg:scroll-smooth lg:px-1 lg:pt-1 lg:pb-3 lg:[scrollbar-width:thin]">
-        {items.map((item) => (
-          <li key={item.id} className="lg:w-[172px] lg:shrink-0 lg:snap-start">
+        {groupDishes(items).map((dish) => (
+          <li key={dish.key} className="lg:w-[172px] lg:shrink-0 lg:snap-start">
             <MenuItemCard
-              item={item}
+              dish={dish}
               demoMode={demoMode}
-              quantity={cart[item.id]?.quantity ?? 0}
-              onAddToCart={() => onAddToCart(item, stall)}
-              onChangeQuantity={(delta) => onChangeQuantity(item.id, delta)}
+              quantity={bagCount(cart, dish)}
+              onAddToCart={() => onAddToCart(dish, stall)}
+              onChangeQuantity={(delta) => onChangeQuantity(dish.items[0].id, delta)}
             />
           </li>
         ))}
@@ -146,10 +147,10 @@ export default function MenuSection({ stall, demoMode, cart, onAddToCart, onChan
             {foldable ? (
               <button type="button" onClick={() => toggleGroup(group.name)} aria-expanded={groupOpen} className="flex min-h-12 w-full items-center justify-between gap-3 border-b border-[#EEF1ED] text-left">
                 <span className="text-[15px] font-semibold">{label}</span>
-                <span className="flex items-center gap-2 text-[13px] text-muted">{group.items.length}<Chevron open={groupOpen} /></span>
+                <span className="flex items-center gap-2 text-[13px] text-muted">{groupDishes(group.items).length}<Chevron open={groupOpen} /></span>
               </button>
             ) : (
-              <h3 className="mt-3 mb-1 text-xs font-semibold tracking-[.04em] text-muted uppercase lg:mt-0 lg:mb-1.5 lg:text-[11px]">{label} <span className="font-normal normal-case">· {group.items.length}</span></h3>
+              <h3 className="mt-3 mb-1 text-xs font-semibold tracking-[.04em] text-muted uppercase lg:mt-0 lg:mb-1.5 lg:text-[11px]">{label} <span className="font-normal normal-case">· {groupDishes(group.items).length}</span></h3>
             )}
             {groupOpen && <ItemRow stall={stall} items={group.items} demoMode={demoMode} cart={cart} onAddToCart={onAddToCart} onChangeQuantity={onChangeQuantity} />}
           </div>
