@@ -4,6 +4,11 @@ package com.mealdeck.web;
  * since each is a one-off with no behaviour of its own. */
 public class AuthDtos {
 
+    /** Admins send `code` (emailed by /api/auth/admin/login/code) instead
+     * of a password; a password only works for admins in the demo profile. */
+    public record AdminLoginRequest(String email, String password, String code) {
+    }
+
     public record LoginRequest(String email, String password) {
     }
 

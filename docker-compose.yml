@@ -48,7 +48,6 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       MAIL_FROM: ${MAIL_FROM:-MealDeck <noreply@mealdeck.in>}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       ADMIN_REAL_EMAIL: ${ADMIN_REAL_EMAIL:-}
       MEALDECK_UPLOAD_DIR: /app/uploads
       # One JSON object per log line (Elastic Common Schema), so logs can be

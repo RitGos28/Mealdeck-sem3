@@ -11,23 +11,22 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/** The admin login comes from the environment (ADMIN_EMAIL, ADMIN_PASSWORD,
- * optional ADMIN_REAL_EMAIL). On every start that admin is created, or
- * its password set to match, so the env file is the one place to change
- * it. Then, outside the demo profile, any admin still using the public
- * demo password (admin123, from DemoDataSeeder) is removed: production
- * must never keep it, and it's only removed once the env admin exists. */
+/** The admin login comes from the environment: ADMIN_EMAIL (the login,
+ * @mealdeck.in) and ADMIN_REAL_EMAIL (the inbox its login codes go to).
+ * Admins have no password: each login is an emailed code (AuthController).
+ * On every start that admin is created or updated to match, with a random
+ * password nobody knows. Then, outside the demo profile, any admin still
+ * on the public demo password (admin123, from DemoDataSeeder) is removed;
+ * only once the env admin exists, so there's always a way in. */
 @Component
 public class AdminBootstrap implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(AdminBootstrap.class);
-    static final int MIN_PASSWORD_LENGTH = 12;
     static final String PUBLIC_DEMO_PASSWORD = "admin123";
 
     private final AdminRepository adminRepository;
     private final PasswordEncoder passwordEncoder;
     private final String email;
-    private final String password;
     private final String realEmail;
     private final boolean demoProfile;
 
@@ -35,13 +34,11 @@ public class AdminBootstrap implements CommandLineRunner {
             AdminRepository adminRepository,
             PasswordEncoder passwordEncoder,
             @Value("${mealdeck.admin.email:}") String email,
-            @Value("${mealdeck.admin.password:}") String password,
             @Value("${mealdeck.admin.real-email:}") String realEmail,
             @Value("#{environment.matchesProfiles('demo')}") boolean demoProfile) {
         this.adminRepository = adminRepository;
         this.passwordEncoder = passwordEncoder;
         this.email = email.strip().toLowerCase();
-        this.password = password;
         this.realEmail = realEmail.strip();
         this.demoProfile = demoProfile;
     }
@@ -49,25 +46,22 @@ public class AdminBootstrap implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        if (email.isEmpty() || password.isEmpty()) {
-            if (!demoProfile) log.warn("ADMIN_EMAIL / ADMIN_PASSWORD aren't set, so the admin login isn't managed from the environment.");
+        if (email.isEmpty() || realEmail.isEmpty()) {
+            if (!demoProfile) log.warn("ADMIN_EMAIL / ADMIN_REAL_EMAIL aren't set, so there's no admin login from the environment.");
             return;
         }
         if (!email.endsWith(EmailDomains.STAFF_DOMAIN)) {
             log.error("ADMIN_EMAIL must end with {}; admin login left unchanged.", EmailDomains.STAFF_DOMAIN);
             return;
         }
-        if (password.length() < MIN_PASSWORD_LENGTH) {
-            log.error("ADMIN_PASSWORD must be at least {} characters; admin login left unchanged.", MIN_PASSWORD_LENGTH);
-            return;
-        }
         Admin admin = adminRepository.findByEmail(email).orElse(null);
         if (admin == null) {
-            adminRepository.save(new Admin(email, passwordEncoder.encode(password), realEmail.isEmpty() ? null : realEmail));
-            log.info("Created the admin {} from the environment.", email);
-        } else if (!passwordEncoder.matches(password, admin.getPasswordHash())) {
-            admin.setPasswordHash(passwordEncoder.encode(password));
-            log.info("Set the password of {} from the environment.", email);
+            admin = adminRepository.save(new Admin(email, unusablePassword(), realEmail));
+            log.info("Created the admin {} from the environment; login codes go to its real inbox.", email);
+        } else {
+            // No password works for it any more (admin123 included): codes only.
+            if (!demoProfile) admin.setPasswordHash(unusablePassword());
+            admin.setRealEmail(realEmail);
         }
         if (!demoProfile) {
             List<Admin> leftovers = adminRepository.findAll().stream()
@@ -77,5 +71,11 @@ public class AdminBootstrap implements CommandLineRunner {
             leftovers.forEach(other -> log.warn("Removed the admin {}: it still had the public demo password.", other.getEmail()));
             adminRepository.deleteAll(leftovers);
         }
+    }
+
+    private String unusablePassword() {
+        byte[] random = new byte[32];
+        new java.security.SecureRandom().nextBytes(random);
+        return passwordEncoder.encode(java.util.HexFormat.of().formatHex(random));
     }
 }

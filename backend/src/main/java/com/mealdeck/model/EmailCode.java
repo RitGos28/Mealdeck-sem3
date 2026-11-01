@@ -20,7 +20,7 @@ import java.time.LocalDate;
 public class EmailCode {
 
     /** What a code was sent for; a code only works for that. */
-    public enum Purpose { SIGNUP, PASSWORD_RESET }
+    public enum Purpose { SIGNUP, PASSWORD_RESET, ADMIN_LOGIN }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

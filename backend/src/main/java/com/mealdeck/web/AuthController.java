@@ -39,7 +39,14 @@ public class AuthController {
     private final SignupCodeService signupCodeService;
     private final SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
 
-    public AuthController(AuthenticationManager authenticationManager, VendorRepository vendorRepository, StudentService studentService, SignupCodeService signupCodeService) {
+    private final org.springframework.security.core.userdetails.UserDetailsService userDetailsService;
+    private final boolean adminPasswordLogin;
+
+    public AuthController(AuthenticationManager authenticationManager, VendorRepository vendorRepository, StudentService studentService, SignupCodeService signupCodeService,
+            org.springframework.security.core.userdetails.UserDetailsService userDetailsService,
+            @org.springframework.beans.factory.annotation.Value("${mealdeck.admin.password-login:false}") boolean adminPasswordLogin) {
+        this.userDetailsService = userDetailsService;
+        this.adminPasswordLogin = adminPasswordLogin;
         this.authenticationManager = authenticationManager;
         this.vendorRepository = vendorRepository;
         this.studentService = studentService;
@@ -51,9 +58,35 @@ public class AuthController {
         return login(request, "ROLE_VENDOR", httpRequest, httpResponse);
     }
 
+    /** Admin login, step 1: emails a 6-digit code to the admin's real inbox. */
+    @PostMapping("/admin/login/code")
+    public MessageResponse requestAdminLoginCode(@RequestBody SignupCodeRequest request) {
+        signupCodeService.requestAdminLoginCode(request.email());
+        return new MessageResponse("If that's an admin login, we've emailed its inbox a 6-digit code. It expires in "
+                + SignupCodeService.CODE_TTL.toMinutes() + " minutes.");
+    }
+
+    /** Step 2: the emailed code logs the admin in. Admins have no usable
+     * password outside the demo profile (local runs and tests), where the
+     * public demo password still works. */
     @PostMapping("/admin/login")
-    public MeResponse adminLogin(@RequestBody LoginRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
-        return login(request, "ROLE_ADMIN", httpRequest, httpResponse);
+    public MeResponse adminLogin(@RequestBody AuthDtos.AdminLoginRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+        if (request.code() == null || request.code().isBlank()) {
+            if (!adminPasswordLogin) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Admins log in with an emailed code");
+            }
+            return login(new LoginRequest(request.email(), request.password()), "ROLE_ADMIN", httpRequest, httpResponse);
+        }
+        signupCodeService.consumeAdminLogin(request.email(), request.code());
+        org.springframework.security.core.userdetails.UserDetails user = userDetailsService.loadUserByUsername(SignupCodeService.normalize(request.email()));
+        if (user.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "That code isn't right");
+        }
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(user, null, user.getAuthorities()));
+        SecurityContextHolder.setContext(context);
+        securityContextRepository.saveContext(context, httpRequest, httpResponse);
+        return me();
     }
 
     /** Step 1 of signup: checks the address is @bennett.edu.in, then emails

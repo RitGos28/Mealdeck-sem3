@@ -53,7 +53,12 @@ public class ResendCodeMailer implements CodeMailer {
         send(email, code, "password reset");
     }
 
-    /** kind: "sign-up" or "password reset", as it reads in the email. */
+    @Override
+    public void sendAdminLoginCode(String email, String code) {
+        send(email, code, "admin login");
+    }
+
+    /** kind: "sign-up", "password reset" or "admin login", as it reads in the email. */
     private void send(String email, String code, String kind) {
         if (!isConfigured()) {
             log.info("{} code for {}: {} (not emailed, RESEND_API_KEY unset)", kind, email, code);
