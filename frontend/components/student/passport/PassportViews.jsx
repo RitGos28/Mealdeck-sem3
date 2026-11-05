@@ -79,7 +79,7 @@ export function PassportCard() {
           ))}
         </span>
       ) : (
-        <span className="mt-3 block text-[13px] text-mint-ink">Pick up your first order to get your first stamp.</span>
+        <span className="mt-3 block text-[13px] text-mint-ink">{passport.ordersOpen ? "Pick up your first order to get your first stamp." : "Stamps start once a stall takes pre-orders on MealDeck."}</span>
       )}
       {next && <span className="mt-3 block text-[13px] text-[#3E5A48]">Next to try: <strong className="font-semibold">{next.item.name}</strong> at {next.stall.name} · ₹{next.item.price}</span>}
     </Link>

@@ -70,12 +70,12 @@ export default function PassportPage({ stallId }) {
       {(user) => {
         if (user === null) return <RedirectToLogin />;
         if (passport?.error) return <p role="alert" className="rounded-2xl bg-[#fbe9e7] px-4 py-3 text-sm text-danger">Couldn&apos;t load your passport. Refresh to try again.</p>;
-        if (!ready || user === undefined) return <p role="status" className="py-10 text-center text-muted">Loading your passport…</p>;
+        if (!ready || user === undefined) return <div role="status" className="mx-auto max-w-3xl space-y-4 py-4"><span className="sr-only">Loading your passport…</span><div className="h-24 animate-pulse rounded-2xl bg-[#F1F4F0]" />{[0, 1, 2].map((row) => <div key={row} className="h-16 animate-pulse rounded-2xl bg-[#F1F4F0]" />)}</div>;
         if (stallId && !entry) return <p className="py-10 text-center text-muted">That stall isn&apos;t on campus any more. <Link href="/account/passport" className="font-semibold text-deck underline">Back to your passport</Link></p>;
         return (
           <div className="mx-auto max-w-3xl">
             {entry ? <StallStamps entry={entry} /> : <PassportHome passport={passport} />}
-            <p className="mt-6 text-[13px] text-muted">A dish gets its stamp when the stall marks your order picked up.</p>
+            <p className="mt-6 text-[13px] text-muted">{passport.ordersOpen ? "A dish gets its stamp when the stall marks your order picked up." : "No stall takes pre-orders on MealDeck yet, so nothing can be stamped for now. A dish will get its stamp when a stall marks your order picked up."}</p>
           </div>
         );
       }}

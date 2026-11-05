@@ -30,7 +30,7 @@ const dmSerif = localFont({
 
 export const metadata = {
   title: "MealDeck",
-  description: "Pre-order from campus food stalls and skip the queue. Pay at the counter when you pick up.",
+  description: "Every campus food stall's menu and prices in one place. Pre-ordering opens stall by stall; you pay at the counter.",
   applicationName: "MealDeck",
   appleWebApp: { capable: true, title: "MealDeck", statusBarStyle: "black-translucent" },
 };
