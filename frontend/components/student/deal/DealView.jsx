@@ -264,9 +264,12 @@ function Dealing({ deal, demoMode, onBag }) {
 
   useEffect(() => {
     function onKey(event) {
-      if (event.target.closest?.("input, textarea, select")) return;
-      if (event.key === "ArrowRight") deal.decide(true);
-      if (event.key === "ArrowLeft") deal.decide(false);
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      // Not while typing, and not while a sheet (a dish's detail) is open.
+      if (event.target.closest?.("input, textarea, select") || document.querySelector('[role="dialog"]')) return;
+      if (event.key === "ArrowRight") { event.preventDefault(); deal.decide(true); }
+      else if (event.key === "ArrowLeft") { event.preventDefault(); deal.decide(false); }
+      else if ((event.key === "ArrowUp" || event.key === "Backspace") && deal.index > 0) { event.preventDefault(); deal.undo(); }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -290,6 +293,7 @@ function Dealing({ deal, demoMode, onBag }) {
           ? <span className="flex w-16 flex-col items-center gap-1 pt-1 text-center text-[11px] leading-tight text-muted">At the counter</span>
           : <RoundButton label={`Add ${current.item.name} to bag now`} caption="Bag it" small onClick={() => onBag(current.item, current.stall, () => deal.decide(true))}><span className="text-2xl leading-none">+</span></RoundButton>}
       </div>
+      <p className="mt-3 hidden text-center text-xs text-muted lg:block">Keyboard: ← skip · → keep · ↑ undo</p>
       {deal.kept.length > 0 && (
         <button type="button" onClick={deal.showHand} className="mx-auto mt-4 flex h-11 items-center rounded-full px-4 text-sm font-semibold text-deck underline underline-offset-4 hover:bg-mint">See your hand ({deal.kept.length})</button>
       )}

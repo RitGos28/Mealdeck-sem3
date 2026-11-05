@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import ArrowGroup from "../ArrowGroup";
 import { useCurrentUser } from "../../lib/useCurrentUser";
 import { useAccountDeletion } from "../../lib/useAccountDeletion";
 import { DeletionWarnings } from "./AccountDeletion";
@@ -40,17 +41,18 @@ export default function StudentShell({ active, band, bandAside, bag, wide = fals
 
   return (
     <div className="student-shell flex min-h-screen flex-col bg-deck">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-lg focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:text-deck">Skip to content</a>
       <header className="text-white">
         <div className={`mx-auto ${container} px-5 pt-4 pb-6 sm:px-8 lg:pt-3 ${band ? "lg:pb-6" : "lg:pb-8"}`}>
           <div className="flex min-h-11 items-center justify-between gap-3">
             <Link href="/" className="font-serif text-2xl lg:text-[22px]">MealDeck</Link>
             <div className="flex items-center gap-2">
               {bandAside}
-              <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
+              <ArrowGroup as="nav" itemSelector="a" aria-label="Main" className="hidden items-center gap-1 lg:flex">
                 {TABS.map((tab) => (
                   <Link key={tab.id} href={tabHref(tab, user)} aria-current={active === tab.id ? "page" : undefined} className={`rounded-full px-3.5 py-2 text-[13px] font-semibold ${active === tab.id ? "bg-white/15 text-white" : "text-on-deck hover:bg-white/10 hover:text-white"}`}>{tab.label}</Link>
                 ))}
-              </nav>
+              </ArrowGroup>
               {bag && (
                 <button type="button" onClick={bag.onOpen} className="hidden h-10 items-center gap-2 rounded-full bg-white px-3.5 text-[13px] font-semibold text-deck hover:bg-mint lg:flex" aria-label={`Bag, ${bag.count} item${bag.count === 1 ? "" : "s"}, ₹${bag.total}`}>
                   <BagIcon size={20} />{bag.count > 0 ? <>{bag.count} · ₹{bag.total}</> : "Bag"}
@@ -64,7 +66,7 @@ export default function StudentShell({ active, band, bandAside, bag, wide = fals
 
       <DeletionWarnings deletion={deletion} />
 
-      <main className="flex-1 rounded-t-3xl bg-white text-ink">
+      <main id="main-content" tabIndex={-1} className="flex-1 rounded-t-3xl bg-white text-ink focus-visible:outline-none">
         <div className={`mx-auto ${container} px-5 pt-6 pb-32 sm:px-8 lg:pt-5 lg:pb-16`}>
           {typeof children === "function" ? children(user, deletion) : children}
         </div>
