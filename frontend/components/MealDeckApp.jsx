@@ -9,6 +9,7 @@ import Checkout from "./checkout/Checkout";
 import StudentShell from "./student/StudentShell";
 import PickupChips from "./student/PickupChips";
 import OrderAgain from "./student/OrderAgain";
+import MessCard from "./student/mess/MessCard";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { bagCount, choiceText, dishFor, groupDishes, lineKey, needsSheet } from "../lib/menuDishes";
 
@@ -581,6 +582,7 @@ export default function MenuExperience({ stalls, demoMode }) {
               <span><span className="block font-serif text-lg leading-tight">Combos &amp; meals</span><span className="block text-[13px] text-muted">Mini meals, thalis and combos from every stall, cheapest first</span></span>
               <span aria-hidden="true" className="text-xl text-muted">›</span>
             </button>
+            <MessCard />
             <OrderAgain stalls={menuStalls} user={user} onAdd={requestAddItem} />
             <section>
               <SectionTitle aside={`${menuStalls.length} on campus`}>Stalls</SectionTitle>

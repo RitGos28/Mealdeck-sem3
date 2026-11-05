@@ -7,6 +7,7 @@ import { DeletionWarnings } from "./AccountDeletion";
 
 const TABS = [
   { id: "menu", label: "Menu", href: "/", icon: <path d="M4 6h16M4 12h16M4 18h10" /> },
+  { id: "mess", label: "Mess", href: "/mess", icon: <><path d="M4 11h16" /><path d="M6 11a6 6 0 0 0 12 0" /><path d="M9 5c0 1.5 1.5 1.5 1.5 3M13.5 5c0 1.5 1.5 1.5 1.5 3" /></> },
   { id: "orders", label: "My orders", href: "/orders", icon: <path d="M7 3h10v18l-5-3-5 3z" /> },
   { id: "account", label: "Account", href: "/account", icon: <><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" /></> },
 ];
@@ -21,7 +22,7 @@ export function BagIcon({ size = 24 }) {
 
 // My orders and Account need a login; send logged-out visitors there first.
 function tabHref(tab, user) {
-  return tab.id !== "menu" && user === null ? `/login?next=${tab.href}` : tab.href;
+  return tab.id !== "menu" && tab.id !== "mess" && user === null ? `/login?next=${tab.href}` : tab.href;
 }
 
 // The student app's frame: a deep-green band (logo, page heading, controls)
@@ -79,7 +80,7 @@ export default function StudentShell({ active, band, bandAside, bag, wide = fals
         </button>
       )}
 
-      <nav aria-label="Main" className={`fixed inset-x-0 bottom-0 z-20 grid-cols-3 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden ${focus ? "hidden" : "grid"}`}>
+      <nav aria-label="Main" className={`fixed inset-x-0 bottom-0 z-20 grid-cols-4 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden ${focus ? "hidden" : "grid"}`}>
         {TABS.map((tab) => (
           <Link key={tab.id} href={tabHref(tab, user)} aria-current={active === tab.id ? "page" : undefined} className={`flex h-16 flex-col items-center justify-center gap-1 text-xs ${active === tab.id ? "font-semibold text-deck" : "font-medium text-muted hover:text-ink"}`}>
             <Icon>{tab.icon}</Icon>{tab.label}
