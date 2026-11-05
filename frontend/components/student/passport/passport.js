@@ -17,7 +17,7 @@ function byNewest(a, b) {
 }
 
 // orders: GET /api/orders (the student's own). stalls: GET /api/stalls.
-export function buildPassport(orders, stalls) {
+export function buildPassport(orders, stalls, { vegOnly = false } = {}) {
   const menu = new Map();
   for (const stall of stalls) for (const item of stall.items) menu.set(String(item.id), { item, stall });
 
@@ -74,7 +74,7 @@ export function buildPassport(orders, stalls) {
     stallsStamped: perStall.filter((entry) => entry.tried > 0).length,
     stamps,
     newThisMonth,
-    suggestions: suggest(orders, tried, menu, stalls),
+    suggestions: suggest(orders, tried, menu, stalls, vegOnly),
   };
 }
 
@@ -82,15 +82,18 @@ export function buildPassport(orders, stalls) {
 // usual is the dish they've ordered most (any status, it's about taste);
 // suggestions come from the same stall and section first, closest in price,
 // then a first dish at a stall they've never been stamped at.
-function suggest(orders, tried, menu, stalls) {
+function suggest(orders, tried, menu, stalls, vegOnly) {
   const counts = new Map();
   for (const order of orders) {
     if (order.status === "CANCELLED") continue;
     for (const line of order.items ?? []) counts.set(String(line.menuItemId), (counts.get(String(line.menuItemId)) ?? 0) + line.quantity);
   }
-  const usualKey = [...counts.entries()].filter(([key]) => menu.has(key)).sort((a, b) => b[1] - a[1])[0]?.[0];
+  // Someone who only eats veg isn't nudged towards non-veg, not even by an
+  // order they once placed for a friend.
+  const allowed = (item) => !vegOnly || item.veg;
+  const usualKey = [...counts.entries()].filter(([key]) => menu.has(key) && allowed(menu.get(key).item)).sort((a, b) => b[1] - a[1])[0]?.[0];
   const usual = usualKey ? menu.get(usualKey) : null;
-  const orderable = (stall, item) => item.available && !stall.closedToday && !stall.ordersPaused && !stall.listingOnly && !tried.has(String(item.id));
+  const orderable = (stall, item) => allowed(item) && item.available && !stall.closedToday && !stall.ordersPaused && !stall.listingOnly && !tried.has(String(item.id));
   const picks = [];
   const add = (stall, item, why) => {
     if (picks.length < 3 && !picks.some((pick) => pick.item.id === item.id)) picks.push({ stall, item, why });

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import NonVegNotice from "./NonVegNotice";
 import CartItem from "./CartItem";
 
 const primaryButton = "mt-4 flex h-12 w-full items-center justify-center gap-1.5 rounded-full bg-deck text-[15px] font-semibold text-white transition-colors hover:bg-deck-hover disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-deck";
@@ -41,6 +42,7 @@ export default function Cart({ cartItems, itemCount, total, changeQuantity, onCh
           <div className="border-t border-line pt-4">
             <div className="flex justify-between text-base font-semibold"><span>Total</span><span>₹{total}</span></div>
             <p className="mt-1 text-xs text-muted">Pay at the counter when you pick up.</p>
+            <NonVegNotice user={user} cartItems={cartItems} className="mt-3" />
             <CheckoutButton user={user} demoMode={demoMode} onCheckout={onCheckout} orderingBlocked={orderingBlocked} />
           </div>
         </div>

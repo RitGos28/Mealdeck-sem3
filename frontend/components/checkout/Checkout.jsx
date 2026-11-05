@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { api, formatTime, toSlotValue } from "../../lib/api";
 import { LiveIndicator, useLiveTopic } from "../../lib/liveQueue";
 import { readPreferredPickup } from "../student/PickupChips";
+import NonVegNotice from "../cart/NonVegNotice";
 
 // The optional "Hostel + room" is remembered on this device, so it's
 // there next time. Blocked or unavailable storage just means no memory.
@@ -256,6 +257,8 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced, lat
         <p className="text-sm text-muted">
           Ordering as <span className="font-semibold text-ink">{user.email}</span>. The stall sees your name and your phone number, or your email if you didn&apos;t add one, and the hostel and room if you fill it in.
         </p>
+
+        <NonVegNotice user={user} cartItems={cartItems} />
 
         {error && <p className="rounded-xl bg-[#FBEDE6] px-3 py-2.5 text-sm text-danger" role="alert">{error}</p>}
 
