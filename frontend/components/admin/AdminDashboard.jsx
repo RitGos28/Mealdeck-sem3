@@ -6,6 +6,7 @@ import Header from "../layout/Header";
 import PitchView from "./PitchView";
 import ActivityView from "./ActivityView";
 import MessAdmin from "./MessAdmin";
+import PreorderDemand from "./PreorderDemand";
 import { api } from "../../lib/api";
 import { formatChoices, parseChoices } from "../../lib/menuDishes";
 
@@ -51,7 +52,7 @@ export default function AdminDashboard() {
     <div className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[#5d8764]">Administration</p><h1 className="font-display text-3xl font-bold tracking-tight">MealDeck control room</h1><p className="mt-1 text-sm text-gray-500">Manage the people and menu behind today&apos;s service.</p></div><button className={subtle} onClick={refresh} disabled={loading}>{loading ? "Refreshing…" : "Refresh data"}</button></div>
     <Notice error={error} />
     <nav className="mb-7 flex flex-wrap gap-2" aria-label="Admin sections">{tabs.map(([id, label]) => <button key={id} onClick={() => setTab(id)} className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === id ? "bg-[#173725] text-white" : "bg-white text-[#477355] ring-1 ring-[#dce6d8] hover:bg-[#f3f7f1]"}`}>{label}</button>)}</nav>
-    {tab === "overview" && <PitchView key={loading ? "loading" : "ready"} />}
+    {tab === "overview" && <><PitchView key={loading ? "loading" : "ready"} /><PreorderDemand /></>}
     {!loading && tab === "stalls" && <Stalls stalls={data.stalls} vendors={data.vendors} onChange={refresh} />}
     {!loading && tab === "vendors" && <Vendors vendors={data.vendors} onChange={refresh} />}
     {!loading && tab === "students" && <Students students={data.students} onChange={refresh} />}

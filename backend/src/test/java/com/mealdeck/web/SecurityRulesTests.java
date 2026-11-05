@@ -4,6 +4,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -269,5 +270,22 @@ class SecurityRulesTests {
         mvc.perform(get("/api/admin/mess").with(STUDENT)).andExpect(status().isForbidden());
         mvc.perform(get("/api/admin/mess").with(VENDOR)).andExpect(status().isForbidden());
         mvc.perform(get("/api/admin/mess").with(ADMIN)).andExpect(status().isOk());
+    }
+
+    @Test
+    void preorderRequestsAreForStudentsAndTheCountsForAdmins() throws Exception {
+        Long stallId = stall("Bistro / Kathi").getId();
+
+        mvc.perform(get("/api/preorder-requests")).andExpect(status().isForbidden());
+        mvc.perform(get("/api/preorder-requests").with(VENDOR)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/preorder-requests").with(STUDENT)).andExpect(status().isOk());
+        mvc.perform(put("/api/preorder-requests/" + stallId)).andExpect(status().isForbidden());
+        mvc.perform(put("/api/preorder-requests/" + stallId).with(ADMIN)).andExpect(status().isForbidden());
+        // A student gets past security; the demo Bistro takes orders, so the service refuses it.
+        mvc.perform(put("/api/preorder-requests/" + stallId).with(STUDENT)).andExpect(status().isConflict());
+
+        mvc.perform(get("/api/admin/preorder-requests")).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/preorder-requests").with(STUDENT)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/preorder-requests").with(ADMIN)).andExpect(status().isOk());
     }
 }

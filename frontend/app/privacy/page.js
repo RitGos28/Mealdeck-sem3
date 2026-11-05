@@ -33,6 +33,7 @@ export default function PrivacyPage() {
             <li><span className="font-semibold">Your password</span>, stored only as a one-way hash. Nobody, including us, can read it.</li>
             <li><span className="font-semibold">Your orders</span>: the stall, items, prices, pickup time and status.</li>
             <li><span className="font-semibold">Out-of-stock reports</span> you make, so one student can&apos;t hide an item on their own.</li>
+            <li><span className="font-semibold">&ldquo;Want to pre-order here?&rdquo; taps</span>: which menu-only stalls you said you would pre-order at. They are counted per stall and shown to admins, to show a stall how many students asked. Tap again to take one back; they are removed if you delete your account.</li>
             <li><span className="font-semibold">Mess menus you add, and &ldquo;this isn&apos;t correct&rdquo; flags</span> on the Mess today page. Other students see a menu as added by &ldquo;a student&rdquo;, never your name. Your flags are removed at the end of the day, and a menu you added stays for everyone without your number if you delete your account.</li>
             <li><span className="font-semibold">Your &ldquo;I only eat veg&rdquo; setting</span>, if you turn it on in Account. It only changes what the menu, Deal me a dish and your passport suggestions show first; you can still order anything.</li>
           </ul>

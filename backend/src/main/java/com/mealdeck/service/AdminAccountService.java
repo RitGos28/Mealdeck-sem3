@@ -29,9 +29,12 @@ public class AdminAccountService {
     private final ReportRepository reportRepository;
     private final OrderRepository orderRepository;
     private final PasswordEncoder passwordEncoder;
+    private final com.mealdeck.repository.PreorderRequestRepository preorderRequestRepository;
 
     public AdminAccountService(StallRepository stallRepository, VendorRepository vendorRepository, MenuItemRepository menuItemRepository,
-            ReportRepository reportRepository, OrderRepository orderRepository, PasswordEncoder passwordEncoder) {
+            ReportRepository reportRepository, OrderRepository orderRepository, PasswordEncoder passwordEncoder,
+            com.mealdeck.repository.PreorderRequestRepository preorderRequestRepository) {
+        this.preorderRequestRepository = preorderRequestRepository;
         this.stallRepository = stallRepository;
         this.vendorRepository = vendorRepository;
         this.menuItemRepository = menuItemRepository;
@@ -58,6 +61,7 @@ public class AdminAccountService {
             menuItemRepository.delete(item);
         }
         vendorRepository.findByStallId(id).ifPresent(vendorRepository::delete);
+        preorderRequestRepository.deleteByStallId(id);
         stallRepository.delete(stall);
     }
 

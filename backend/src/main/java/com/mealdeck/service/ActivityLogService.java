@@ -101,6 +101,10 @@ public class ActivityLogService {
         record(Type.MESS_FLAGGED, studentId, null, "said today's " + meal + " mess menu isn't correct");
     }
 
+    public void preorderRequested(Long studentId, Long stallId, String stallName) {
+        record(Type.PREORDER_REQUESTED, studentId, stallId, "asked for pre-ordering at " + stallName + " (stall #" + stallId + ")");
+    }
+
     /** No student: the menu was replaced by three students' corrections. */
     public void messMenuCorrected(String meal) {
         record(Type.MESS_MENU_CORRECTED, null, null, "Today's " + meal + " mess menu was replaced by students' corrections");

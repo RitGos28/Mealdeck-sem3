@@ -30,7 +30,8 @@ public class ActivityLog {
         MESS_MEAL_ADDED,
         MESS_FLAGGED,
         MESS_MENU_CORRECTED,
-        MESS_MENU_CONFIRMED
+        MESS_MENU_CONFIRMED,
+        PREORDER_REQUESTED
     }
 
     @Id
