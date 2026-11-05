@@ -43,12 +43,13 @@ function Choice({ type, name, checked, onChange, children }) {
   );
 }
 
-// Four optional questions about MealDeck, in Account. Answers can be changed
-// later and are removed with the account.
+// The questionnaire: the questions come from the server (so they can change
+// there without touching this page). Every question is optional, answers can
+// be changed later, and they are removed with the account.
 function SurveyForm() {
   const router = useRouter();
   const [form, setForm] = useState(null);
-  const [answers, setAnswers] = useState({ source: "", sourceOther: "", features: [], featuresOther: "", wishes: "", frustrations: "" });
+  const [answers, setAnswers] = useState({});
   const [state, setState] = useState("idle"); // idle | saving | saved
   const [error, setError] = useState("");
 
@@ -58,10 +59,7 @@ function SurveyForm() {
       (data) => {
         if (!active) return;
         setForm(data);
-        if (data.answers) {
-          const a = data.answers;
-          setAnswers({ source: a.source ?? "", sourceOther: a.sourceOther ?? "", features: a.features ?? [], featuresOther: a.featuresOther ?? "", wishes: a.wishes ?? "", frustrations: a.frustrations ?? "" });
-        }
+        setAnswers(data.mine?.answers ?? {});
       },
       (err) => active && setError(err.message),
     );
@@ -82,14 +80,17 @@ function SurveyForm() {
   }
 
   const set = (patch) => { setAnswers((current) => ({ ...current, ...patch })); setState("idle"); };
-  const toggle = (key) => set({ features: answers.features.includes(key) ? answers.features.filter((f) => f !== key) : [...answers.features, key] });
+  const toggle = (id, key) => {
+    const picked = answers[id] ?? [];
+    set({ [id]: picked.includes(key) ? picked.filter((k) => k !== key) : [...picked, key] });
+  };
 
   async function submit(event) {
     event.preventDefault();
     setState("saving");
     setError("");
     try {
-      await api("/api/account/survey", { method: "PUT", body: { ...answers, source: answers.source || null } });
+      await api("/api/account/survey", { method: "PUT", body: answers });
       setState("saved");
     } catch (err) {
       setError(err.message);
@@ -99,37 +100,32 @@ function SurveyForm() {
 
   return (
     <form onSubmit={submit} className="mx-auto max-w-xl">
-      <p className="mb-6 text-sm text-muted">Every question is optional, and you can change your answers any time. We read these to decide what to build next. Admins see the totals and your written answers, but not who wrote them.</p>
+      <p className="mb-6 text-sm text-muted">Every question is optional, and you can change your answers any time. We read these to decide what to build next. Admins see totals and your written words, but not who wrote them.</p>
 
-      <Question number={1} title="Where did you hear about us?">
-        {Object.entries(form.sources).map(([key, label]) => (
-          <Choice key={key} type="radio" name="source" checked={answers.source === key} onChange={() => set({ source: key })}>{label}</Choice>
-        ))}
-        {answers.source === "other" && (
-          <input value={answers.sourceOther} onChange={(e) => set({ sourceOther: e.target.value })} maxLength={120} placeholder="Where?" aria-label="Where did you hear about us?" className={`${textarea} ml-9 w-[calc(100%-2.25rem)]`} />
-        )}
-      </Question>
-
-      <Question number={2} title="What are the features that convinced you?" hint="Tick all that apply.">
-        {Object.entries(form.features).map(([key, label]) => (
-          <Choice key={key} type="checkbox" name="features" checked={answers.features.includes(key)} onChange={() => toggle(key)}>{label}</Choice>
-        ))}
-        {answers.features.includes("other") && (
-          <textarea value={answers.featuresOther} onChange={(e) => set({ featuresOther: e.target.value })} maxLength={600} rows={2} placeholder="What else?" aria-label="What else convinced you?" className={`${textarea} ml-9 w-[calc(100%-2.25rem)]`} />
-        )}
-      </Question>
-
-      <Question number={3} title="Any other features you might want added?">
-        <textarea value={answers.wishes} onChange={(e) => set({ wishes: e.target.value })} maxLength={600} rows={3} aria-label="Features you might want added" className={textarea} />
-      </Question>
-
-      <Question number={4} title="Any frustrations with the current app?" hint="For example: not enough people to report stuff out of stock.">
-        <textarea value={answers.frustrations} onChange={(e) => set({ frustrations: e.target.value })} maxLength={600} rows={3} aria-label="Frustrations with the current app" className={textarea} />
-      </Question>
+      {form.questions.map((question, index) => {
+        const value = answers[question.id];
+        const otherChosen = question.allowOther && (question.type === "MULTI" ? (value ?? []).includes("other") : value === "other");
+        return (
+          <Question key={question.id} number={index + 1} title={question.title} hint={question.hint}>
+            {question.type === "TEXT" && (
+              <textarea value={value ?? ""} onChange={(e) => set({ [question.id]: e.target.value })} maxLength={600} rows={3} aria-label={question.title} className={textarea} />
+            )}
+            {question.type === "SINGLE" && question.options.map((option) => (
+              <Choice key={option.key} type="radio" name={question.id} checked={value === option.key} onChange={() => set({ [question.id]: option.key })}>{option.label}</Choice>
+            ))}
+            {question.type === "MULTI" && question.options.map((option) => (
+              <Choice key={option.key} type="checkbox" name={question.id} checked={(value ?? []).includes(option.key)} onChange={() => toggle(question.id, option.key)}>{option.label}</Choice>
+            ))}
+            {otherChosen && (
+              <input value={answers[`${question.id}Other`] ?? ""} onChange={(e) => set({ [`${question.id}Other`]: e.target.value })} maxLength={120} placeholder="Tell us more" aria-label={`${question.title} (other)`} className={`${textarea} ml-9 w-[calc(100%-2.25rem)]`} />
+            )}
+          </Question>
+        );
+      })}
 
       {error && <p role="alert" className="mt-5 rounded-xl bg-[#FBEDE6] px-3 py-2.5 text-sm text-danger">{error}</p>}
-      <div className="mt-7 flex items-center gap-3">
-        <button disabled={state === "saving"} className="h-12 rounded-full bg-deck px-7 font-semibold text-white hover:bg-deck-hover disabled:opacity-50">{state === "saving" ? "Saving…" : form.answers ? "Update my answers" : "Send my answers"}</button>
+      <div className="mt-7 flex flex-wrap items-center gap-3">
+        <button disabled={state === "saving" || state === "saved"} className="h-12 rounded-full bg-deck px-7 font-semibold text-white hover:bg-deck-hover disabled:opacity-50">{state === "saving" ? "Saving…" : form.mine ? "Update my answers" : "Send my answers"}</button>
         {state === "saved" && <span role="status" className="text-sm font-semibold text-mint-ink">Thank you. Saved ✓ Taking you back to Account…</span>}
       </div>
     </form>
@@ -141,7 +137,7 @@ export default function SurveyPage() {
   const band = (
     <div className="mt-2">
       <Back />
-      <h1 className="font-serif text-3xl leading-tight">Four quick questions</h1>
+      <h1 className="font-serif text-3xl leading-tight">A few quick questions</h1>
       <p className="mt-1 text-sm text-on-deck">Help us build the right thing</p>
     </div>
   );

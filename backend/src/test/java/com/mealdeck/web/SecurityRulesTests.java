@@ -291,7 +291,7 @@ class SecurityRulesTests {
 
     @Test
     void theQuestionnaireIsForStudentsAndTheSummaryForAdmins() throws Exception {
-        String answers = "{\"source\":\"friend\",\"features\":[\"menus\"],\"wishes\":\"More stalls\"}";
+        String answers = "{\"heard\":\"friend\",\"used\":[\"menus\"],\"change\":\"More stalls\"}";
 
         mvc.perform(get("/api/account/survey")).andExpect(status().isForbidden());
         mvc.perform(get("/api/account/survey").with(VENDOR)).andExpect(status().isForbidden());

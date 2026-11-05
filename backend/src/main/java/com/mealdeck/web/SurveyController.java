@@ -2,9 +2,10 @@ package com.mealdeck.web;
 
 import com.mealdeck.repository.StudentRepository;
 import com.mealdeck.service.SurveyService;
-import com.mealdeck.service.SurveyService.Request;
+import com.mealdeck.service.SurveyService.Mine;
+import com.mealdeck.service.SurveyService.Question;
 import com.mealdeck.service.SurveyService.Summary;
-import com.mealdeck.service.SurveyService.View;
+import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -21,8 +22,8 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/api")
 public class SurveyController {
 
-    /** answers is null until the student has answered; options are what the form offers. */
-    public record Form(View answers, Map<String, String> sources, Map<String, String> features) {
+    /** mine is null until the student has answered; questions are what the form shows. */
+    public record Form(Mine mine, List<Question> questions) {
     }
 
     private final SurveyService service;
@@ -35,12 +36,13 @@ public class SurveyController {
 
     @GetMapping("/account/survey")
     public Form form(Authentication authentication) {
-        return new Form(service.mine(studentId(authentication)), SurveyService.SOURCES, SurveyService.FEATURES);
+        return new Form(service.mine(studentId(authentication)), SurveyService.QUESTIONS);
     }
 
+    /** The body maps question ids to a choice key, a list of keys, or text. */
     @PutMapping("/account/survey")
-    public View save(Authentication authentication, @RequestBody Request request) {
-        return service.save(studentId(authentication), request);
+    public Mine save(Authentication authentication, @RequestBody Map<String, Object> answers) {
+        return service.save(studentId(authentication), answers);
     }
 
     @GetMapping("/admin/survey")

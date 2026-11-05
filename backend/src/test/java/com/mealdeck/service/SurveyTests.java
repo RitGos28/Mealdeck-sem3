@@ -7,8 +7,8 @@ import com.mealdeck.FixedClockConfig;
 import com.mealdeck.model.Student;
 import com.mealdeck.repository.StudentRepository;
 import com.mealdeck.repository.SurveyResponseRepository;
-import com.mealdeck.service.SurveyService.Request;
 import java.util.List;
+import java.util.Map;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,8 +19,9 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-/** The Account questionnaire: optional answers, editable, one per student,
- * totals and free text for admins without who wrote them, gone with the account. */
+/** The Account questionnaire: optional answers checked against the questions,
+ * editable, one per student, totals and free text for admins without who
+ * wrote them, and gone with the account. */
 @SpringBootTest
 @ActiveProfiles("demo")
 @Import(FixedClockConfig.class)
@@ -42,50 +43,65 @@ class SurveyTests {
     }
 
     @Test
+    void theFormHasTheEightQuestionsInOrder() {
+        assertThat(SurveyService.QUESTIONS).extracting(SurveyService.Question::id)
+                .containsExactly("heard", "stay", "often", "used", "waited", "wouldOrder", "putOff", "change");
+    }
+
+    @Test
     void nothingIsSavedUntilTheStudentAnswersAndAnswersCanBeChanged() {
         Long id = student();
         assertThat(survey.mine(id)).isNull();
 
-        survey.save(id, new Request("friend", null, List.of("menus", "deal", "menus"), null, "Cheaper combos", "Few people report stock"));
-        var first = survey.mine(id);
-        assertThat(first.source()).isEqualTo("friend");
-        assertThat(first.features()).containsExactly("menus", "deal");
-        assertThat(first.wishes()).isEqualTo("Cheaper combos");
+        survey.save(id, Map.of("heard", "friend", "used", List.of("menus", "deal", "menus"), "change", "Cheaper combos"));
+        var first = survey.mine(id).answers();
+        assertThat(first.get("heard")).isEqualTo("friend");
+        assertThat(first.get("used")).isEqualTo(List.of("menus", "deal"));
+        assertThat(first.get("change")).isEqualTo("Cheaper combos");
 
-        survey.save(id, new Request("other", " Class group ", List.of("mess"), "The colours", "  ", null));
-        var second = survey.mine(id);
-        assertThat(second.source()).isEqualTo("other");
-        assertThat(second.sourceOther()).isEqualTo("Class group");
-        assertThat(second.features()).containsExactly("mess");
-        assertThat(second.wishes()).isNull();
+        survey.save(id, Map.of("heard", "other", "heardOther", " Class group ", "used", List.of("mess"), "change", "  "));
+        var second = survey.mine(id).answers();
+        assertThat(second.get("heard")).isEqualTo("other");
+        assertThat(second.get("heardOther")).isEqualTo("Class group");
+        assertThat(second.get("used")).isEqualTo(List.of("mess"));
+        assertThat(second).doesNotContainKey("change");
         assertThat(repository.count()).isEqualTo(1);
     }
 
     @Test
     void everyQuestionIsOptionalButAnswersAreChecked() {
         Long id = student();
-        survey.save(id, new Request(null, null, null, null, null, null));
-        assertThat(survey.mine(id).features()).isEmpty();
+        survey.save(id, Map.of());
+        assertThat(survey.mine(id).answers()).isEmpty();
 
-        assertRejected(() -> survey.save(id, new Request("a billboard", null, null, null, null, null)), HttpStatus.BAD_REQUEST);
-        assertRejected(() -> survey.save(id, new Request(null, null, List.of("teleport"), null, null, null)), HttpStatus.BAD_REQUEST);
-        assertRejected(() -> survey.save(id, new Request(null, null, null, null, "x".repeat(601), null)), HttpStatus.BAD_REQUEST);
-        assertRejected(() -> survey.save(id, new Request("other", "x".repeat(121), null, null, null, null)), HttpStatus.BAD_REQUEST);
+        assertRejected(() -> survey.save(id, Map.of("heard", "a billboard")), HttpStatus.BAD_REQUEST);
+        assertRejected(() -> survey.save(id, Map.of("used", List.of("teleport"))), HttpStatus.BAD_REQUEST);
+        assertRejected(() -> survey.save(id, Map.of("used", "menus")), HttpStatus.BAD_REQUEST);
+        assertRejected(() -> survey.save(id, Map.of("nonsense", "x")), HttpStatus.BAD_REQUEST);
+        assertRejected(() -> survey.save(id, Map.of("change", "x".repeat(601))), HttpStatus.BAD_REQUEST);
+        assertRejected(() -> survey.save(id, Map.of("heard", "other", "heardOther", "x".repeat(121))), HttpStatus.BAD_REQUEST);
+        // Other text only counts when "other" is the choice.
+        survey.save(id, Map.of("heard", "friend", "heardOther", "ignored"));
+        assertThat(survey.mine(id).answers()).doesNotContainKey("heardOther");
     }
 
     @Test
-    void adminsSeeTotalsAndFreeTextWithoutWhoWroteIt() {
-        survey.save(student(), new Request("friend", null, List.of("menus", "deal"), null, "More stalls", "Slow on my phone"));
-        survey.save(student(), new Request("friend", null, List.of("menus"), null, null, null));
-        survey.save(student(), new Request("poster", null, List.of("mess"), "Dark mode", null, null));
+    void adminsSeeTotalsPerOptionAndFreeTextWithoutWhoWroteIt() {
+        survey.save(student(), Map.of("heard", "friend", "wouldOrder", "definitely", "putOff", List.of("late", "other"), "putOffOther", "Exams", "change", "More stalls"));
+        survey.save(student(), Map.of("heard", "friend", "wouldOrder", "probably"));
+        survey.save(student(), Map.of("heard", "poster", "wouldOrder", "definitely", "change", "Dark mode"));
 
         var summary = survey.summary();
 
         assertThat(summary.responses()).isEqualTo(3);
-        assertThat(summary.sources()).containsEntry("friend", 2L).containsEntry("poster", 1L).containsEntry("hatchery", 0L);
-        assertThat(summary.features()).containsEntry("menus", 2L).containsEntry("deal", 1L).containsEntry("mess", 1L);
-        assertThat(summary.comments()).extracting(SurveyService.Comment::text).contains("More stalls", "Slow on my phone", "Dark mode");
-        // Comments carry a topic and a time, never a student.
+        var heard = summary.questions().stream().filter(q -> q.id().equals("heard")).findFirst().orElseThrow();
+        assertThat(heard.counts()).filteredOn(c -> c.key().equals("friend")).extracting(SurveyService.OptionCount::count).containsExactly(2L);
+        assertThat(heard.counts()).filteredOn(c -> c.key().equals("hatchery")).extracting(SurveyService.OptionCount::count).containsExactly(0L);
+        var wouldOrder = summary.questions().stream().filter(q -> q.id().equals("wouldOrder")).findFirst().orElseThrow();
+        assertThat(wouldOrder.counts()).filteredOn(c -> c.key().equals("definitely")).extracting(SurveyService.OptionCount::count).containsExactly(2L);
+        assertThat(summary.questions()).extracting(SurveyService.QuestionSummary::id).doesNotContain("change");
+        assertThat(summary.comments()).extracting(SurveyService.Comment::text).contains("More stalls", "Dark mode", "Exams");
+        // A comment carries a topic and a time, never a student.
         assertThat(SurveyService.Comment.class.getRecordComponents()).extracting(c -> c.getName()).containsExactly("about", "text", "at");
     }
 
@@ -93,8 +109,8 @@ class SurveyTests {
     void deletingTheStudentRemovesTheirAnswers() {
         Long leaving = student();
         Long staying = student();
-        survey.save(leaving, new Request("friend", null, null, null, "Wish", null));
-        survey.save(staying, new Request("friend", null, null, null, "Wish", null));
+        survey.save(leaving, Map.of("heard", "friend", "change", "Wish"));
+        survey.save(staying, Map.of("heard", "friend", "change", "Wish"));
 
         studentService.delete(leaving, "test");
 

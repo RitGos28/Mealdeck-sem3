@@ -5,8 +5,9 @@ import com.mealdeck.repository.SurveyResponseRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,118 +15,198 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
-/** The four questions in Account. Answers are optional and can be changed
- * later; admins see totals and the free text, without who wrote it. */
+/** The questionnaire in Account. The questions are defined here once and
+ * served to the form and the admin view, so changing a question or an option
+ * is a code change in one place. Every question is optional, answers can be
+ * changed later, and admins see totals and written words without names. */
 @Service
 public class SurveyService {
 
-    /** Where did you hear about us. */
-    public static final Map<String, String> SOURCES = Map.of(
-            "friend", "A friend", "whatsapp", "A WhatsApp group", "poster", "A poster or QR code",
-            "social", "Instagram or other social media", "hatchery", "Hatchery", "other", "Somewhere else");
+    public enum Type { SINGLE, MULTI, TEXT }
 
-    /** What convinced you. */
-    public static final Map<String, String> FEATURES = new LinkedHashMap<>();
-    static {
-        FEATURES.put("menus", "Every stall's menu and prices in one place");
-        FEATURES.put("veg", "The veg filter and my diet setting");
-        FEATURES.put("deal", "Deal me a dish");
-        FEATURES.put("mess", "Mess today");
-        FEATURES.put("reports", "Reporting dishes out of stock");
-        FEATURES.put("passport", "The food passport");
-        FEATURES.put("preorders", "The idea of pre-ordering");
-        FEATURES.put("other", "Something else");
+    public record Option(String key, String label) {
     }
+
+    /** allowOther: the "other" option also takes a few words of text. */
+    public record Question(String id, String title, String hint, Type type, List<Option> options, boolean allowOther) {
+    }
+
+    private static Option o(String key, String label) {
+        return new Option(key, label);
+    }
+
+    public static final List<Question> QUESTIONS = List.of(
+            new Question("heard", "Where did you hear about us?", null, Type.SINGLE, List.of(
+                    o("friend", "A friend"), o("whatsapp", "A WhatsApp group"), o("poster", "A poster or QR code"),
+                    o("social", "Instagram or other social media"), o("hatchery", "Hatchery"),
+                    o("forgot", "I don't remember"), o("other", "Somewhere else")), true),
+            new Question("stay", "Where do you stay?", null, Type.SINGLE, List.of(
+                    o("hostel", "Hostel"), o("day", "Day scholar"), o("other", "Other")), false),
+            new Question("often", "How often do you buy food at campus stalls (not the hostel mess)?", null, Type.SINGLE, List.of(
+                    o("rarely", "Rarely"), o("one_two", "1 to 2 days a week"), o("three_four", "3 to 4 days a week"),
+                    o("most", "Most days"), o("every", "Every day")), false),
+            new Question("used", "Which parts of MealDeck have you used?", "Tick all that apply.", Type.MULTI, List.of(
+                    o("menus", "Menus and prices"), o("veg", "The veg filter or my diet setting"), o("deal", "Deal me a dish"),
+                    o("mess", "Mess today"), o("report", "Reporting a dish out of stock"), o("passport", "The food passport"),
+                    o("just", "I've only just opened it")), false),
+            new Question("waited", "In the past month, how often did a long wait make you leave a stall or pick something else?", null, Type.SINGLE, List.of(
+                    o("never", "Never"), o("once_twice", "Once or twice"), o("several", "Several times"), o("most_weeks", "Most weeks")), false),
+            new Question("wouldOrder", "If you could order ahead at a stall and skip the queue, would you use it?", null, Type.SINGLE, List.of(
+                    o("definitely", "Definitely"), o("probably", "Probably"), o("unsure", "Not sure"),
+                    o("probably_not", "Probably not"), o("definitely_not", "Definitely not")), false),
+            new Question("putOff", "What would put you off ordering ahead?", "Tick any.", Type.MULTI, List.of(
+                    o("plans", "My plans change last minute"), o("late", "I might be late and the food goes cold"),
+                    o("short", "The queue is short anyway"), o("forget", "I'd forget to open the app"),
+                    o("ready", "I'm not sure the stall would have it ready"), o("nothing", "Nothing, I'd use it"),
+                    o("other", "Something else")), true),
+            new Question("change", "What's the one thing you'd change?", "About MealDeck: something missing, confusing or annoying.", Type.TEXT, List.of(), false));
 
     public static final int MAX_SHORT = 120;
     public static final int MAX_LONG = 600;
 
-    public record Request(String source, String sourceOther, List<String> features, String featuresOther, String wishes, String frustrations) {
+    /** For admins: how many chose each option, per question. */
+    public record OptionCount(String key, String label, long count) {
     }
 
-    public record View(String source, String sourceOther, List<String> features, String featuresOther, String wishes, String frustrations, Instant answeredAt) {
+    public record QuestionSummary(String id, String title, Type type, List<OptionCount> counts) {
     }
 
-    /** For admins: totals per option, and the free text newest first, with no student. */
-    public record Summary(int responses, Map<String, Long> sources, Map<String, Long> features, List<Comment> comments) {
-    }
-
+    /** A written answer, with its topic and when, but never who wrote it. */
     public record Comment(String about, String text, Instant at) {
     }
 
+    public record Summary(int responses, List<QuestionSummary> questions, List<Comment> comments) {
+    }
+
+    public record Mine(Map<String, Object> answers, Instant answeredAt) {
+    }
+
+    private static final TypeReference<Map<String, Object>> ANSWER_MAP = new TypeReference<>() {
+    };
+
     private final SurveyResponseRepository repository;
+    private final ObjectMapper json;
     private final Clock clock;
 
-    public SurveyService(SurveyResponseRepository repository, Clock clock) {
+    public SurveyService(SurveyResponseRepository repository, ObjectMapper json, Clock clock) {
         this.repository = repository;
+        this.json = json;
         this.clock = clock;
     }
 
     @Transactional(readOnly = true)
-    public View mine(Long studentId) {
-        return repository.findByStudentId(studentId).map(SurveyService::view).orElse(null);
+    public Mine mine(Long studentId) {
+        return repository.findByStudentId(studentId).map(row -> new Mine(parse(row), row.getUpdatedAt())).orElse(null);
     }
 
+    /** Checks every answer against the questions, then saves (replacing any earlier answers). */
     @Transactional
-    public View save(Long studentId, Request request) {
-        String source = blankToNull(request.source());
-        if (source != null && !SOURCES.containsKey(source)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown choice for where you heard about us");
+    public Mine save(Long studentId, Map<String, Object> raw) {
+        Set<String> known = new LinkedHashSet<>();
+        for (Question q : QUESTIONS) {
+            known.add(q.id());
+            if (q.allowOther()) known.add(q.id() + "Other");
         }
-        List<String> features = request.features() == null ? List.of() : request.features().stream().distinct().toList();
-        for (String feature : features) {
-            if (!FEATURES.containsKey(feature)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown feature: " + feature);
+        for (String key : raw.keySet()) {
+            if (!known.contains(key)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown question: " + key);
+        }
+        Map<String, Object> clean = new LinkedHashMap<>();
+        for (Question q : QUESTIONS) {
+            Object value = raw.get(q.id());
+            switch (q.type()) {
+                case SINGLE -> {
+                    String choice = blankToNull(value);
+                    if (choice == null) break;
+                    requireOption(q, choice);
+                    clean.put(q.id(), choice);
+                    if (q.allowOther() && choice.equals("other")) putText(clean, q.id() + "Other", raw.get(q.id() + "Other"), MAX_SHORT, q.title());
+                }
+                case MULTI -> {
+                    if (value == null) break;
+                    if (!(value instanceof Collection<?> picks)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pick from the list: " + q.id());
+                    List<String> keys = new ArrayList<>();
+                    for (Object pick : picks) {
+                        String key = blankToNull(pick);
+                        if (key == null || keys.contains(key)) continue;
+                        requireOption(q, key);
+                        keys.add(key);
+                    }
+                    if (keys.isEmpty()) break;
+                    clean.put(q.id(), keys);
+                    if (q.allowOther() && keys.contains("other")) putText(clean, q.id() + "Other", raw.get(q.id() + "Other"), MAX_SHORT, q.title());
+                }
+                case TEXT -> putText(clean, q.id(), value, MAX_LONG, q.title());
+            }
         }
         SurveyResponse row = repository.findByStudentId(studentId).orElseGet(() -> new SurveyResponse(studentId));
-        row.answer(source,
-                text(request.sourceOther(), MAX_SHORT, "Where you heard about us"),
-                features.isEmpty() ? null : String.join(",", features),
-                text(request.featuresOther(), MAX_LONG, "Features"),
-                text(request.wishes(), MAX_LONG, "Features you want"),
-                text(request.frustrations(), MAX_LONG, "Frustrations"),
-                clock.instant());
-        return view(repository.save(row));
+        row.answer(json.writeValueAsString(clean), clock.instant());
+        repository.save(row);
+        return new Mine(clean, row.getUpdatedAt());
     }
 
     @Transactional(readOnly = true)
     public Summary summary() {
         List<SurveyResponse> all = repository.findAllByOrderByUpdatedAtDesc();
-        Map<String, Long> sources = new LinkedHashMap<>();
-        SOURCES.keySet().forEach(key -> sources.put(key, 0L));
-        Map<String, Long> features = new LinkedHashMap<>();
-        FEATURES.keySet().forEach(key -> features.put(key, 0L));
+        Map<String, Map<String, Long>> counts = new LinkedHashMap<>();
+        for (Question q : QUESTIONS) {
+            Map<String, Long> perOption = new LinkedHashMap<>();
+            q.options().forEach(option -> perOption.put(option.key(), 0L));
+            counts.put(q.id(), perOption);
+        }
         List<Comment> comments = new ArrayList<>();
         for (SurveyResponse row : all) {
-            if (row.getSource() != null) sources.merge(row.getSource(), 1L, Long::sum);
-            if (row.getFeatures() != null) Arrays.stream(row.getFeatures().split(",")).forEach(f -> features.merge(f, 1L, Long::sum));
-            addComment(comments, "Heard about us via", row.getSourceOther(), row);
-            addComment(comments, "Convinced by", row.getFeaturesOther(), row);
-            addComment(comments, "Wants", row.getWishes(), row);
-            addComment(comments, "Frustration", row.getFrustrations(), row);
+            Map<String, Object> answers = parse(row);
+            for (Question q : QUESTIONS) {
+                Object value = answers.get(q.id());
+                if (value == null) continue;
+                if (q.type() == Type.TEXT) {
+                    comments.add(new Comment(q.title(), String.valueOf(value), row.getUpdatedAt()));
+                    continue;
+                }
+                List<?> picks = value instanceof Collection<?> c ? new ArrayList<>(c) : List.of(value);
+                picks.forEach(pick -> counts.get(q.id()).merge(String.valueOf(pick), 1L, Long::sum));
+                Object other = answers.get(q.id() + "Other");
+                if (other != null) comments.add(new Comment(q.title() + " (other)", String.valueOf(other), row.getUpdatedAt()));
+            }
         }
-        return new Summary(all.size(), sources, features, comments);
-    }
-
-    private static void addComment(List<Comment> comments, String about, String text, SurveyResponse row) {
-        if (text != null) comments.add(new Comment(about, text, row.getUpdatedAt()));
-    }
-
-    private static View view(SurveyResponse row) {
-        return new View(row.getSource(), row.getSourceOther(),
-                row.getFeatures() == null ? List.of() : Arrays.asList(row.getFeatures().split(",")),
-                row.getFeaturesOther(), row.getWishes(), row.getFrustrations(), row.getUpdatedAt());
-    }
-
-    private static String text(String value, int max, String what) {
-        String trimmed = blankToNull(value);
-        if (trimmed != null && trimmed.length() > max) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, what + " can be at most " + max + " characters");
+        List<QuestionSummary> questions = new ArrayList<>();
+        for (Question q : QUESTIONS) {
+            if (q.type() == Type.TEXT) continue;
+            List<OptionCount> optionCounts = q.options().stream()
+                    .map(option -> new OptionCount(option.key(), option.label(), counts.get(q.id()).get(option.key()))).toList();
+            questions.add(new QuestionSummary(q.id(), q.title(), q.type(), optionCounts));
         }
-        return trimmed;
+        return new Summary(all.size(), questions, comments);
     }
 
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
+    private Map<String, Object> parse(SurveyResponse row) {
+        try {
+            return json.readValue(row.getAnswers(), ANSWER_MAP);
+        } catch (JacksonException e) {
+            return Map.of();
+        }
+    }
+
+    private static void requireOption(Question q, String key) {
+        if (q.options().stream().noneMatch(option -> option.key().equals(key))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Not an option for \"" + q.title() + "\": " + key);
+        }
+    }
+
+    private static void putText(Map<String, Object> clean, String key, Object value, int max, String what) {
+        String text = blankToNull(value);
+        if (text == null) return;
+        if (text.length() > max) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "\"" + what + "\" can be at most " + max + " characters");
+        clean.put(key, text);
+    }
+
+    private static String blankToNull(Object value) {
+        if (value == null) return null;
+        String text = String.valueOf(value).trim();
+        return text.isEmpty() ? null : text;
     }
 }

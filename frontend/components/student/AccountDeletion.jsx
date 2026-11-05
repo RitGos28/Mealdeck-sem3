@@ -18,7 +18,7 @@ const LOSSES = [
   ["Every Food passport stamp", "All those momos you bravely tried? No proof it was ever you."],
   ["Ordering what Deal me a dish deals you", "The game still works. The dishes just stay a dream."],
   ["The out-of-stock reports you've made", "Your heroic “they're out of cold coffee” warnings, gone."],
-  ["Your answers to the four questions", "Gone. We keep no copy of what you wrote."],
+  ["Your questionnaire answers", "Gone. We keep no copy of what you wrote."],
   ["Your “Want to pre-order here?” taps", "Gone. We stop counting you as a student who asked."],
   ["Your “this isn't correct” flags on mess menus", "Gone. Menus you added stay for everyone, without your number."],
   ["Your “I only eat veg” setting", "Your menu goes back to showing everything."],
