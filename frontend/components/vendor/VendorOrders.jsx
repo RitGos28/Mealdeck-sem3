@@ -50,6 +50,7 @@ function OrderCard({ order, onUpdated, readOnly }) {
         <div>
           <p className="font-display text-lg font-bold">#{order.id} · {order.customerName}</p>
           <p className="text-sm text-gray-500">{order.customerContact}</p>
+          {order.recentNoShows > 0 && <p className="mt-1 inline-block rounded-full bg-[#FBEDE6] px-2.5 py-0.5 text-xs font-semibold text-[#9a4a3f]">{order.recentNoShows} {order.recentNoShows === 1 ? "order" : "orders"} not collected in the last 30 days</p>}
         </div>
         <StatusBadge status={order.status} />
       </div>

@@ -47,6 +47,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("select o.pickupDate from Order o where o.customerEmailKey = :key and o.status = com.mealdeck.model.OrderStatus.NO_SHOW and o.pickupDate >= :since order by o.pickupDate desc")
     List<LocalDate> noShowDates(@Param("key") String key, @Param("since") LocalDate since);
 
+    /** No-shows since `since` for each of these email codes: rows of [key, count].
+     * One query for a whole order list, so the vendor screen doesn't ask once per order. */
+    @Query("select o.customerEmailKey, count(o) from Order o where o.customerEmailKey in :keys "
+            + "and o.status = com.mealdeck.model.OrderStatus.NO_SHOW and o.pickupDate >= :since group by o.customerEmailKey")
+    List<Object[]> noShowCounts(@Param("keys") java.util.Collection<String> keys, @Param("since") LocalDate since);
+
     /** Email codes with at least `limit` no-shows since `since`: [key, count, latest pickup day]. */
     @Query("select o.customerEmailKey, count(o), max(o.pickupDate) from Order o where o.customerEmailKey is not null and o.status = com.mealdeck.model.OrderStatus.NO_SHOW and o.pickupDate >= :since group by o.customerEmailKey having count(o) >= :limit")
     List<Object[]> repeatNoShows(@Param("since") LocalDate since, @Param("limit") long limit);

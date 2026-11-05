@@ -67,6 +67,19 @@ public class EmailStandingService {
         return emailKeys.key(email);
     }
 
+    /** How many pre-orders each of these email codes left uncollected in the
+     * no-show window (30 days). Codes with none are left out of the map; a
+     * null code (an order from before codes existed) counts as none. */
+    @Transactional(readOnly = true)
+    public Map<String, Integer> recentNoShows(java.util.Collection<String> keys) {
+        java.util.Set<String> real = keys.stream().filter(java.util.Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+        if (real.isEmpty()) return Map.of();
+        LocalDate since = LocalDate.now(clock.withZone(CAMPUS)).minusDays(windowDays - 1L);
+        Map<String, Integer> counts = new java.util.HashMap<>();
+        for (Object[] row : orderRepository.noShowCounts(real, since)) counts.put((String) row[0], ((Number) row[1]).intValue());
+        return counts;
+    }
+
     /** Called by checkout before any order is created. */
     public void requireCanOrder(Student student) {
         String key = emailKeys.key(student.getEmail());
