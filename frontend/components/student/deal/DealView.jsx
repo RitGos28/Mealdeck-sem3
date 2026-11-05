@@ -316,7 +316,7 @@ function Hand({ deal, demoMode, cart, onAdd, onChangeQuantity, onHome }) {
           <ul>
             {items.map((item) => (
               <li key={item.id}>
-                <MenuItemCard item={item} dish={dishFor(item)} demoMode={demoMode} sub={item.category} browseOnly={stall.listingOnly} quantity={bagCount(cart, dishFor(item))} onAddToCart={() => onAdd(item, stall)} onChangeQuantity={(delta) => onChangeQuantity(item.id, delta)} />
+                <MenuItemCard item={item} dish={dishFor(item)} demoMode={demoMode} sub={item.category} browseOnly={stall.listingOnly} onView={onView ? () => onView(item, stall) : undefined} quantity={bagCount(cart, dishFor(item))} onAddToCart={() => onAdd(item, stall)} onChangeQuantity={(delta) => onChangeQuantity(item.id, delta)} />
               </li>
             ))}
           </ul>
@@ -330,7 +330,7 @@ function Hand({ deal, demoMode, cart, onAdd, onChangeQuantity, onHome }) {
   );
 }
 
-export function DealBody({ deal, demoMode, cart, onAdd, onChangeQuantity, onHome }) {
+export function DealBody({ deal, demoMode, cart, onAdd, onView, onChangeQuantity, onHome }) {
   if (deal.phase === "dealing" && deal.current) return <Dealing deal={deal} demoMode={demoMode} onBag={onAdd} />;
   if (deal.phase === "hand") return <Hand deal={deal} demoMode={demoMode} cart={cart} onAdd={onAdd} onChangeQuantity={onChangeQuantity} onHome={onHome} />;
   return <Setup deal={deal} />;

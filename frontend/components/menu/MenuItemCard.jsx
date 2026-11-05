@@ -9,7 +9,7 @@ import { initials } from "../student/OrderAgain";
 import { needsSheet } from "../../lib/menuDishes";
 
 // The Indian veg / non-veg mark: dot for veg, triangle for non-veg.
-function VegDot({ veg }) {
+export function VegDot({ veg }) {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" role="img" aria-label={veg ? "Vegetarian" : "Non-vegetarian"} className={`shrink-0 ${veg ? "text-veg" : "text-nonveg"}`}>
       <rect x="1" y="1" width="12" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.5" />
@@ -34,7 +34,9 @@ function Thumb({ item, dimmed }) {
 // either shows "from ₹…", a hint, and an Add button that opens the
 // customise sheet; quantity is then the dish's total in the bag.
 // `browseOnly`: the stall isn't taking pre-orders yet, so no add button.
-export default function MenuItemCard({ item: itemProp, dish, demoMode, quantity = 0, onAddToCart, onChangeQuantity, sub, browseOnly = false }) {
+// `onView`: with browseOnly, tapping the row opens a read-only look at every
+// size and option (DishDetailSheet).
+export default function MenuItemCard({ item: itemProp, dish, demoMode, quantity = 0, onAddToCart, onChangeQuantity, sub, browseOnly = false, onView }) {
   const router = useRouter();
   const [reporting, setReporting] = useState(false);
   const [locallyUnavailable, setLocallyUnavailable] = useState(false);
@@ -48,6 +50,15 @@ export default function MenuItemCard({ item: itemProp, dish, demoMode, quantity 
   const minPrice = Math.min(...items.map((candidate) => Number(candidate.price)));
   const vegKinds = [...new Set(items.map((candidate) => candidate.veg))];
   const hint = [sized ? dish.variants.map((v) => v.label).join(" · ") : null, ...(item.choices ?? []).map((group) => group.options.join(" or "))].filter(Boolean).join(" · ");
+
+  const viewable = browseOnly && Boolean(onView);
+  const viewProps = viewable ? {
+    role: "button",
+    tabIndex: 0,
+    "aria-label": `${name}, see sizes and options`,
+    onClick: onView,
+    onKeyDown: (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onView(); } },
+  } : {};
 
   async function handleReport() {
     if (demoMode) {
@@ -74,7 +85,7 @@ export default function MenuItemCard({ item: itemProp, dish, demoMode, quantity 
 
   return (
     // A list row on phones and tablets; a photo card on wide screens.
-    <div className="-mx-2 flex min-h-[70px] items-center gap-3.5 border-b border-[#EEF1ED] px-2 py-2.5 transition-colors hover:bg-[#F6F8F5] lg:relative lg:mx-0 lg:h-full lg:flex-col lg:items-stretch lg:gap-0 lg:overflow-hidden lg:rounded-2xl lg:border lg:border-line lg:p-0 lg:hover:bg-white lg:hover:shadow-[0_12px_30px_-18px_rgba(20,60,38,.45)]">
+    <div {...viewProps} className={`${viewable ? "cursor-pointer " : ""}-mx-2 flex min-h-[70px] items-center gap-3.5 border-b border-[#EEF1ED] px-2 py-2.5 transition-colors hover:bg-[#F6F8F5] lg:relative lg:mx-0 lg:h-full lg:flex-col lg:items-stretch lg:gap-0 lg:overflow-hidden lg:rounded-2xl lg:border lg:border-line lg:p-0 lg:hover:bg-white lg:hover:shadow-[0_12px_30px_-18px_rgba(20,60,38,.45)]`}>
       <Thumb item={item} dimmed={!available} />
       <div className="flex min-w-0 flex-1 items-center gap-3.5 lg:px-3 lg:pt-6 lg:pb-2.5">
       <div className="min-w-0 flex-1">

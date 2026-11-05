@@ -11,13 +11,14 @@ import PickupChips from "./student/PickupChips";
 import OrderAgain from "./student/OrderAgain";
 import MessCard from "./student/mess/MessCard";
 import { useCurrentUser } from "../lib/useCurrentUser";
-import { bagCount, choiceText, dishFor, groupDishes, lineKey, needsSheet } from "../lib/menuDishes";
+import { bagCount, choiceText, dishContaining, dishFor, groupDishes, lineKey, needsSheet } from "../lib/menuDishes";
 
 // Menu sections that are combos or meals ("Classic Indian Combos", "Veg Mini Meal", "Pick A Meal").
 const COMBO = /combo|meal|thali/i;
 import BagSheet from "./BagSheet";
 import NotOfficial from "./layout/NotOfficial";
 import CustomiseSheet from "./menu/CustomiseSheet";
+import DishDetailSheet from "./menu/DishDetailSheet";
 import { BackLink, CravingGrid, SectionTitle, StallList, StallTabs, ViewSwitch, useStallSubtitle } from "./student/BrowseViews";
 import { CRAVINGS, cravingDishes, isDrink, stallStatus } from "./student/browse";
 import { DealBody, DealEntry, DealHeading, useDeal } from "./student/deal/DealView";
@@ -231,6 +232,8 @@ export default function MenuExperience({ stalls, demoMode }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   // The dish being customised in the sheet: { dish, stall }, or null.
   const [customising, setCustomising] = useState(null);
+  // A dish being looked at read-only on a stall that isn't taking pre-orders: { dish, stall }, or null.
+  const [viewing, setViewing] = useState(null);
   const [search, setSearch] = useState("");
   const [diet, setDiet] = useState("all");
   // "I only eat veg" (Account): the menu starts veg-only unless they've
@@ -377,6 +380,9 @@ export default function MenuExperience({ stalls, demoMode }) {
     }
   }
   const requestAddItem = (item, stall, onAdded) => requestAdd(dishFor(item), stall, onAdded);
+  const viewDish = (dish, stall) => setViewing({ dish, stall });
+  // Lists that hold one item (craving, deal) still show every size of its dish.
+  const viewItem = (item, stall) => viewDish(dishContaining(item, stall), stall);
 
   // `placed=1` makes My orders show the receipt toast once.
   function handlePlaced(orderCodes) {
@@ -499,7 +505,7 @@ export default function MenuExperience({ stalls, demoMode }) {
         <>
           {isDesktop && <div className="max-w-md"><DealHeading deal={deal} onHome={goHome} onBand={false} /></div>}
           <div className="max-w-md lg:max-w-xl">
-            <DealBody deal={deal} demoMode={demoMode} cart={cart} onAdd={requestAddItem} onChangeQuantity={changeQuantity} onHome={goHome} />
+            <DealBody deal={deal} demoMode={demoMode} cart={cart} onAdd={requestAddItem} onView={viewItem} onChangeQuantity={changeQuantity} onHome={goHome} />
           </div>
         </>
       );
@@ -516,7 +522,7 @@ export default function MenuExperience({ stalls, demoMode }) {
           )}
           {filterRow}
           {stallMenu.items.length > 0
-            ? <MenuSection key={activeStall.id} stall={stallMenu} demoMode={demoMode} cart={cart} onAddToCart={requestAdd} onChangeQuantity={changeQuantity} expandAll={filtering} isDesktop={isDesktop} bare />
+            ? <MenuSection key={activeStall.id} stall={stallMenu} demoMode={demoMode} cart={cart} onAddToCart={requestAdd} onChangeQuantity={changeQuantity} onView={viewDish} expandAll={filtering} isDesktop={isDesktop} bare />
             : noMatches(query ? `Nothing at ${activeStall.name} matches "${search.trim()}".` : "Nothing on this menu matches those filters.")}
         </>
       );
@@ -529,7 +535,7 @@ export default function MenuExperience({ stalls, demoMode }) {
             <ul className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 lg:grid-cols-[repeat(auto-fill,minmax(172px,1fr))] lg:gap-3">
               {comboDishes.map(({ dish, stall }) => (
                 <li key={`${stall.id}|${dish.key}`}>
-                  <MenuItemCard dish={dish} demoMode={demoMode} sub={`${stall.name} · ${dish.category}`} quantity={bagCount(cart, dish)} onAddToCart={() => requestAdd(dish, stall)} onChangeQuantity={(delta) => changeQuantity(dish.items[0].id, delta)} />
+                  <MenuItemCard dish={dish} demoMode={demoMode} sub={`${stall.name} · ${dish.category}`} browseOnly={stall.listingOnly} onView={() => viewDish(dish, stall)} quantity={bagCount(cart, dish)} onAddToCart={() => requestAdd(dish, stall)} onChangeQuantity={(delta) => changeQuantity(dish.items[0].id, delta)} />
                 </li>
               ))}
             </ul>
@@ -545,7 +551,7 @@ export default function MenuExperience({ stalls, demoMode }) {
             <ul className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 lg:grid-cols-[repeat(auto-fill,minmax(172px,1fr))] lg:gap-3">
               {cravingList.map(({ item, stall }) => (
                 <li key={item.id}>
-                  <MenuItemCard item={item} demoMode={demoMode} sub={stall.name} browseOnly={stall.listingOnly} dish={dishFor(item)} quantity={bagCount(cart, dishFor(item))} onAddToCart={() => requestAddItem(item, stall)} onChangeQuantity={(delta) => changeQuantity(item.id, delta)} />
+                  <MenuItemCard item={item} demoMode={demoMode} sub={stall.name} browseOnly={stall.listingOnly} onView={() => viewItem(item, stall)} dish={dishFor(item)} quantity={bagCount(cart, dishFor(item))} onAddToCart={() => requestAddItem(item, stall)} onChangeQuantity={(delta) => changeQuantity(item.id, delta)} />
                 </li>
               ))}
             </ul>
@@ -561,7 +567,7 @@ export default function MenuExperience({ stalls, demoMode }) {
           <p className="text-sm text-muted">{dishCount} dish{dishCount === 1 ? "" : "es"} at {searchResults.length} stall{searchResults.length === 1 ? "" : "s"}</p>
           {stallMatches.length > 0 && <StallList stalls={stallMatches} demoMode={demoMode} onOpen={openStall} />}
           {searchResults.length > 0
-            ? <div>{searchResults.map((stall) => <MenuSection key={stall.id} stall={stall} demoMode={demoMode} cart={cart} onAddToCart={requestAdd} onChangeQuantity={changeQuantity} expandAll isDesktop={isDesktop} />)}</div>
+            ? <div>{searchResults.map((stall) => <MenuSection key={stall.id} stall={stall} demoMode={demoMode} cart={cart} onAddToCart={requestAdd} onChangeQuantity={changeQuantity} onView={viewDish} expandAll isDesktop={isDesktop} />)}</div>
             : stallMatches.length === 0 && noMatches("Try another search, or browse every stall.")}
         </>
       );
@@ -634,6 +640,7 @@ export default function MenuExperience({ stalls, demoMode }) {
               onClose={() => setCustomising(null)}
             />
           )}
+          {viewing && <DishDetailSheet key={viewing.dish.key} dish={viewing.dish} stall={viewing.stall} onClose={() => setViewing(null)} />}
         </>
       )}
     </StudentShell>
