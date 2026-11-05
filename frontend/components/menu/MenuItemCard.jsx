@@ -51,14 +51,11 @@ export default function MenuItemCard({ item: itemProp, dish, demoMode, quantity 
   const vegKinds = [...new Set(items.map((candidate) => candidate.veg))];
   const hint = [sized ? dish.variants.map((v) => v.label).join(" · ") : null, ...(item.choices ?? []).map((group) => group.options.join(" or "))].filter(Boolean).join(" · ");
 
+  // A menu-only dish opens its detail sheet when the row is tapped. The name
+  // is the real button (keyboard and screen readers); the row's own click
+  // just makes the whole row a target. The report button inside stops its
+  // click, so reporting never also opens the sheet.
   const viewable = browseOnly && Boolean(onView);
-  const viewProps = viewable ? {
-    role: "button",
-    tabIndex: 0,
-    "aria-label": `${name}, see sizes and options`,
-    onClick: onView,
-    onKeyDown: (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onView(); } },
-  } : {};
 
   async function handleReport() {
     if (demoMode) {
@@ -85,13 +82,15 @@ export default function MenuItemCard({ item: itemProp, dish, demoMode, quantity 
 
   return (
     // A list row on phones and tablets; a photo card on wide screens.
-    <div {...viewProps} className={`${viewable ? "cursor-pointer " : ""}-mx-2 flex min-h-[70px] items-center gap-3.5 border-b border-[#EEF1ED] px-2 py-2.5 transition-colors hover:bg-[#F6F8F5] lg:relative lg:mx-0 lg:h-full lg:flex-col lg:items-stretch lg:gap-0 lg:overflow-hidden lg:rounded-2xl lg:border lg:border-line lg:p-0 lg:hover:bg-white lg:hover:shadow-[0_12px_30px_-18px_rgba(20,60,38,.45)]`}>
+    <div onClick={viewable ? onView : undefined} className={`${viewable ? "cursor-pointer " : ""}-mx-2 flex min-h-[70px] items-center gap-3.5 border-b border-[#EEF1ED] px-2 py-2.5 transition-colors hover:bg-[#F6F8F5] lg:relative lg:mx-0 lg:h-full lg:flex-col lg:items-stretch lg:gap-0 lg:overflow-hidden lg:rounded-2xl lg:border lg:border-line lg:p-0 lg:hover:bg-white lg:hover:shadow-[0_12px_30px_-18px_rgba(20,60,38,.45)]`}>
       <Thumb item={item} dimmed={!available} />
       <div className="flex min-w-0 flex-1 items-center gap-3.5 lg:px-3 lg:pt-6 lg:pb-2.5">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           {vegKinds.map((veg) => <VegDot key={String(veg)} veg={veg} />)}
-          <span className={`text-[15px] font-medium lg:line-clamp-2 lg:text-[13.5px] lg:leading-snug ${available ? "text-ink" : "text-muted"}`}>{name}</span>
+          {viewable
+            ? <button type="button" aria-label={`${name}, see sizes and options`} className={`min-w-0 text-left text-[15px] font-medium lg:line-clamp-2 lg:text-[13.5px] lg:leading-snug ${available ? "text-ink" : "text-muted"}`}>{name}</button>
+            : <span className={`text-[15px] font-medium lg:line-clamp-2 lg:text-[13.5px] lg:leading-snug ${available ? "text-ink" : "text-muted"}`}>{name}</span>}
         </div>
         {sub && <p className="mt-0.5 truncate text-[13px] text-muted">{sub}</p>}
         {custom && hint && <p className="mt-0.5 truncate text-[13px] text-mint-ink">{hint}</p>}
@@ -99,9 +98,9 @@ export default function MenuItemCard({ item: itemProp, dish, demoMode, quantity 
           <div className="mt-0.5 flex flex-wrap items-center gap-x-3">
             <span className="text-sm text-muted lg:text-[13px] lg:font-semibold lg:text-ink">{sized ? `from ₹${minPrice}` : `₹${item.price}`}</span>
             {/* A size group spans several items, so sold-out is reported per size by the stall instead. */}
-            {/* Not on menu-only stalls either: nobody can order there yet. */}
-            {!sized && !browseOnly && (
-              <button type="button" className="-my-2 py-2 text-left text-xs text-muted underline-offset-2 hover:text-ink hover:underline disabled:cursor-default disabled:opacity-60" disabled={reporting} onClick={handleReport}>
+            {/* Menu-only stalls too: a dish can be out of stock whether or not you can pre-order it. */}
+            {!sized && (
+              <button type="button" className="-my-2 py-2 text-left text-xs text-muted underline-offset-2 hover:text-ink hover:underline disabled:cursor-default disabled:opacity-60" disabled={reporting} onClick={(event) => { event.stopPropagation(); handleReport(); }}>
                 {reporting ? "Reporting…" : "Report out of stock"}
               </button>
             )}

@@ -43,7 +43,7 @@ export default function PrivacyPage() {
           <ul className="list-disc space-y-1.5 pl-5">
             <li><span className="font-semibold">The stall you order from</span> sees your name and your phone number (or your email, if you didn&apos;t give a phone number) on that order, plus your hostel and room if you filled that in. Stalls never see your orders at other stalls, only a count of recent uncollected pre-orders.</li>
             <li><span className="font-semibold">MealDeck admins</span> can see accounts and orders, to run the service and sort out problems.</li>
-            <li><span className="font-semibold">Other students</span> see nothing about you. The live queue shows order numbers and status only, and nobody can see who reported an item. (The live queue and out-of-stock reports only exist at stalls that take pre-orders on MealDeck; at a menu-only stall you just browse.)</li>
+            <li><span className="font-semibold">Other students</span> see nothing about you. The live queue shows order numbers and status only, and nobody can see who reported an item. (The live queue only exists at stalls that take pre-orders on MealDeck. At a menu-only stall you can still report a dish as out of stock.)</li>
           </ul>
           <p>We don&apos;t sell your data, show ads, or use tracking or analytics tools.</p>
         </Section>
