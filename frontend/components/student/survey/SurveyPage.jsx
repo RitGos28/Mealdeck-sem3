@@ -46,6 +46,7 @@ function Choice({ type, name, checked, onChange, children }) {
 // Four optional questions about MealDeck, in Account. Answers can be changed
 // later and are removed with the account.
 function SurveyForm() {
+  const router = useRouter();
   const [form, setForm] = useState(null);
   const [answers, setAnswers] = useState({ source: "", sourceOther: "", features: [], featuresOther: "", wishes: "", frustrations: "" });
   const [state, setState] = useState("idle"); // idle | saving | saved
@@ -66,6 +67,13 @@ function SurveyForm() {
     );
     return () => { active = false; };
   }, []);
+
+  // After a save, a moment to read "Thank you", then back to Account.
+  useEffect(() => {
+    if (state !== "saved") return undefined;
+    const timer = setTimeout(() => router.push("/account"), 1400);
+    return () => clearTimeout(timer);
+  }, [state, router]);
 
   if (!form) {
     return error
@@ -122,7 +130,7 @@ function SurveyForm() {
       {error && <p role="alert" className="mt-5 rounded-xl bg-[#FBEDE6] px-3 py-2.5 text-sm text-danger">{error}</p>}
       <div className="mt-7 flex items-center gap-3">
         <button disabled={state === "saving"} className="h-12 rounded-full bg-deck px-7 font-semibold text-white hover:bg-deck-hover disabled:opacity-50">{state === "saving" ? "Saving…" : form.answers ? "Update my answers" : "Send my answers"}</button>
-        {state === "saved" && <span role="status" className="text-sm font-semibold text-mint-ink">Thank you. Saved ✓</span>}
+        {state === "saved" && <span role="status" className="text-sm font-semibold text-mint-ink">Thank you. Saved ✓ Taking you back to Account…</span>}
       </div>
     </form>
   );
