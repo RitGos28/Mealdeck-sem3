@@ -269,4 +269,37 @@ class CheckoutTests {
         assertRejected(() -> orderService.advanceStatus(stall("Bistro / Kathi").getId(), 999_999L, OrderStatus.ACCEPTED),
                 HttpStatus.NOT_FOUND);
     }
+
+    @Test
+    void aStudentCanHaveTwoOpenOrdersAtAStallButNotThree() {
+        Stall bistro = stall("Bistro / Kathi");
+        orderAt(bistro);
+        orderAt(bistro);
+
+        assertRejected(() -> orderAt(bistro), HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void finishingAnOrderFreesASpotUnderTheCap() {
+        Stall bistro = stall("Bistro / Kathi");
+        Long first = orderAt(bistro);
+        orderAt(bistro);
+        assertRejected(() -> orderAt(bistro), HttpStatus.CONFLICT);
+
+        Order done = orderRepository.findById(first).orElseThrow();
+        done.setStatus(com.mealdeck.model.OrderStatus.COMPLETED);
+        orderRepository.save(done);
+
+        orderAt(bistro);
+    }
+
+    @Test
+    void theCapIsPerStall() {
+        Stall bistro = stall("Bistro / Kathi");
+        Stall snapEats = stall("SnapEats");
+        orderAt(bistro);
+        orderAt(bistro);
+
+        orderAt(snapEats);
+    }
 }
