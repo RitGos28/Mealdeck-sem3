@@ -62,11 +62,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("update Order o set o.customerEmailKey = null where o.customerEmailKey is not null and o.pickupDate < :before")
     int forgetEmailKeysBefore(@Param("before") LocalDate before);
 
-    /** Orders this student has at one stall that aren't finished yet
-     * (placed, accepted or ready): the open-order cap counts these. */
-    @Query("select count(o) from Order o where o.student.id = :studentId and o.stall.id = :stallId "
+    /** Orders this student has at one stall for `date` that aren't finished
+     * yet (placed, accepted or ready): the open-order cap counts these. Only
+     * the day's own orders: nothing closes an order a stall never touched, so
+     * yesterday's must not lock a student out today. */
+    @Query("select count(o) from Order o where o.student.id = :studentId and o.stall.id = :stallId and o.pickupDate = :date "
             + "and o.status in (com.mealdeck.model.OrderStatus.PLACED, com.mealdeck.model.OrderStatus.ACCEPTED, com.mealdeck.model.OrderStatus.READY)")
-    long countOpenForStudentAtStall(@Param("studentId") Long studentId, @Param("stallId") Long stallId);
+    long countOpenForStudentAtStall(@Param("studentId") Long studentId, @Param("stallId") Long stallId, @Param("date") LocalDate date);
 
     /** Whether the student has an order a stall is still working on. */
     boolean existsByStudentIdAndStatusIn(Long studentId, java.util.Collection<com.mealdeck.model.OrderStatus> statuses);

@@ -155,7 +155,7 @@ public class OrderService {
                     stall.getName() + " has paused pre-orders. Try again in a bit");
         }
         // Under the same stall lock, so two checkouts can't both slip past the cap.
-        if (orderRepository.countOpenForStudentAtStall(studentId, stallId) >= maxOpenPerStall) {
+        if (orderRepository.countOpenForStudentAtStall(studentId, stallId, date) >= maxOpenPerStall) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "You already have " + maxOpenPerStall + " orders waiting at " + stall.getName()
                             + ". Pick one up (or have the stall cancel it) before ordering again.");

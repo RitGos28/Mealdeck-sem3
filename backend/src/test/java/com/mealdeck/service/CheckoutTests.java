@@ -329,4 +329,20 @@ class CheckoutTests {
         assertRejected(() -> orderService.checkout(studentId(), new CreateOrderRequest(
                 List.of(new OrderItemRequest(item.getId(), 1)), Map.of(bistro.getId(), NOON), "x".repeat(81))), HttpStatus.BAD_REQUEST);
     }
+
+    @Test
+    void ordersLeftOpenOnEarlierDaysDontCountTowardsTheCap() {
+        // Nothing closes a placed order a stall never touched, so yesterday's
+        // must not lock the student out today.
+        Stall bistro = stall("Bistro / Kathi");
+        var student = studentRepository.findById(studentId()).orElseThrow();
+        java.time.LocalDate yesterday = java.time.LocalDate.now(clock).minusDays(1);
+        for (int i = 0; i < 3; i++) {
+            orderRepository.save(new Order(bistro, student, yesterday, NOON));
+        }
+
+        orderAt(bistro);
+        orderAt(bistro);
+        assertRejected(() -> orderAt(bistro), HttpStatus.CONFLICT);
+    }
 }
