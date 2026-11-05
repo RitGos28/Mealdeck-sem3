@@ -302,4 +302,31 @@ class CheckoutTests {
 
         orderAt(snapEats);
     }
+
+    @Test
+    void theOptionalHostelRoomIsKeptOnTheOrderAndWipedWhenTheAccountGoes() {
+        Stall bistro = stall("Bistro / Kathi");
+        MenuItem item = bistro.getMenuItems().getFirst();
+
+        Order order = orderService.checkout(studentId(), new CreateOrderRequest(
+                List.of(new OrderItemRequest(item.getId(), 1)), Map.of(bistro.getId(), NOON), "  Hostel 4, room 212 ")).getFirst();
+        assertThat(order.getHostelRoom()).isEqualTo("Hostel 4, room 212");
+        assertThat(com.mealdeck.web.OrderDto.from(order).hostelRoom()).isEqualTo("Hostel 4, room 212");
+
+        orderRepository.detachStudent(studentId());
+        assertThat(orderRepository.findById(order.getId()).orElseThrow().getHostelRoom()).isNull();
+    }
+
+    @Test
+    void aBlankRoomMeansNoneAndAVeryLongOneIsRefused() {
+        Stall bistro = stall("Bistro / Kathi");
+        MenuItem item = bistro.getMenuItems().getFirst();
+
+        Order plain = orderService.checkout(studentId(), new CreateOrderRequest(
+                List.of(new OrderItemRequest(item.getId(), 1)), Map.of(bistro.getId(), NOON), "   ")).getFirst();
+        assertThat(plain.getHostelRoom()).isNull();
+
+        assertRejected(() -> orderService.checkout(studentId(), new CreateOrderRequest(
+                List.of(new OrderItemRequest(item.getId(), 1)), Map.of(bistro.getId(), NOON), "x".repeat(81))), HttpStatus.BAD_REQUEST);
+    }
 }

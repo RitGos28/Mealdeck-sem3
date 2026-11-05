@@ -6,6 +6,27 @@ import { api, formatTime, toSlotValue } from "../../lib/api";
 import { LiveIndicator, useLiveTopic } from "../../lib/liveQueue";
 import { readPreferredPickup } from "../student/PickupChips";
 
+// The optional "Hostel + room" is remembered on this device, so it's
+// there next time. Blocked or unavailable storage just means no memory.
+const ROOM_KEY = "mealdeck.hostelRoom";
+
+function readRoom() {
+  try {
+    return localStorage.getItem(ROOM_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function writeRoom(value) {
+  try {
+    if (value) localStorage.setItem(ROOM_KEY, value);
+    else localStorage.removeItem(ROOM_KEY);
+  } catch {
+    // Not remembered; the order still goes through.
+  }
+}
+
 // A cart spanning stalls becomes one order per stall on the backend, each
 // with its own pickup slot -- so the slot picker is per stall too.
 function groupByStall(cartItems) {
@@ -91,6 +112,7 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced, lat
   const [notices, setNotices] = useState({});
   const [pausedStalls, setPausedStalls] = useState({});
   const [placing, setPlacing] = useState(false);
+  const [room, setRoom] = useState(readRoom);
   const [error, setError] = useState(null);
   // Stalls already pre-selected once. Later reloads (reconnects, a 409)
   // leave an empty pick empty, so a dropped time is never swapped silently.
@@ -151,8 +173,10 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced, lat
         body: {
           items: cartItems.map((entry) => ({ menuItemId: entry.item.id, quantity: entry.quantity, ...(entry.choices ? { choices: entry.choices } : {}) })),
           pickupTimes: picked,
+          ...(room.trim() ? { hostelRoom: room.trim() } : {}),
         },
       });
+      writeRoom(room.trim());
       onPlaced(orders.map((order) => order.code));
     } catch (err) {
       // Session expired mid-checkout: log in again, the bag is kept.
@@ -215,8 +239,22 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced, lat
           );
         })}
 
-        <p className="border-t border-line pt-4 text-sm text-muted">
-          Ordering as <span className="font-semibold text-ink">{user.email}</span>. The stall sees your name and your phone number, or your email if you didn&apos;t add one.
+        <div className="border-t border-line pt-4">
+          <label htmlFor="hostel-room" className="block text-sm font-semibold text-ink">Hostel and room <span className="font-normal text-muted">(optional)</span></label>
+          <input
+            id="hostel-room"
+            value={room}
+            onChange={(event) => setRoom(event.target.value)}
+            maxLength={80}
+            placeholder="e.g. Hostel 4, room 212"
+            autoComplete="off"
+            className="mt-1.5 h-12 w-full rounded-xl border border-line bg-white px-3 text-base text-ink outline-none focus:border-deck"
+          />
+          <p className="mt-1.5 text-xs text-muted">Only if you want the stall to know where to find you. It stays on this device for next time.</p>
+        </div>
+
+        <p className="text-sm text-muted">
+          Ordering as <span className="font-semibold text-ink">{user.email}</span>. The stall sees your name and your phone number, or your email if you didn&apos;t add one, and the hostel and room if you fill it in.
         </p>
 
         {error && <p className="rounded-xl bg-[#FBEDE6] px-3 py-2.5 text-sm text-danger" role="alert">{error}</p>}

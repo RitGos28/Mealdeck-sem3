@@ -40,7 +40,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * history (items, prices, times) so the stall's records still add up,
      * but anonymised: the name and contact copied at checkout are wiped. */
     @Modifying(clearAutomatically = true)
-    @Query("update Order o set o.student = null, o.customerName = 'Deleted student', o.customerContact = '(deleted)' where o.student.id = :studentId")
+    @Query("update Order o set o.student = null, o.customerName = 'Deleted student', o.customerContact = '(deleted)', o.hostelRoom = null where o.student.id = :studentId")
     void detachStudent(@Param("studentId") Long studentId);
 
     /** Pickup days of no-shows for this email code since `since`, newest first. */

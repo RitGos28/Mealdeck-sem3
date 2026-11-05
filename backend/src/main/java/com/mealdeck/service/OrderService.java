@@ -90,6 +90,7 @@ public class OrderService {
         emailStanding.requireCanOrder(student);
         String emailKey = emailStanding.keyFor(student.getEmail());
 
+        String hostelRoom = cleanRoom(request.hostelRoom());
         Map<Long, Order> ordersByStall = new LinkedHashMap<>();
         for (OrderItemRequest line : request.items()) {
             if (line.quantity() <= 0) {
@@ -110,6 +111,7 @@ public class OrderService {
                 slotService.requireBookable(item.getStall(), pickupTime);
                 Order created = new Order(item.getStall(), student, today, pickupTime);
                 created.setCustomerEmailKey(emailKey);
+                created.setHostelRoom(hostelRoom);
                 return created;
             });
             // Free choices are checked against the dish's own options, so an
@@ -128,6 +130,18 @@ public class OrderService {
         orders.forEach(order -> activityLog.preordered(studentId, order));
         ordersByStall.keySet().forEach(stallId -> events.publishEvent(new QueueChangedEvent(stallId)));
         return orders;
+    }
+
+    static final int MAX_ROOM_LENGTH = 80;
+
+    /** The optional "Hostel + room": trimmed, blank means none, and too long is refused. */
+    private static String cleanRoom(String room) {
+        if (room == null || room.isBlank()) return null;
+        String trimmed = room.trim();
+        if (trimmed.length() > MAX_ROOM_LENGTH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hostel and room can be at most " + MAX_ROOM_LENGTH + " characters");
+        }
+        return trimmed;
     }
 
     /** The stall row stays locked until checkout commits, so the count and

@@ -17,10 +17,15 @@ public class OrderRequests {
 
     /** pickupTimes maps each stall id in the cart to its chosen slot start
      * ("12:30"), since a multi-stall cart becomes one order per stall. No
-     * name or contact: they come from the logged-in student's account. */
+     * name or contact: they come from the logged-in student's account.
+     * hostelRoom is optional free text ("Hostel 4, room 212"). */
     public record CreateOrderRequest(
             List<OrderItemRequest> items,
-            Map<Long, LocalTime> pickupTimes) {
+            Map<Long, LocalTime> pickupTimes,
+            String hostelRoom) {
+        public CreateOrderRequest(List<OrderItemRequest> items, Map<Long, LocalTime> pickupTimes) {
+            this(items, pickupTimes, null);
+        }
     }
 
     public record UpdateOrderStatusRequest(String status) {

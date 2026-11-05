@@ -62,6 +62,12 @@ public class Order {
     @Column(length = 64)
     private String customerEmailKey;
 
+    /** Optional "Hostel + room" the student typed at checkout, so the stall
+     * knows where to find them (night stalls, runners). Wiped when the
+     * account is deleted. */
+    @Column(length = 80)
+    private String hostelRoom;
+
     // Plain text, not a MySQL ENUM: ddl-auto=update never edits an ENUM's
     // value list, so a new value would be rejected ("Data truncated").
     @Enumerated(EnumType.STRING)
@@ -105,6 +111,9 @@ public class Order {
     public String getPublicCode() {
         return publicCode;
     }
+
+    public String getHostelRoom() { return hostelRoom; }
+    public void setHostelRoom(String hostelRoom) { this.hostelRoom = hostelRoom; }
 
     public String getCustomerEmailKey() { return customerEmailKey; }
     public void setCustomerEmailKey(String customerEmailKey) { this.customerEmailKey = customerEmailKey; }
