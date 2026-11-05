@@ -48,6 +48,7 @@ public class AccountDeletionService {
     private final StudentRepository studentRepository;
     private final OrderRepository orderRepository;
     private final StudentService studentService;
+    private final ActivityLogService activityLog;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
     private final Duration grace;
@@ -58,6 +59,7 @@ public class AccountDeletionService {
             StudentRepository studentRepository,
             OrderRepository orderRepository,
             StudentService studentService,
+            ActivityLogService activityLog,
             PasswordEncoder passwordEncoder,
             Clock clock,
             @Value("${mealdeck.account.deletion-grace:PT24H}") Duration grace,
@@ -66,6 +68,7 @@ public class AccountDeletionService {
         this.studentRepository = studentRepository;
         this.orderRepository = orderRepository;
         this.studentService = studentService;
+        this.activityLog = activityLog;
         this.passwordEncoder = passwordEncoder;
         this.clock = clock;
         this.grace = grace;
@@ -102,6 +105,7 @@ public class AccountDeletionService {
         }
         student.setDeletionRequestedAt(clock.instant());
         log.info("Account deletion scheduled for student {} at {}", studentId, deleteAt(student));
+        activityLog.deletionRequested(studentId, grace.toHours());
         return status(studentRepository.save(student));
     }
 
@@ -111,6 +115,7 @@ public class AccountDeletionService {
         if (student.getDeletionRequestedAt() != null) {
             student.setDeletionRequestedAt(null);
             log.info("Account deletion cancelled for student {}", studentId);
+            activityLog.deletionCancelled(studentId);
         }
         return status(studentRepository.save(student));
     }
@@ -148,7 +153,7 @@ public class AccountDeletionService {
                 log.info("Account deletion for student {} waits for a live order", student.getId());
                 continue;
             }
-            studentService.deleteByAdmin(student.getId());
+            studentService.delete(student.getId(), "the " + grace.toHours() + " h grace period ended");
             log.info("Account deleted for student {} after the grace period", student.getId());
         }
     }

@@ -43,8 +43,10 @@ public class AdminController {
     private final StudentService studentService;
     private final com.mealdeck.service.AccountDeletionService accountDeletion;
     private final com.mealdeck.service.EmailStandingService emailStanding;
+    private final com.mealdeck.service.ActivityLogService activityLog;
 
-    public AdminController(MenuService menuService, OrderService orderService, AnalyticsService analyticsService, com.mealdeck.service.PitchService pitchService, AdminAccountService adminAccountService, StudentService studentService, com.mealdeck.service.AccountDeletionService accountDeletion, com.mealdeck.service.EmailStandingService emailStanding) {
+    public AdminController(MenuService menuService, OrderService orderService, AnalyticsService analyticsService, com.mealdeck.service.PitchService pitchService, AdminAccountService adminAccountService, StudentService studentService, com.mealdeck.service.AccountDeletionService accountDeletion, com.mealdeck.service.EmailStandingService emailStanding, com.mealdeck.service.ActivityLogService activityLog) {
+        this.activityLog = activityLog;
         this.accountDeletion = accountDeletion;
         this.emailStanding = emailStanding;
         this.menuService = menuService;
@@ -108,6 +110,20 @@ public class AdminController {
     @GetMapping("/pitch")
     public PitchDto pitch() {
         return pitchService.summarize();
+    }
+
+    /** The activity trail, newest first; studentId narrows it to one student. */
+    @GetMapping("/activity")
+    public List<ActivityDto> activity(@org.springframework.web.bind.annotation.RequestParam(defaultValue = "200") int limit,
+                                      @org.springframework.web.bind.annotation.RequestParam(required = false) Long studentId) {
+        var entries = studentId == null ? activityLog.recent(limit) : activityLog.forStudent(studentId, limit);
+        return entries.stream().map(ActivityDto::from).toList();
+    }
+
+    /** Clears the whole trail. Without this, lines are dropped after a year. */
+    @DeleteMapping("/activity")
+    public java.util.Map<String, Long> clearActivity() {
+        return java.util.Map.of("removed", activityLog.clearAll());
     }
 
     @GetMapping("/analytics")

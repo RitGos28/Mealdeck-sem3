@@ -39,7 +39,7 @@ export function WhatYouLose() {
         ))}
       </ul>
       <p><strong>A new account starts from zero.</strong> Your stamps and order history don&apos;t come back if you sign up again. The stalls will miss you. (Probably.)</p>
-      <p className="text-muted">The plain version: deleting removes your login, account details, Food passport and reports. Orders you&apos;ve already placed stay on the stalls&apos; records so their sales add up, but anonymised: your name and contact are removed from them.</p>
+      <p className="text-muted">The plain version: deleting removes your login, account details, Food passport and reports. Orders you&apos;ve already placed stay on the stalls&apos; records so their sales add up, but anonymised: your name and contact are removed from them. Our activity log keeps your account number (not your name or email) next to things like signing up and pre-ordering for up to a year, even after deletion.</p>
     </div>
   );
 }

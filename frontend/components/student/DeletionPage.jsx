@@ -57,6 +57,7 @@ export default function DeletionPage() {
               <li>Orders from the last <strong>30 days</strong> keep a scrambled, one-way code made from your email. It isn&apos;t your email and can&apos;t be turned back into it; it can only tell us the same email signed up again. It&apos;s wiped once each order is 30 days old.</li>
               <li>If an admin flagged your email for abuse (pranks, repeated no-shows), the flag stays until it expires or is removed: the same kind of code, plus a partly hidden address like <span className="whitespace-nowrap">ri•••@bennett.edu.in</span>.</li>
             </ul>
+            <p className="mt-3">A third thing stays for a different reason: our <strong>activity log</strong>. It keeps your account number (not your name or email) next to things like signing up, pre-ordering, reporting an item out of stock, and asking to delete. Those lines stay for up to <strong>a year</strong>, or until an admin clears the log, even after your account is deleted; the last one says it was permanently deleted. They don&apos;t name you, but they do show what that account number did.</p>
             <p className="mt-3">Nothing else is kept.</p>
           </section>
 

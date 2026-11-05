@@ -45,6 +45,7 @@ public class OrderService {
     private final Clock clock;
     private final AccountDeletionService accountDeletion;
     private final EmailStandingService emailStanding;
+    private final ActivityLogService activityLog;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -55,7 +56,9 @@ public class OrderService {
             ApplicationEventPublisher events,
             Clock clock,
             AccountDeletionService accountDeletion,
-            EmailStandingService emailStanding) {
+            EmailStandingService emailStanding,
+            ActivityLogService activityLog) {
+        this.activityLog = activityLog;
         this.emailStanding = emailStanding;
         this.orderRepository = orderRepository;
         this.stallRepository = stallRepository;
@@ -119,6 +122,7 @@ public class OrderService {
         }
 
         List<Order> orders = orderRepository.saveAll(new ArrayList<>(ordersByStall.values()));
+        orders.forEach(order -> activityLog.preordered(studentId, order));
         ordersByStall.keySet().forEach(stallId -> events.publishEvent(new QueueChangedEvent(stallId)));
         return orders;
     }

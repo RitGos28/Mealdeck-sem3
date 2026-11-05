@@ -37,12 +37,16 @@ public class MenuService {
     private final StudentRepository studentRepository;
     private final ApplicationEventPublisher events;
 
+    private final ActivityLogService activityLog;
+
     public MenuService(
             StallRepository stallRepository,
             MenuItemRepository menuItemRepository,
             ReportRepository reportRepository,
             StudentRepository studentRepository,
-            ApplicationEventPublisher events) {
+            ApplicationEventPublisher events,
+            ActivityLogService activityLog) {
+        this.activityLog = activityLog;
         this.stallRepository = stallRepository;
         this.menuItemRepository = menuItemRepository;
         this.reportRepository = reportRepository;
@@ -72,6 +76,7 @@ public class MenuService {
 
         reportRepository.save(new Report(item, student));
         menuItemRepository.incrementReportCount(menuItemId);
+        activityLog.outOfStockReported(studentId, menuItemId, item.getName());
 
         MenuItem updated = menuItemRepository.findById(menuItemId).orElseThrow();
         if (reportRepository.countDistinctStudentsByMenuItemId(menuItemId) >= REPORT_THRESHOLD) {
