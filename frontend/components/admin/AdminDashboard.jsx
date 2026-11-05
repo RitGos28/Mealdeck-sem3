@@ -128,10 +128,11 @@ function Students({ students, onChange }) {
   return <section><SectionTitle title="Student accounts" description="Create, update, reset passwords, or permanently delete student accounts." /><Notice error={error} /><form onSubmit={create} className="mb-7 grid gap-3 rounded-2xl border border-[#dce6d8] bg-[#f7faf5] p-5 md:grid-cols-4"><h3 className="md:col-span-4 font-display text-lg font-bold">Add student</h3><input className={input} required placeholder="Student name" value={newStudent.name} onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })} /><input className={input} required type="email" placeholder="Email (@bennett.edu.in)" value={newStudent.email} onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })} /><input className={input} placeholder="Phone (optional)" value={newStudent.phone} onChange={(e) => setNewStudent({ ...newStudent, phone: e.target.value })} /><div className="flex gap-2"><input className={input} required minLength="6" type="password" placeholder="Password" value={newStudent.password} onChange={(e) => setNewStudent({ ...newStudent, password: e.target.value })} /><button className={button}>Create</button></div></form><div className="grid gap-4 lg:grid-cols-2">{students.map((student) => <StudentCard key={student.id} student={student} onSave={save} onDelete={() => remove(student)} onCancelDeletion={() => cancelDeletion(student)} />)}</div></section>;
 }
 
-// A deletion the student asked for runs 24 hours after they asked.
+// A deletion the student asked for runs when the server says: its grace
+// period after the request (deletionScheduledFor).
 function deletionDue(student) {
-  if (!student.deletionRequestedAt) return null;
-  return new Date(new Date(student.deletionRequestedAt).getTime() + 24 * 3600 * 1000).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  if (!student.deletionScheduledFor) return null;
+  return new Date(student.deletionScheduledFor).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 }
 
 function StudentCard({ student, onSave, onDelete, onCancelDeletion }) {

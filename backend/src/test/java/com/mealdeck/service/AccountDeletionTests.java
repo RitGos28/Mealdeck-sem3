@@ -187,4 +187,15 @@ class AccountDeletionTests {
         Student kept = studentRepository.findById(demo.getId()).orElseThrow();
         assertThat(kept.getDeletionRequestedAt()).isNull();
     }
+
+    @Test
+    void theAdminViewCarriesTheTimeTheServerWillDeleteAt() {
+        Student student = newStudent();
+        assertThat(com.mealdeck.web.StudentAccountDto.from(student, accountDeletion).deletionScheduledFor()).isNull();
+
+        accountDeletion.request(student.getId(), PASSWORD);
+
+        assertThat(com.mealdeck.web.StudentAccountDto.from(student, accountDeletion).deletionScheduledFor())
+                .isEqualTo(FixedClockConfig.NOW.plus(Duration.ofHours(24)));
+    }
 }

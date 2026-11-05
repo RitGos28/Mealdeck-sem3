@@ -141,13 +141,13 @@ public class AdminController {
     public void deleteVendor(@PathVariable Long id) { adminAccountService.deleteVendor(id); }
 
     @GetMapping("/students")
-    public List<StudentAccountDto> students() { return studentService.list().stream().map(StudentAccountDto::from).toList(); }
+    public List<StudentAccountDto> students() { return studentService.list().stream().map(student -> StudentAccountDto.from(student, accountDeletion)).toList(); }
 
     @PostMapping("/students")
-    public StudentAccountDto createStudent(@RequestBody CreateStudentRequest request) { return StudentAccountDto.from(studentService.createByAdmin(request)); }
+    public StudentAccountDto createStudent(@RequestBody CreateStudentRequest request) { return StudentAccountDto.from(studentService.createByAdmin(request), accountDeletion); }
 
     @PatchMapping("/students/{id}")
-    public StudentAccountDto updateStudent(@PathVariable Long id, @RequestBody UpdateStudentRequest request) { return StudentAccountDto.from(studentService.updateByAdmin(id, request)); }
+    public StudentAccountDto updateStudent(@PathVariable Long id, @RequestBody UpdateStudentRequest request) { return StudentAccountDto.from(studentService.updateByAdmin(id, request), accountDeletion); }
 
     @DeleteMapping("/students/{id}")
     public void deleteStudent(@PathVariable Long id) { studentService.deleteByAdmin(id); }
