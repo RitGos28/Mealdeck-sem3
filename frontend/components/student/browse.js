@@ -19,12 +19,17 @@ export function stallStatus(stall, demoMode) {
   return { label: "Open", live: true };
 }
 
+// Whether the stall is open right now, whether or not it takes pre-orders
+// on MealDeck: the one meaning of "open" for the home page and the game.
+export function stallOpenNow(stall, demoMode) {
+  return !stall.closedToday && !stall.ordersPaused && (demoMode || Boolean(stall.open));
+}
+
 // Whether "Deal me a dish" can deal from this stall: one taking orders, or
 // a menu-only stall that's open now (you'd order at its counter). Not a
 // stall that's closed or has paused.
 export function dealable(stall, demoMode) {
-  if (stallStatus(stall, demoMode).live) return true;
-  return Boolean(stall.listingOnly) && !stall.closedToday && !stall.ordersPaused && (demoMode || stall.open);
+  return stallStatus(stall, demoMode).live || (Boolean(stall.listingOnly) && stallOpenNow(stall, demoMode));
 }
 
 // Drinks are told apart by their category ("Cold Beverages", "Chai Nagri"),
@@ -38,11 +43,13 @@ export function isDrink(item) {
 // Diet-only headings ("Veg", "Non Veg") say nothing about the food, so
 // they're skipped.
 const GENERIC_CATEGORY = /^(non[ -]?)?veg(etarian)?$/i;
+// Add-on sections (extra cheese, sizes of add-ons) aren't what a stall serves.
+const ADD_ON_CATEGORY = /\badd[- ]?ons?\b/i;
 
 export function topCategories(stall, count = 4) {
   const sizes = new Map();
   for (const item of stall.items) {
-    if (item.category && !GENERIC_CATEGORY.test(item.category.trim())) sizes.set(item.category, (sizes.get(item.category) ?? 0) + 1);
+    if (item.category && !GENERIC_CATEGORY.test(item.category.trim()) && !ADD_ON_CATEGORY.test(item.category)) sizes.set(item.category, (sizes.get(item.category) ?? 0) + 1);
   }
   return [...sizes.entries()].sort((a, b) => b[1] - a[1]).slice(0, count).map(([name]) => name);
 }
