@@ -28,8 +28,13 @@ public class StudentService {
     private final SignupCodeService signupCodeService;
     private final OrderRepository orderRepository;
     private final ActivityLogService activityLog;
+    private final com.mealdeck.repository.MessFlagRepository messFlagRepository;
+    private final com.mealdeck.repository.MessMealRepository messMealRepository;
 
-    public StudentService(StudentRepository studentRepository, PasswordEncoder passwordEncoder, ReportRepository reportRepository, SignupCodeService signupCodeService, OrderRepository orderRepository, EmailStandingService emailStanding, ActivityLogService activityLog) {
+    public StudentService(StudentRepository studentRepository, PasswordEncoder passwordEncoder, ReportRepository reportRepository, SignupCodeService signupCodeService, OrderRepository orderRepository, EmailStandingService emailStanding, ActivityLogService activityLog,
+            com.mealdeck.repository.MessFlagRepository messFlagRepository, com.mealdeck.repository.MessMealRepository messMealRepository) {
+        this.messFlagRepository = messFlagRepository;
+        this.messMealRepository = messMealRepository;
         this.activityLog = activityLog;
         this.emailStanding = emailStanding;
         this.orderRepository = orderRepository;
@@ -135,6 +140,9 @@ public class StudentService {
     public void delete(Long id, String how) {
         Student student = get(id);
         reportRepository.deleteByStudentId(id);
+        // Mess: their "isn't correct" flags go; menus they added stay, anonymously.
+        messFlagRepository.deleteByStudentId(id);
+        messMealRepository.clearSubmitter(id);
         orderRepository.detachStudent(id);
         studentRepository.delete(student);
         activityLog.accountDeleted(id, how);

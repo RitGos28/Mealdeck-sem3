@@ -26,7 +26,11 @@ public class ActivityLog {
         PREORDER_PLACED,
         DELETION_REQUESTED,
         DELETION_CANCELLED,
-        ACCOUNT_DELETED
+        ACCOUNT_DELETED,
+        MESS_MEAL_ADDED,
+        MESS_FLAGGED,
+        MESS_MENU_CORRECTED,
+        MESS_MENU_CONFIRMED
     }
 
     @Id

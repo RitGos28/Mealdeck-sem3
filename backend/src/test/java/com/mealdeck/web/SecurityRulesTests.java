@@ -243,4 +243,31 @@ class SecurityRulesTests {
                         .content("{\"email\":\"bistro@mealdeck.in\",\"password\":\"wrong\"}"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void messTodayIsPublicButAddingAMenuNeedsAStudent() throws Exception {
+        String lunch = "{\"items\":\"Rajma, rice, roti\"}";
+
+        mvc.perform(get("/api/mess/today")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.meals.length()").value(4))
+                .andExpect(jsonPath("$.meals[1].priceInr").value(70));
+        mvc.perform(post("/api/mess/today/lunch").contentType(MediaType.APPLICATION_JSON).content(lunch)).andExpect(status().isForbidden());
+        mvc.perform(post("/api/mess/today/lunch").with(VENDOR).contentType(MediaType.APPLICATION_JSON).content(lunch)).andExpect(status().isForbidden());
+        mvc.perform(post("/api/mess/today/lunch").with(ADMIN).contentType(MediaType.APPLICATION_JSON).content(lunch)).andExpect(status().isForbidden());
+        mvc.perform(post("/api/mess/today/lunch").with(STUDENT).contentType(MediaType.APPLICATION_JSON).content(lunch)).andExpect(status().isOk());
+
+        // The student now sees it as theirs; a guest just sees the menu.
+        mvc.perform(get("/api/mess/today").with(STUDENT)).andExpect(jsonPath("$.meals[1].youAdded").value(true));
+        mvc.perform(get("/api/mess/today")).andExpect(jsonPath("$.meals[1].youAdded").value(false))
+                .andExpect(jsonPath("$.meals[1].items[0]").value("Rajma"));
+        mvc.perform(post("/api/mess/today/lunch/flags").contentType(MediaType.APPLICATION_JSON).content("{\"correction\":\"Dal\"}")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void messAdminRoutesNeedTheAdminRole() throws Exception {
+        mvc.perform(get("/api/admin/mess")).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/mess").with(STUDENT)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/mess").with(VENDOR)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/mess").with(ADMIN)).andExpect(status().isOk());
+    }
 }
