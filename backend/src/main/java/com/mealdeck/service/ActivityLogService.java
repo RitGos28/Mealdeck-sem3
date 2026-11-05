@@ -93,6 +93,24 @@ public class ActivityLogService {
         return count;
     }
 
+    public void messMealAdded(Long studentId, String meal) {
+        record(Type.MESS_MEAL_ADDED, studentId, null, "added today's " + meal + " menu to Mess today");
+    }
+
+    public void messFlagged(Long studentId, String meal) {
+        record(Type.MESS_FLAGGED, studentId, null, "said today's " + meal + " mess menu isn't correct");
+    }
+
+    /** No student: the menu was replaced by three students' corrections. */
+    public void messMenuCorrected(String meal) {
+        record(Type.MESS_MENU_CORRECTED, null, null, "Today's " + meal + " mess menu was replaced by students' corrections");
+    }
+
+    /** No student: an admin checked it. */
+    public void messMenuConfirmed(String meal) {
+        record(Type.MESS_MENU_CONFIRMED, null, null, "An admin confirmed today's " + meal + " mess menu as correct");
+    }
+
     @Transactional(readOnly = true)
     public List<ActivityLog> recent(int limit) {
         return repository.findAllByOrderByIdDesc(PageRequest.of(0, Math.max(1, Math.min(limit, MAX_PAGE))));

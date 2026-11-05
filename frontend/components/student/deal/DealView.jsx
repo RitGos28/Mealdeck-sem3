@@ -287,7 +287,7 @@ function Dealing({ deal, demoMode, onBag }) {
         <RoundButton label={`Keep ${current.item.name}`} caption="Keep" primary onClick={() => deal.decide(true)}>{Glyph.keep}</RoundButton>
         {current.stall.listingOnly
           // Menu-only stall: nothing to bag; you'd order at its counter.
-          ? <span className="flex w-14 flex-col items-center gap-1 pt-1 text-center text-[11px] leading-tight text-muted">Order at the counter</span>
+          ? <span className="flex w-16 flex-col items-center gap-1 pt-1 text-center text-[11px] leading-tight text-muted">At the counter</span>
           : <RoundButton label={`Add ${current.item.name} to bag now`} caption="Bag it" small onClick={() => onBag(current.item, current.stall, () => deal.decide(true))}><span className="text-2xl leading-none">+</span></RoundButton>}
       </div>
       {deal.kept.length > 0 && (
@@ -316,7 +316,7 @@ function Hand({ deal, demoMode, cart, onAdd, onChangeQuantity, onHome }) {
           <ul>
             {items.map((item) => (
               <li key={item.id}>
-                <MenuItemCard item={item} dish={dishFor(item)} demoMode={demoMode} sub={item.category} browseOnly={stall.listingOnly} quantity={bagCount(cart, dishFor(item))} onAddToCart={() => onAdd(item, stall)} onChangeQuantity={(delta) => onChangeQuantity(item.id, delta)} />
+                <MenuItemCard item={item} dish={dishFor(item)} demoMode={demoMode} sub={item.category} browseOnly={stall.listingOnly} onView={onView ? () => onView(item, stall) : undefined} quantity={bagCount(cart, dishFor(item))} onAddToCart={() => onAdd(item, stall)} onChangeQuantity={(delta) => onChangeQuantity(item.id, delta)} />
               </li>
             ))}
           </ul>
@@ -330,7 +330,7 @@ function Hand({ deal, demoMode, cart, onAdd, onChangeQuantity, onHome }) {
   );
 }
 
-export function DealBody({ deal, demoMode, cart, onAdd, onChangeQuantity, onHome }) {
+export function DealBody({ deal, demoMode, cart, onAdd, onView, onChangeQuantity, onHome }) {
   if (deal.phase === "dealing" && deal.current) return <Dealing deal={deal} demoMode={demoMode} onBag={onAdd} />;
   if (deal.phase === "hand") return <Hand deal={deal} demoMode={demoMode} cart={cart} onAdd={onAdd} onChangeQuantity={onChangeQuantity} onHome={onHome} />;
   return <Setup deal={deal} />;
@@ -353,7 +353,7 @@ function Fan({ kept }) {
 
 // The deal view's heading: on the green band on phones, atop the column on
 // desktop.
-export function DealHeading({ deal, onHome, onBand = true }) {
+export function DealHeading({ deal, onHome, onBand = true, counterOnly = false }) {
   const sub = onBand ? "text-on-deck" : "text-muted";
   if (deal.phase === "hand") {
     const stallCount = new Set(deal.kept.map(({ stall }) => stall.id)).size;
@@ -387,7 +387,7 @@ export function DealHeading({ deal, onHome, onBand = true }) {
     <>
       <div className="mt-1.5"><BackLink label="Home" onClick={onHome} onBand={onBand} /></div>
       <h1 className="font-serif text-[30px] leading-[1.1]">Deal me a dish</h1>
-      <p className={`mt-0.5 text-sm ${sub}`}>Ten dishes from the open stalls, one at a time. Keep what looks good.</p>
+      <p className={`mt-0.5 text-sm ${sub}`}>Ten dishes from the open stalls, one at a time. Keep what looks good{counterOnly ? ", then order it at the stall's counter" : ""}.</p>
     </>
   );
 }

@@ -37,6 +37,18 @@ async function getMyOrders() {
   return { orders: await res.json(), loggedOut: false };
 }
 
+// Whether any stall takes pre-orders yet. If the stall list can't be read
+// we say yes, so the page keeps its normal wording rather than a guess.
+async function preOrdersOpen() {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/stalls`, { cache: "no-store" });
+    if (!res.ok) return true;
+    return (await res.json()).some((stall) => !stall.listingOnly);
+  } catch {
+    return true;
+  }
+}
+
 function campusToday() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 }
@@ -80,6 +92,7 @@ export default async function OrdersPage({ searchParams }) {
   } catch {
     failed = true;
   }
+  const preOrders = await preOrdersOpen();
   // On "My orders", only today's unfinished orders get a live card.
   const today = campusToday();
   const live = mine ? orders.filter((order) => order.pickupDate === today && !FINAL_STATUSES.includes(order.status)) : orders;
@@ -90,7 +103,7 @@ export default async function OrdersPage({ searchParams }) {
   const band = (
     <div className="mt-5 md:mx-auto md:max-w-3xl lg:mx-0 lg:max-w-none">
       <h1 className="font-serif text-3xl leading-tight">{title}</h1>
-      <p className="mt-1 text-sm text-on-deck">Live updates — we&apos;ll show when it&apos;s ready</p>
+      <p className="mt-1 text-sm text-on-deck">{preOrders || orders.length > 0 ? "Live updates — we'll show when it's ready" : "Your orders will show up here"}</p>
     </div>
   );
 
@@ -103,7 +116,7 @@ export default async function OrdersPage({ searchParams }) {
         {!failed && loggedOut && (
           <div className="py-10 text-center">
             <p className="font-serif text-2xl text-ink">Log in to see your {mine ? "orders" : "order"}</p>
-            <p className="mt-1 text-sm text-muted">Your pre-orders and their live status show up here.</p>
+            <p className="mt-1 text-sm text-muted">{preOrders ? "Your pre-orders and their live status show up here." : "Pre-orders will show up here once a stall takes them."}</p>
             <Link href={`/login?next=${encodeURIComponent(returnTo)}`} className="mt-5 inline-flex h-12 items-center rounded-full bg-deck px-6 font-semibold text-white hover:bg-deck-hover">Log in</Link>
           </div>
         )}
@@ -111,7 +124,7 @@ export default async function OrdersPage({ searchParams }) {
         {!failed && !loggedOut && orders.length === 0 && (
           <div className="py-10 text-center">
             <p className="font-serif text-2xl text-ink">{mine ? "No orders yet" : "No orders found"}</p>
-            <p className="mt-1 text-sm text-muted">{mine ? "Pre-order from any stall and skip the queue." : "This link may be old, or for another account."}</p>
+            <p className="mt-1 text-sm text-muted">{mine ? (preOrders ? "Pre-order from any stall and skip the queue." : "No stall takes pre-orders on MealDeck yet. When one does, your orders will show up here.") : "This link may be old, or for another account."}</p>
             <Link href="/" className="mt-5 inline-flex h-12 items-center rounded-full bg-deck px-6 font-semibold text-white hover:bg-deck-hover">Browse the menu</Link>
           </div>
         )}

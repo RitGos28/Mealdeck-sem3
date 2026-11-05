@@ -75,6 +75,8 @@ export function buildPassport(orders, stalls, { vegOnly = false } = {}) {
     stamps,
     newThisMonth,
     suggestions: suggest(orders, tried, menu, stalls, vegOnly),
+    // Whether any stall takes pre-orders yet: until one does, nothing can be stamped.
+    ordersOpen: stalls.some((stall) => !stall.listingOnly),
   };
 }
 

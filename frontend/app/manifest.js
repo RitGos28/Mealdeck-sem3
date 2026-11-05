@@ -6,7 +6,7 @@ export default function manifest() {
     id: "/",
     name: "MealDeck",
     short_name: "MealDeck",
-    description: "Pre-order from campus food stalls and skip the queue. Pay at the counter when you pick up.",
+    description: "Every campus food stall's menu and prices in one place. Pre-ordering opens stall by stall; you pay at the counter.",
     start_url: "/",
     scope: "/",
     display: "standalone",

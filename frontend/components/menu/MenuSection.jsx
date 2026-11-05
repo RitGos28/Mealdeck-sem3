@@ -63,7 +63,7 @@ function Arrow({ direction, onClick, hidden }) {
 
 // One run of dishes: a list on phones and tablets, a sideways-scrolling row
 // of cards on wide screens, with arrows only when there's more to see.
-function ItemRow({ stall, items, demoMode, cart, onAddToCart, onChangeQuantity }) {
+function ItemRow({ stall, items, demoMode, cart, onAddToCart, onChangeQuantity, onView }) {
   const rowRef = useRef(null);
   const [edges, setEdges] = useState({ start: true, end: true });
 
@@ -94,6 +94,7 @@ function ItemRow({ stall, items, demoMode, cart, onAddToCart, onChangeQuantity }
               browseOnly={stall.listingOnly}
               quantity={bagCount(cart, dish)}
               onAddToCart={() => onAddToCart(dish, stall)}
+              onView={onView ? () => onView(dish, stall) : undefined}
               onChangeQuantity={(delta) => onChangeQuantity(dish.items[0].id, delta)}
             />
           </li>
@@ -107,7 +108,7 @@ function ItemRow({ stall, items, demoMode, cart, onAddToCart, onChangeQuantity }
 // `expandAll` (set while searching or filtering) opens everything, so a
 // match is never hidden inside a folded group. `bare` drops the stall's own
 // heading, for the stall page where the band already names it.
-export default function MenuSection({ stall, demoMode, cart, onAddToCart, onChangeQuantity, expandAll = false, isDesktop = false, bare = false }) {
+export default function MenuSection({ stall, demoMode, cart, onAddToCart, onChangeQuantity, onView, expandAll = false, isDesktop = false, bare = false }) {
   const queueLength = useQueueLength(stall, demoMode);
   const headingId = `stall-${stall.id}`;
   const [stallOpen, setStallOpen] = useState(true);
@@ -154,10 +155,10 @@ export default function MenuSection({ stall, demoMode, cart, onAddToCart, onChan
             ) : (
               <h3 className="mt-3 mb-1 text-xs font-semibold tracking-[.04em] text-muted uppercase lg:mt-0 lg:mb-1.5 lg:text-[11px]">{label} <span className="font-normal normal-case">· {groupDishes(group.items).length}</span></h3>
             )}
-            {groupOpen && <ItemRow stall={stall} items={group.items} demoMode={demoMode} cart={cart} onAddToCart={onAddToCart} onChangeQuantity={onChangeQuantity} />}
+            {groupOpen && <ItemRow stall={stall} items={group.items} demoMode={demoMode} cart={cart} onAddToCart={onAddToCart} onChangeQuantity={onChangeQuantity} onView={onView} />}
           </div>
         );
-      }) : <ItemRow stall={stall} items={stall.items} demoMode={demoMode} cart={cart} onAddToCart={onAddToCart} onChangeQuantity={onChangeQuantity} />)}
+      }) : <ItemRow stall={stall} items={stall.items} demoMode={demoMode} cart={cart} onAddToCart={onAddToCart} onChangeQuantity={onChangeQuantity} onView={onView} />)}
     </section>
   );
 }

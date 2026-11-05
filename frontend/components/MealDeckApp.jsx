@@ -9,16 +9,18 @@ import Checkout from "./checkout/Checkout";
 import StudentShell from "./student/StudentShell";
 import PickupChips from "./student/PickupChips";
 import OrderAgain from "./student/OrderAgain";
+import MessCard from "./student/mess/MessCard";
 import { useCurrentUser } from "../lib/useCurrentUser";
-import { bagCount, choiceText, dishFor, groupDishes, lineKey, needsSheet } from "../lib/menuDishes";
+import { bagCount, choiceText, dishContaining, dishFor, groupDishes, lineKey, needsSheet } from "../lib/menuDishes";
 
 // Menu sections that are combos or meals ("Classic Indian Combos", "Veg Mini Meal", "Pick A Meal").
 const COMBO = /combo|meal|thali/i;
 import BagSheet from "./BagSheet";
 import NotOfficial from "./layout/NotOfficial";
 import CustomiseSheet from "./menu/CustomiseSheet";
+import DishDetailSheet from "./menu/DishDetailSheet";
 import { BackLink, CravingGrid, SectionTitle, StallList, StallTabs, ViewSwitch, useStallSubtitle } from "./student/BrowseViews";
-import { CRAVINGS, cravingDishes, isDrink, stallStatus } from "./student/browse";
+import { CRAVINGS, cravingDishes, isDrink, stallOpenNow, stallStatus } from "./student/browse";
 import { DealBody, DealEntry, DealHeading, useDeal } from "./student/deal/DealView";
 
 // The bag survives the trip to /login and back (ordering needs a login),
@@ -148,12 +150,20 @@ function ChoiceList({ label, options, value, onChange }) {
 
 // Wide screens only: search, pickup time, filters and the stalls, in a
 // sticky column beside the menu.
-function SidePanel({ greetingText, stalls, menuStalls, demoMode, openCount, search, onSearch, searchPlaceholder, diet, onDiet, kind, onKind, sort, onSort, activeStallId, onOpenStall }) {
+// "3 stalls open · pick up between classes", or, while no stall takes
+// pre-orders yet, "3 stalls open · menus only for now": it never promises
+// pickup that isn't there.
+function openLine(openCount, ordersOpen) {
+  const open = openCount === 0 ? "No stalls open right now" : `${openCount} stall${openCount === 1 ? "" : "s"} open`;
+  return `${open} · ${ordersOpen ? "pick up between classes" : "menus only for now"}`;
+}
+
+function SidePanel({ greetingText, stalls, menuStalls, demoMode, openCount, ordersOpen, search, onSearch, searchPlaceholder, diet, onDiet, kind, onKind, sort, onSort, activeStallId, onOpenStall }) {
   return (
     <aside aria-label="Filters" className="sticky top-5 max-h-[calc(100vh-2.5rem)] space-y-5 overflow-y-auto rounded-2xl bg-[#F4F6F3] p-4 text-[13px]">
       <div>
         <h1 className="font-serif text-[22px] leading-tight" suppressHydrationWarning>{greetingText}</h1>
-        <p className="mt-0.5 text-muted">{openCount === 0 ? "No stalls open right now" : `${openCount} stall${openCount === 1 ? "" : "s"} open`} · pick up between classes</p>
+        <p className="mt-0.5 text-muted">{openLine(openCount, ordersOpen)}</p>
       </div>
       <SearchField value={search} onChange={onSearch} placeholder={searchPlaceholder} />
       <div>
@@ -230,6 +240,8 @@ export default function MenuExperience({ stalls, demoMode }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   // The dish being customised in the sheet: { dish, stall }, or null.
   const [customising, setCustomising] = useState(null);
+  // A dish being looked at read-only on a stall that isn't taking pre-orders: { dish, stall }, or null.
+  const [viewing, setViewing] = useState(null);
   const [search, setSearch] = useState("");
   const [diet, setDiet] = useState("all");
   // "I only eat veg" (Account): the menu starts veg-only unless they've
@@ -283,7 +295,9 @@ export default function MenuExperience({ stalls, demoMode }) {
   const stallSubtitle = useStallSubtitle(activeStall, demoMode);
 
   // Demo data has no hours, so every sample stall counts as open.
-  const openCount = menuStalls.filter((stall) => stallStatus(stall, demoMode).live).length;
+  const openCount = menuStalls.filter((stall) => stallOpenNow(stall, demoMode)).length;
+  // Pre-orders are live at some stall. Until then there's no bag to show.
+  const ordersOpen = demoMode || stalls.some((stall) => !stall.listingOnly);
 
   // Bags saved before choices existed were keyed by item id alone, which
   // is still the key for a plain dish, so they load as they are.
@@ -376,6 +390,9 @@ export default function MenuExperience({ stalls, demoMode }) {
     }
   }
   const requestAddItem = (item, stall, onAdded) => requestAdd(dishFor(item), stall, onAdded);
+  const viewDish = (dish, stall) => setViewing({ dish, stall });
+  // Lists that hold one item (craving, deal) still show every size of its dish.
+  const viewItem = (item, stall) => viewDish(dishContaining(item, stall), stall);
 
   // `placed=1` makes My orders show the receipt toast once.
   function handlePlaced(orderCodes) {
@@ -432,7 +449,7 @@ export default function MenuExperience({ stalls, demoMode }) {
       ? { back: "Home", title: activeCraving.name, sub: cravingList.length === 0 ? "Nothing matches right now" : `${cravingList.length} dish${cravingList.length === 1 ? "" : "es"} at ${cravingStallCount} stall${cravingStallCount === 1 ? "" : "s"} · ${sort === "price-desc" ? "priciest" : "cheapest"} first` }
       : null;
 
-  const band = (user) => view === "deal" ? <DealHeading deal={deal} onHome={goHome} /> : heading ? (
+  const band = (user) => view === "deal" ? <DealHeading deal={deal} onHome={goHome} counterOnly={!ordersOpen} /> : heading ? (
     <>
       <div className="mt-1.5"><BackLink label={heading.back} onClick={goHome} /></div>
       <div className="md:flex md:items-end md:justify-between md:gap-8">
@@ -449,7 +466,7 @@ export default function MenuExperience({ stalls, demoMode }) {
         <div>
           <h1 className="font-serif text-[30px] leading-[1.1] md:text-4xl" suppressHydrationWarning>{greetingFor(user)}</h1>
           <p className="mt-0.5 text-sm text-on-deck">
-            {openCount === 0 ? "No stalls open right now" : `${openCount} stall${openCount === 1 ? "" : "s"} open`} · pick up between classes
+            {openLine(openCount, ordersOpen)}
           </p>
         </div>
         <div className="mt-3.5 md:mt-0 md:w-80"><SearchField value={search} onChange={setSearch} onBand placeholder={searchPlaceholder} /></div>
@@ -496,9 +513,9 @@ export default function MenuExperience({ stalls, demoMode }) {
     if (view === "deal") {
       return (
         <>
-          {isDesktop && <div className="max-w-md"><DealHeading deal={deal} onHome={goHome} onBand={false} /></div>}
+          {isDesktop && <div className="max-w-md"><DealHeading deal={deal} onHome={goHome} onBand={false} counterOnly={!ordersOpen} /></div>}
           <div className="max-w-md lg:max-w-xl">
-            <DealBody deal={deal} demoMode={demoMode} cart={cart} onAdd={requestAddItem} onChangeQuantity={changeQuantity} onHome={goHome} />
+            <DealBody deal={deal} demoMode={demoMode} cart={cart} onAdd={requestAddItem} onView={viewItem} onChangeQuantity={changeQuantity} onHome={goHome} />
           </div>
         </>
       );
@@ -515,7 +532,7 @@ export default function MenuExperience({ stalls, demoMode }) {
           )}
           {filterRow}
           {stallMenu.items.length > 0
-            ? <MenuSection key={activeStall.id} stall={stallMenu} demoMode={demoMode} cart={cart} onAddToCart={requestAdd} onChangeQuantity={changeQuantity} expandAll={filtering} isDesktop={isDesktop} bare />
+            ? <MenuSection key={activeStall.id} stall={stallMenu} demoMode={demoMode} cart={cart} onAddToCart={requestAdd} onChangeQuantity={changeQuantity} onView={viewDish} expandAll={filtering} isDesktop={isDesktop} bare />
             : noMatches(query ? `Nothing at ${activeStall.name} matches "${search.trim()}".` : "Nothing on this menu matches those filters.")}
         </>
       );
@@ -528,7 +545,7 @@ export default function MenuExperience({ stalls, demoMode }) {
             <ul className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 lg:grid-cols-[repeat(auto-fill,minmax(172px,1fr))] lg:gap-3">
               {comboDishes.map(({ dish, stall }) => (
                 <li key={`${stall.id}|${dish.key}`}>
-                  <MenuItemCard dish={dish} demoMode={demoMode} sub={`${stall.name} · ${dish.category}`} quantity={bagCount(cart, dish)} onAddToCart={() => requestAdd(dish, stall)} onChangeQuantity={(delta) => changeQuantity(dish.items[0].id, delta)} />
+                  <MenuItemCard dish={dish} demoMode={demoMode} sub={`${stall.name} · ${dish.category}`} browseOnly={stall.listingOnly} onView={() => viewDish(dish, stall)} quantity={bagCount(cart, dish)} onAddToCart={() => requestAdd(dish, stall)} onChangeQuantity={(delta) => changeQuantity(dish.items[0].id, delta)} />
                 </li>
               ))}
             </ul>
@@ -544,7 +561,7 @@ export default function MenuExperience({ stalls, demoMode }) {
             <ul className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 lg:grid-cols-[repeat(auto-fill,minmax(172px,1fr))] lg:gap-3">
               {cravingList.map(({ item, stall }) => (
                 <li key={item.id}>
-                  <MenuItemCard item={item} demoMode={demoMode} sub={stall.name} browseOnly={stall.listingOnly} dish={dishFor(item)} quantity={bagCount(cart, dishFor(item))} onAddToCart={() => requestAddItem(item, stall)} onChangeQuantity={(delta) => changeQuantity(item.id, delta)} />
+                  <MenuItemCard item={item} demoMode={demoMode} sub={stall.name} browseOnly={stall.listingOnly} onView={() => viewItem(item, stall)} dish={dishFor(item)} quantity={bagCount(cart, dishFor(item))} onAddToCart={() => requestAddItem(item, stall)} onChangeQuantity={(delta) => changeQuantity(item.id, delta)} />
                 </li>
               ))}
             </ul>
@@ -560,7 +577,7 @@ export default function MenuExperience({ stalls, demoMode }) {
           <p className="text-sm text-muted">{dishCount} dish{dishCount === 1 ? "" : "es"} at {searchResults.length} stall{searchResults.length === 1 ? "" : "s"}</p>
           {stallMatches.length > 0 && <StallList stalls={stallMatches} demoMode={demoMode} onOpen={openStall} />}
           {searchResults.length > 0
-            ? <div>{searchResults.map((stall) => <MenuSection key={stall.id} stall={stall} demoMode={demoMode} cart={cart} onAddToCart={requestAdd} onChangeQuantity={changeQuantity} expandAll isDesktop={isDesktop} />)}</div>
+            ? <div>{searchResults.map((stall) => <MenuSection key={stall.id} stall={stall} demoMode={demoMode} cart={cart} onAddToCart={requestAdd} onChangeQuantity={changeQuantity} onView={viewDish} expandAll isDesktop={isDesktop} />)}</div>
             : stallMatches.length === 0 && noMatches("Try another search, or browse every stall.")}
         </>
       );
@@ -581,6 +598,7 @@ export default function MenuExperience({ stalls, demoMode }) {
               <span><span className="block font-serif text-lg leading-tight">Combos &amp; meals</span><span className="block text-[13px] text-muted">Mini meals, thalis and combos from every stall, cheapest first</span></span>
               <span aria-hidden="true" className="text-xl text-muted">›</span>
             </button>
+            <MessCard />
             <OrderAgain stalls={menuStalls} user={user} onAdd={requestAddItem} />
             <section>
               <SectionTitle aside={`${menuStalls.length} on campus`}>Stalls</SectionTitle>
@@ -598,28 +616,28 @@ export default function MenuExperience({ stalls, demoMode }) {
       wide
       bandAside={isDesktop || view === "deal" || (view === "home" && !query) ? null : <VegToggle vegOnly={vegOnly} onChange={(veg) => changeDiet(veg ? "veg" : "all")} />}
       band={isDesktop ? null : band}
-      bag={{ count: itemCount, total, onOpen: openBag }}
+      bag={ordersOpen ? { count: itemCount, total, onOpen: openBag } : undefined}
       focus={view === "deal" && deal.phase === "dealing"}
     >
       {(user, deletion) => (
         <>
-          <div className="mx-auto max-w-3xl lg:grid lg:max-w-none lg:grid-cols-[220px_minmax(0,1fr)_280px] lg:gap-7 xl:grid-cols-[230px_minmax(0,1fr)_300px] xl:gap-8">
+          <div className={`mx-auto max-w-3xl lg:grid lg:max-w-none lg:gap-7 xl:gap-8 ${ordersOpen ? "lg:grid-cols-[220px_minmax(0,1fr)_280px] xl:grid-cols-[230px_minmax(0,1fr)_300px]" : "lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[230px_minmax(0,1fr)]"}`}>
             {isDesktop && (
               <div className="hidden lg:block">
-                <SidePanel greetingText={greetingFor(user)} stalls={stalls} menuStalls={menuStalls} demoMode={demoMode} openCount={openCount} search={search} onSearch={setSearch} searchPlaceholder={searchPlaceholder} diet={diet} onDiet={changeDiet} kind={kind} onKind={setKind} sort={sort} onSort={setSort} activeStallId={activeStall?.id} onOpenStall={openStall} />
+                <SidePanel greetingText={greetingFor(user)} stalls={stalls} menuStalls={menuStalls} demoMode={demoMode} openCount={openCount} ordersOpen={ordersOpen} search={search} onSearch={setSearch} searchPlaceholder={searchPlaceholder} diet={diet} onDiet={changeDiet} kind={kind} onKind={setKind} sort={sort} onSort={setSort} activeStallId={activeStall?.id} onOpenStall={openStall} />
               </div>
             )}
             <div className="min-w-0 space-y-6">
               {content(user)}
               <NotOfficial className="pt-6 pb-2" />
             </div>
-            {isDesktop && (
+            {isDesktop && ordersOpen && (
               <div id="bag" tabIndex={-1} className="hidden scroll-mt-6 outline-none lg:block">
                 <div className="sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto">{bagContent(user, deletion)}</div>
               </div>
             )}
           </div>
-          {!isDesktop && sheetOpen && <BagSheet onClose={() => setSheetOpen(false)}>{bagContent(user, deletion)}</BagSheet>}
+          {!isDesktop && sheetOpen && ordersOpen && <BagSheet onClose={() => setSheetOpen(false)}>{bagContent(user, deletion)}</BagSheet>}
           {customising && (
             <CustomiseSheet
               key={customising.dish.key}
@@ -632,6 +650,7 @@ export default function MenuExperience({ stalls, demoMode }) {
               onClose={() => setCustomising(null)}
             />
           )}
+          {viewing && <DishDetailSheet key={viewing.dish.key} dish={viewing.dish} stall={viewing.stall} onClose={() => setViewing(null)} />}
         </>
       )}
     </StudentShell>

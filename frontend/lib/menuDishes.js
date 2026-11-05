@@ -43,6 +43,12 @@ export function dishFor(item) {
   return { key: `single|${item.id}`, base: item.name, category: item.category ?? null, variants: [{ label: null, item }], items: [item] };
 }
 
+// The full dish (all its sizes) that this item belongs to in its stall, for
+// lists that only hold one item (craving, deal) but want to show every size.
+export function dishContaining(item, stall) {
+  return groupDishes(stall.items).find((dish) => dish.items.some((candidate) => candidate.id === item.id)) ?? dishFor(item);
+}
+
 export function needsSheet(dish) {
   return dish.variants.length > 1 || dish.items.some((item) => item.choices?.length);
 }
