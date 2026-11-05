@@ -11,6 +11,7 @@ import PickupChips from "./student/PickupChips";
 import OrderAgain from "./student/OrderAgain";
 import MessCard from "./student/mess/MessCard";
 import PreorderAsk from "./student/PreorderAsk";
+import ArrowGroup from "./ArrowGroup";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { bagCount, choiceText, dishContaining, dishFor, groupDishes, lineKey, needsSheet } from "../lib/menuDishes";
 
@@ -186,7 +187,7 @@ function StallNav({ stalls, demoMode, activeId, onOpen }) {
   return (
     <nav aria-label="Stalls">
       <p className="mb-2 text-xs font-semibold tracking-[.04em] text-muted uppercase">Stalls</p>
-      <ul className="space-y-1">
+      <ArrowGroup className="space-y-1">
         {stalls.map((stall) => {
           const { label: status, live } = stallStatus(stall, demoMode);
           const active = String(stall.id) === String(activeId);
@@ -204,7 +205,7 @@ function StallNav({ stalls, demoMode, activeId, onOpen }) {
             </li>
           );
         })}
-      </ul>
+      </ArrowGroup>
     </nav>
   );
 }
@@ -261,6 +262,20 @@ export default function MenuExperience({ stalls, demoMode }) {
   const navigated = useRef(false);
   const vegOnly = diet === "veg";
   const isDesktop = useIsDesktop();
+
+  // "/" jumps to the search box, like most sites (not while typing somewhere).
+  useEffect(() => {
+    function onKey(event) {
+      if (event.key !== "/" || event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.target.closest?.("input, textarea, select, [contenteditable='true'], [role='dialog']")) return;
+      const field = document.querySelector('input[type="search"]');
+      if (!field) return;
+      event.preventDefault();
+      field.focus();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
 
   useEffect(() => {
     if (savedVeg && !dietTouched.current) setDiet("veg");
@@ -544,13 +559,13 @@ export default function MenuExperience({ stalls, demoMode }) {
         <>
           {desktopHeading}
           {comboDishes.length > 0 ? (
-            <ul className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 lg:grid-cols-[repeat(auto-fill,minmax(172px,1fr))] lg:gap-3">
+            <ArrowGroup className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 lg:grid-cols-[repeat(auto-fill,minmax(172px,1fr))] lg:gap-3">
               {comboDishes.map(({ dish, stall }) => (
                 <li key={`${stall.id}|${dish.key}`}>
                   <MenuItemCard dish={dish} demoMode={demoMode} sub={`${stall.name} · ${dish.category}`} browseOnly={stall.listingOnly} onView={() => viewDish(dish, stall)} quantity={bagCount(cart, dish)} onAddToCart={() => requestAdd(dish, stall)} onChangeQuantity={(delta) => changeQuantity(dish.items[0].id, delta)} />
                 </li>
               ))}
-            </ul>
+            </ArrowGroup>
           ) : noMatches("No combos match those filters right now.")}
         </>
       );
@@ -560,13 +575,13 @@ export default function MenuExperience({ stalls, demoMode }) {
         <>
           {desktopHeading}
           {cravingList.length > 0 ? (
-            <ul className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 lg:grid-cols-[repeat(auto-fill,minmax(172px,1fr))] lg:gap-3">
+            <ArrowGroup className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 lg:grid-cols-[repeat(auto-fill,minmax(172px,1fr))] lg:gap-3">
               {cravingList.map(({ item, stall }) => (
                 <li key={item.id}>
                   <MenuItemCard item={item} demoMode={demoMode} sub={stall.name} browseOnly={stall.listingOnly} onView={() => viewItem(item, stall)} dish={dishFor(item)} quantity={bagCount(cart, dishFor(item))} onAddToCart={() => requestAddItem(item, stall)} onChangeQuantity={(delta) => changeQuantity(item.id, delta)} />
                 </li>
               ))}
-            </ul>
+            </ArrowGroup>
           ) : noMatches("Try the other filters, or another craving.")}
         </>
       );
