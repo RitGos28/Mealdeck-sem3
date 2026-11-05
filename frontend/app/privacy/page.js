@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Header from "../../components/layout/Header";
+import NotOfficial from "../../components/layout/NotOfficial";
 
 export const metadata = { title: "Privacy · MealDeck" };
 
@@ -64,6 +65,7 @@ export default function PrivacyPage() {
         </Section>
 
         <Link href="/" className="text-sm font-semibold text-[#3f6b3a] hover:underline">← Back to menu</Link>
+        <NotOfficial className="pb-4" />
       </main>
     </>
   );
