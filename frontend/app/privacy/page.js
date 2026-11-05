@@ -28,18 +28,19 @@ export default function PrivacyPage() {
 
         <Section title="What we keep">
           <ul className="list-disc space-y-1.5 pl-5">
-            <li><span className="font-semibold">Your Bennett email</span>, to log you in and to email you sign-up and password-reset codes.</li>
+            <li><span className="font-semibold">Your Bennett email</span>, to log you in, to email you sign-up and password-reset codes, and to email you a notice if you ask to delete your account.</li>
             <li><span className="font-semibold">Your name</span>, and <span className="font-semibold">your phone number</span> if you give one (it&apos;s optional), so a stall knows whose order it is and can reach you about it.</li>
             <li><span className="font-semibold">Your password</span>, stored only as a one-way hash. Nobody, including us, can read it.</li>
             <li><span className="font-semibold">Your orders</span>: the stall, items, prices, pickup time and status.</li>
             <li><span className="font-semibold">Out-of-stock reports</span> you make, so one student can&apos;t hide an item on their own.</li>
+            <li><span className="font-semibold">Your &ldquo;I only eat veg&rdquo; setting</span>, if you turn it on in Account. It only changes what the menu, Deal me a dish and your passport suggestions show first; you can still order anything.</li>
           </ul>
           <p>We don&apos;t take payments online, so we never see card or UPI details. You pay the stall in person.</p>
         </Section>
 
         <Section title="Who sees it">
           <ul className="list-disc space-y-1.5 pl-5">
-            <li><span className="font-semibold">The stall you order from</span> sees your name and your phone number (or your email, if you didn&apos;t give a phone number) on that order. Stalls never see your orders at other stalls.</li>
+            <li><span className="font-semibold">The stall you order from</span> sees your name and your phone number (or your email, if you didn&apos;t give a phone number) on that order, plus your hostel and room if you filled that in. Stalls never see your orders at other stalls, only a count of recent uncollected pre-orders.</li>
             <li><span className="font-semibold">MealDeck admins</span> can see accounts and orders, to run the service and sort out problems.</li>
             <li><span className="font-semibold">Other students</span> see nothing about you. The live queue shows order numbers and status only, and nobody can see who reported an item.</li>
           </ul>
