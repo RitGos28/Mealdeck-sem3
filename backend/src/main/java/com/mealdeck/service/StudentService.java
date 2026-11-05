@@ -30,9 +30,12 @@ public class StudentService {
     private final ActivityLogService activityLog;
     private final com.mealdeck.repository.MessFlagRepository messFlagRepository;
     private final com.mealdeck.repository.MessMealRepository messMealRepository;
+    private final com.mealdeck.repository.PreorderRequestRepository preorderRequestRepository;
 
     public StudentService(StudentRepository studentRepository, PasswordEncoder passwordEncoder, ReportRepository reportRepository, SignupCodeService signupCodeService, OrderRepository orderRepository, EmailStandingService emailStanding, ActivityLogService activityLog,
-            com.mealdeck.repository.MessFlagRepository messFlagRepository, com.mealdeck.repository.MessMealRepository messMealRepository) {
+            com.mealdeck.repository.MessFlagRepository messFlagRepository, com.mealdeck.repository.MessMealRepository messMealRepository,
+            com.mealdeck.repository.PreorderRequestRepository preorderRequestRepository) {
+        this.preorderRequestRepository = preorderRequestRepository;
         this.messFlagRepository = messFlagRepository;
         this.messMealRepository = messMealRepository;
         this.activityLog = activityLog;
@@ -143,6 +146,7 @@ public class StudentService {
         // Mess: their "isn't correct" flags go; menus they added stay, anonymously.
         messFlagRepository.deleteByStudentId(id);
         messMealRepository.clearSubmitter(id);
+        preorderRequestRepository.deleteByStudentId(id);
         orderRepository.detachStudent(id);
         studentRepository.delete(student);
         activityLog.accountDeleted(id, how);

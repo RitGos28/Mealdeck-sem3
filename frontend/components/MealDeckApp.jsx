@@ -10,6 +10,7 @@ import StudentShell from "./student/StudentShell";
 import PickupChips from "./student/PickupChips";
 import OrderAgain from "./student/OrderAgain";
 import MessCard from "./student/mess/MessCard";
+import PreorderAsk from "./student/PreorderAsk";
 import { useCurrentUser } from "../lib/useCurrentUser";
 import { bagCount, choiceText, dishContaining, dishFor, groupDishes, lineKey, needsSheet } from "../lib/menuDishes";
 
@@ -528,6 +529,7 @@ export default function MenuExperience({ stalls, demoMode }) {
           {activeStall.listingOnly && (
             <p className="rounded-2xl bg-[#F0F2EF] px-4 py-3 text-sm text-ink">
               <strong>{activeStall.name} isn&apos;t taking pre-orders on MealDeck yet.</strong> Here&apos;s the menu so you can decide; order at the counter for now.
+              {!demoMode && <PreorderAsk stall={activeStall} className="mt-3" />}
             </p>
           )}
           {filterRow}

@@ -39,7 +39,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     /** Before deleting a student account: their orders stay on the vendor's
      * history (items, prices, times) so the stall's records still add up,
      * but anonymised: the name and contact copied at checkout are wiped. */
-    @Modifying(clearAutomatically = true)
+    // flushAutomatically: this clears the persistence context, which would
+    // otherwise throw away deletes still pending from earlier in the same
+    // transaction (a deleted student's flags, requests and reports).
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update Order o set o.student = null, o.customerName = 'Deleted student', o.customerContact = '(deleted)', o.hostelRoom = null where o.student.id = :studentId")
     void detachStudent(@Param("studentId") Long studentId);
 

@@ -44,8 +44,10 @@ public class AdminController {
     private final com.mealdeck.service.AccountDeletionService accountDeletion;
     private final com.mealdeck.service.EmailStandingService emailStanding;
     private final com.mealdeck.service.ActivityLogService activityLog;
+    private final com.mealdeck.service.PreorderRequestService preorderRequests;
 
-    public AdminController(MenuService menuService, OrderService orderService, AnalyticsService analyticsService, com.mealdeck.service.PitchService pitchService, AdminAccountService adminAccountService, StudentService studentService, com.mealdeck.service.AccountDeletionService accountDeletion, com.mealdeck.service.EmailStandingService emailStanding, com.mealdeck.service.ActivityLogService activityLog) {
+    public AdminController(MenuService menuService, OrderService orderService, AnalyticsService analyticsService, com.mealdeck.service.PitchService pitchService, AdminAccountService adminAccountService, StudentService studentService, com.mealdeck.service.AccountDeletionService accountDeletion, com.mealdeck.service.EmailStandingService emailStanding, com.mealdeck.service.ActivityLogService activityLog, com.mealdeck.service.PreorderRequestService preorderRequests) {
+        this.preorderRequests = preorderRequests;
         this.activityLog = activityLog;
         this.accountDeletion = accountDeletion;
         this.emailStanding = emailStanding;
@@ -110,6 +112,12 @@ public class AdminController {
     @GetMapping("/pitch")
     public PitchDto pitch() {
         return pitchService.summarize();
+    }
+
+    /** How many students asked for pre-ordering at each stall, most asked first. */
+    @GetMapping("/preorder-requests")
+    public List<com.mealdeck.service.PreorderRequestService.StallDemand> preorderRequests() {
+        return preorderRequests.demand();
     }
 
     /** The activity trail, newest first; studentId narrows it to one student. */
