@@ -288,4 +288,20 @@ class SecurityRulesTests {
         mvc.perform(get("/api/admin/preorder-requests").with(STUDENT)).andExpect(status().isForbidden());
         mvc.perform(get("/api/admin/preorder-requests").with(ADMIN)).andExpect(status().isOk());
     }
+
+    @Test
+    void theQuestionnaireIsForStudentsAndTheSummaryForAdmins() throws Exception {
+        String answers = "{\"source\":\"friend\",\"features\":[\"menus\"],\"wishes\":\"More stalls\"}";
+
+        mvc.perform(get("/api/account/survey")).andExpect(status().isForbidden());
+        mvc.perform(get("/api/account/survey").with(VENDOR)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/account/survey").with(STUDENT)).andExpect(status().isOk());
+        mvc.perform(put("/api/account/survey").contentType(MediaType.APPLICATION_JSON).content(answers)).andExpect(status().isForbidden());
+        mvc.perform(put("/api/account/survey").with(STUDENT).contentType(MediaType.APPLICATION_JSON).content(answers)).andExpect(status().isOk());
+
+        mvc.perform(get("/api/admin/survey")).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/survey").with(STUDENT)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/survey").with(ADMIN)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.responses").value(1));
+    }
 }

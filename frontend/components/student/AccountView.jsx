@@ -82,6 +82,7 @@ function AccountContent({ user, router, deletion }) {
         {/* Orders and the password reset (/api/auth/student/password-reset) are student-only. */}
         {!dashboard && <Row href="/orders" hint="Live status and past pre-orders">My orders</Row>}
         {!dashboard && <Row href="/login?mode=forgot" hint="We'll email you a code">Change password</Row>}
+        {!dashboard && <Row href="/account/survey" hint="Where you heard of us, what you like, what's missing">Four quick questions</Row>}
         <li>
           <FeedbackLink className="flex min-h-14 items-center gap-3 px-4 py-3 hover:bg-mint/40">
             <span className="min-w-0 flex-1">
