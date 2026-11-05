@@ -1,6 +1,9 @@
 package com.mealdeck.service;
 
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -69,6 +72,28 @@ public class ResendCodeMailer implements CodeMailer {
         String html = "<p>Your MealDeck " + kind + " code is</p>"
                 + "<p style=\"font-size:28px;font-weight:700;letter-spacing:4px\">" + code + "</p>"
                 + "<p>" + expiry + "</p>";
+        post(email, code + " is your MealDeck " + kind + " code", text, html, kind);
+    }
+
+    @Override
+    public void sendDeletionScheduled(String email, Instant deleteAt, long graceHours) {
+        if (!isConfigured()) {
+            log.info("deletion notice for {}: account deleted at {} (not emailed, RESEND_API_KEY unset)", email, deleteAt);
+            return;
+        }
+        String when = deleteAt.atZone(ZoneId.of("Asia/Kolkata")).format(DateTimeFormatter.ofPattern("d MMM, h:mm a"));
+        String text = "You asked to delete your MealDeck account. It will be deleted for good on " + when + " (IST), "
+                + graceHours + " hours after you asked.\n\nChanged your mind? Log in and open Account, then cancel the deletion "
+                + "before then. If you didn't ask for this, log in and cancel it, and change your password.";
+        String html = "<p>You asked to delete your MealDeck account. It will be deleted for good on <strong>" + when
+                + " (IST)</strong>, " + graceHours + " hours after you asked.</p>"
+                + "<p>Changed your mind? Log in and open <strong>Account</strong>, then cancel the deletion before then.</p>"
+                + "<p>If you didn't ask for this, log in and cancel it, and change your password.</p>";
+        post(email, "Your MealDeck account will be deleted on " + when, text, html, "deletion notice");
+    }
+
+    /** kind: what the email is, for the failure message. */
+    private void post(String email, String subject, String text, String html, String kind) {
         try {
             resend.post()
                     .uri("/emails")
@@ -77,7 +102,7 @@ public class ResendCodeMailer implements CodeMailer {
                     .body(Map.of(
                             "from", from,
                             "to", List.of(email),
-                            "subject", code + " is your MealDeck " + kind + " code",
+                            "subject", subject,
                             "text", text,
                             "html", html))
                     .retrieve()

@@ -38,7 +38,7 @@ export default function DeletionPage() {
               <Step n="1">Log in to MealDeck (the app or mealdeck.in) with your Bennett email.</Step>
               <Step n="2">Open <strong>Account</strong> and tap <strong>Delete my account</strong> at the bottom, or use the button at the top of this page.</Step>
               <Step n="3">Read what you&apos;ll lose, type <strong>CONFIRM</strong>, enter your password and confirm.</Step>
-              <Step n="4">Your account is deleted for good <strong>24 hours later</strong>. Until then you can cancel from the same place and nothing is lost. In the last hour, the account can&apos;t place orders.</Step>
+              <Step n="4">Your account is deleted for good <strong>24 hours later</strong>, and we email you the exact time. Until then you can cancel from the same place and nothing is lost. In the last hour, the account can&apos;t place orders.</Step>
             </ol>
             {user === null && <Link href="/login?next=/account/deletion" className="mt-4 inline-flex h-12 items-center rounded-full bg-deck px-6 font-semibold text-white hover:bg-deck-hover">Log in to delete your account</Link>}
             <p className="mt-4 text-sm text-muted">Can&apos;t log in? Email <a href={`mailto:${CONTACT}?subject=Delete%20my%20MealDeck%20account`} className="font-semibold text-deck underline">{CONTACT}</a> from your Bennett address and we&apos;ll delete it for you. You can&apos;t delete an account while one of its orders is still being prepared: pick it up first.</p>

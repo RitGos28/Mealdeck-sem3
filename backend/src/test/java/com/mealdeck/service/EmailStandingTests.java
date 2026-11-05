@@ -132,4 +132,29 @@ class EmailStandingTests {
 
         assertThat(orderRepository.findById(order.getId()).orElseThrow().getCustomerEmailKey()).isNull();
     }
+
+    @Test
+    void recentNoShowsAreCountedPerEmailCodeForTheVendorScreen() {
+        Student student = student();
+        Order first = orderAs(student);
+        noShow(first);
+        Order second = orderAs(student);
+        String key = first.getCustomerEmailKey();
+
+        assertThat(emailStanding.recentNoShows(java.util.Arrays.asList(key, null))).containsEntry(key, 1).hasSize(1);
+
+        noShow(second);
+        assertThat(emailStanding.recentNoShows(List.of(key))).containsEntry(key, 2);
+        // Nothing for a code with no no-shows, or for an order from before codes existed.
+        assertThat(emailStanding.recentNoShows(List.of(emailStanding.keyFor("clean@bennett.edu.in")))).isEmpty();
+        assertThat(emailStanding.recentNoShows(java.util.Collections.singletonList(null))).isEmpty();
+    }
+
+    @Test
+    void onlyTheVendorScreenCarriesTheNoShowCount() {
+        Order order = orderAs(student());
+
+        assertThat(com.mealdeck.web.OrderDto.from(order).recentNoShows()).isNull();
+        assertThat(com.mealdeck.web.OrderDto.from(order).withRecentNoShows(2).recentNoShows()).isEqualTo(2);
+    }
 }

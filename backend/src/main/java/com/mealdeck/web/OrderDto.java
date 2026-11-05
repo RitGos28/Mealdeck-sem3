@@ -27,7 +27,18 @@ public record OrderDto(
         /** When a READY order turns NO_SHOW if nobody collects it. */
         Instant noShowAt,
         BigDecimal total,
-        List<Item> items) {
+        List<Item> items,
+        /** Vendor screen only: this student's uncollected pre-orders in the last
+         * 30 days (any stall), or null where it isn't shown. */
+        Integer recentNoShows,
+        /** Optional "Hostel + room" the student gave at checkout, or null. */
+        String hostelRoom) {
+
+    /** A copy carrying the vendor's no-show tag. */
+    public OrderDto withRecentNoShows(int count) {
+        return new OrderDto(id, code, stallId, stallName, customerName, customerContact, status, createdAt, pickupDate,
+                pickupTime, readyAt, noShowAt, total, items, count, hostelRoom);
+    }
 
     /** choices: the student's picks as the stall reads them, or null. */
     public record Item(Long menuItemId, String menuItemName, int quantity, BigDecimal priceAtOrder, String choices) {
@@ -58,6 +69,8 @@ public record OrderDto(
                         ? order.getReadyAt().plus(OrderService.NO_SHOW_AFTER)
                         : null,
                 total,
-                items);
+                items,
+                null,
+                order.getHostelRoom());
     }
 }

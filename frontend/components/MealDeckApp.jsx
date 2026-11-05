@@ -9,6 +9,7 @@ import Checkout from "./checkout/Checkout";
 import StudentShell from "./student/StudentShell";
 import PickupChips from "./student/PickupChips";
 import OrderAgain from "./student/OrderAgain";
+import { useCurrentUser } from "../lib/useCurrentUser";
 import { bagCount, choiceText, dishFor, groupDishes, lineKey, needsSheet } from "../lib/menuDishes";
 
 // Menu sections that are combos or meals ("Classic Indian Combos", "Veg Mini Meal", "Pick A Meal").
@@ -231,12 +232,26 @@ export default function MenuExperience({ stalls, demoMode }) {
   const [customising, setCustomising] = useState(null);
   const [search, setSearch] = useState("");
   const [diet, setDiet] = useState("all");
+  // "I only eat veg" (Account): the menu starts veg-only unless they've
+  // already picked a diet on this page. The Veg/All toggle still works, so
+  // they can look at everything (an order for a friend, say).
+  const [me] = useCurrentUser();
+  const savedVeg = me?.vegOnly === true;
+  const dietTouched = useRef(false);
+  const changeDiet = (next) => {
+    dietTouched.current = true;
+    setDiet(next);
+  };
   const [sort, setSort] = useState("relevance");
   const [kind, setKind] = useState("all");
   const [homeView, setHomeView] = useState("stall");
   const navigated = useRef(false);
   const vegOnly = diet === "veg";
   const isDesktop = useIsDesktop();
+
+  useEffect(() => {
+    if (savedVeg && !dietTouched.current) setDiet("veg");
+  }, [savedVeg]);
 
   // Read after mount, not in useState: the server render has no storage.
   useEffect(() => {
@@ -264,7 +279,7 @@ export default function MenuExperience({ stalls, demoMode }) {
   const dealing = !activeStall && !activeCraving && params.has("deal");
   const combos = !activeStall && !activeCraving && !dealing && params.has("combos");
   const view = activeStall ? "stall" : activeCraving ? "craving" : dealing ? "deal" : combos ? "combos" : "home";
-  const deal = useDeal(menuStalls, demoMode);
+  const deal = useDeal(menuStalls, demoMode, savedVeg);
   const stallSubtitle = useStallSubtitle(activeStall, demoMode);
 
   // Demo data has no hours, so every sample stall counts as open.
@@ -395,7 +410,7 @@ export default function MenuExperience({ stalls, demoMode }) {
 
   function clearFilters() {
     setSearch("");
-    setDiet("all");
+    setDiet(savedVeg ? "veg" : "all");
     setKind("all");
   }
 
@@ -581,7 +596,7 @@ export default function MenuExperience({ stalls, demoMode }) {
     <StudentShell
       active="menu"
       wide
-      bandAside={isDesktop || view === "deal" || (view === "home" && !query) ? null : <VegToggle vegOnly={vegOnly} onChange={(veg) => setDiet(veg ? "veg" : "all")} />}
+      bandAside={isDesktop || view === "deal" || (view === "home" && !query) ? null : <VegToggle vegOnly={vegOnly} onChange={(veg) => changeDiet(veg ? "veg" : "all")} />}
       band={isDesktop ? null : band}
       bag={{ count: itemCount, total, onOpen: openBag }}
       focus={view === "deal" && deal.phase === "dealing"}
@@ -591,7 +606,7 @@ export default function MenuExperience({ stalls, demoMode }) {
           <div className="mx-auto max-w-3xl lg:grid lg:max-w-none lg:grid-cols-[220px_minmax(0,1fr)_280px] lg:gap-7 xl:grid-cols-[230px_minmax(0,1fr)_300px] xl:gap-8">
             {isDesktop && (
               <div className="hidden lg:block">
-                <SidePanel greetingText={greetingFor(user)} stalls={stalls} menuStalls={menuStalls} demoMode={demoMode} openCount={openCount} search={search} onSearch={setSearch} searchPlaceholder={searchPlaceholder} diet={diet} onDiet={setDiet} kind={kind} onKind={setKind} sort={sort} onSort={setSort} activeStallId={activeStall?.id} onOpenStall={openStall} />
+                <SidePanel greetingText={greetingFor(user)} stalls={stalls} menuStalls={menuStalls} demoMode={demoMode} openCount={openCount} search={search} onSearch={setSearch} searchPlaceholder={searchPlaceholder} diet={diet} onDiet={changeDiet} kind={kind} onKind={setKind} sort={sort} onSort={setSort} activeStallId={activeStall?.id} onOpenStall={openStall} />
               </div>
             )}
             <div className="min-w-0 space-y-6">

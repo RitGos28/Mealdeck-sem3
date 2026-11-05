@@ -38,16 +38,24 @@ function reducedMotion() {
 // The game's state. The dealt hand is kept for this tab (by ids, matched
 // back to the live menu), so going to the bag or the login page and coming
 // back doesn't lose it; the filters are remembered on this device.
-export function useDeal(stalls, demoMode) {
+export function useDeal(stalls, demoMode, vegDefault = false) {
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  // A veg-only account starts with "Veg only" on, unless this device already
+  // remembers filters the student chose.
+  const hasStoredFilters = useRef(false);
   const [saved, setSaved] = useState({ phase: "setup", hand: [], index: 0, kept: [], history: [] });
 
   useEffect(() => {
     const storedFilters = read("localStorage", FILTERS_KEY);
+    hasStoredFilters.current = Boolean(storedFilters);
     if (storedFilters) setFilters({ ...DEFAULT_FILTERS, ...storedFilters }); // eslint-disable-line react-hooks/set-state-in-effect
     const storedDeal = read("sessionStorage", DEAL_KEY);
     if (storedDeal?.hand?.length) setSaved(storedDeal);
   }, []);
+
+  useEffect(() => {
+    if (vegDefault && !hasStoredFilters.current) setFilters((current) => ({ ...current, vegOnly: true }));
+  }, [vegDefault]);
 
   const lookup = useMemo(() => {
     const map = new Map();

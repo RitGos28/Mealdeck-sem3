@@ -18,6 +18,7 @@ const LOSSES = [
   ["Every Food passport stamp", "All those momos you bravely tried? No proof it was ever you."],
   ["Ordering what Deal me a dish deals you", "The game still works. The dishes just stay a dream."],
   ["The out-of-stock reports you've made", "Your heroic “they're out of cold coffee” warnings, gone."],
+  ["Your “I only eat veg” setting", "Your menu goes back to showing everything."],
   ["Your saved name, phone number, email login and password", "We'll forget who you are. That's the point, but still."],
   ["Sign-in and password-reset emails to this address", "Total silence from us. Peaceful, sure. Lonely, too."],
 ];

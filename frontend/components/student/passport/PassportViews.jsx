@@ -45,8 +45,8 @@ export function usePassport() {
   const [passport, setPassport] = useState(null);
   useEffect(() => {
     let active = true;
-    Promise.all([api("/api/orders"), api("/api/stalls")]).then(
-      ([orders, stalls]) => active && setPassport(buildPassport(orders ?? [], stalls ?? [])),
+    Promise.all([api("/api/orders"), api("/api/stalls"), api("/api/auth/me").catch(() => null)]).then(
+      ([orders, stalls, me]) => active && setPassport(buildPassport(orders ?? [], stalls ?? [], { vegOnly: me?.vegOnly === true })),
       () => active && setPassport({ error: true }),
     );
     return () => { active = false; };

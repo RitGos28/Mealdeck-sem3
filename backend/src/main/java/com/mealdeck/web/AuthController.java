@@ -146,10 +146,10 @@ public class AuthController {
         Long stallId = "VENDOR".equals(role)
                 ? vendorRepository.findByEmail(authentication.getName()).map(v -> v.getStall().getId()).orElse(null)
                 : null;
-        String name = "STUDENT".equals(role)
-                ? studentService.findByEmail(authentication.getName()).map(student -> student.getName()).orElse(null)
-                : null;
-        return new MeResponse(role, authentication.getName(), stallId, name);
+        var student = "STUDENT".equals(role) ? studentService.findByEmail(authentication.getName()) : java.util.Optional.<com.mealdeck.model.Student>empty();
+        String name = student.map(s -> s.getName()).orElse(null);
+        Boolean vegOnly = student.map(s -> s.isVegOnly()).orElse(null);
+        return new MeResponse(role, authentication.getName(), stallId, name, vegOnly);
     }
 
     /** Authenticates against the shared UserDetailsService, then rejects the

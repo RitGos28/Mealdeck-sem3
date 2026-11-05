@@ -92,6 +92,14 @@ public class StudentService {
         return studentRepository.save(student);
     }
 
+    /** The student's own "I only eat veg" setting (null/false = no preference). */
+    @Transactional
+    public boolean setVegOnly(Long studentId, boolean vegOnly) {
+        Student student = get(studentId);
+        student.setVegOnly(vegOnly);
+        return studentRepository.save(student).isVegOnly();
+    }
+
     public List<Student> list() { return studentRepository.findAll(); }
 
     public java.util.Optional<Student> findByEmail(String email) { return studentRepository.findByEmail(email); }

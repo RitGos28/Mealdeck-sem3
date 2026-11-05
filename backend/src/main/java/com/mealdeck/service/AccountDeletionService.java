@@ -49,6 +49,7 @@ public class AccountDeletionService {
     private final OrderRepository orderRepository;
     private final StudentService studentService;
     private final ActivityLogService activityLog;
+    private final CodeMailer mailer;
     private final PasswordEncoder passwordEncoder;
     private final Clock clock;
     private final Duration grace;
@@ -60,6 +61,7 @@ public class AccountDeletionService {
             OrderRepository orderRepository,
             StudentService studentService,
             ActivityLogService activityLog,
+            CodeMailer mailer,
             PasswordEncoder passwordEncoder,
             Clock clock,
             @Value("${mealdeck.account.deletion-grace:PT24H}") Duration grace,
@@ -69,6 +71,7 @@ public class AccountDeletionService {
         this.orderRepository = orderRepository;
         this.studentService = studentService;
         this.activityLog = activityLog;
+        this.mailer = mailer;
         this.passwordEncoder = passwordEncoder;
         this.clock = clock;
         this.grace = grace;
@@ -106,6 +109,12 @@ public class AccountDeletionService {
         student.setDeletionRequestedAt(clock.instant());
         log.info("Account deletion scheduled for student {} at {}", studentId, deleteAt(student));
         activityLog.deletionRequested(studentId, grace.toHours());
+        try {
+            mailer.sendDeletionScheduled(student.getEmail(), deleteAt(student), grace.toHours());
+        } catch (CodeMailer.MailFailedException e) {
+            // The deletion is already scheduled; a mail outage mustn't undo it.
+            log.warn("Couldn't email the deletion notice to student {}: {}", studentId, e.getMessage());
+        }
         return status(studentRepository.save(student));
     }
 

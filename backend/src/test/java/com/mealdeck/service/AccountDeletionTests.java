@@ -59,6 +59,9 @@ class AccountDeletionTests {
     @Autowired
     OrderRepository orderRepository;
 
+    @Autowired
+    com.mealdeck.RecordingCodeMailer mailer;
+
     private Student newStudent() {
         return studentRepository.save(new Student("leaving" + System.nanoTime() + "@bennett.edu.in", passwordEncoder.encode(PASSWORD), "Leaving Student", null));
     }
@@ -186,5 +189,40 @@ class AccountDeletionTests {
 
         Student kept = studentRepository.findById(demo.getId()).orElseThrow();
         assertThat(kept.getDeletionRequestedAt()).isNull();
+    }
+
+    @Test
+    void theAdminViewCarriesTheTimeTheServerWillDeleteAt() {
+        Student student = newStudent();
+        assertThat(com.mealdeck.web.StudentAccountDto.from(student, accountDeletion).deletionScheduledFor()).isNull();
+
+        accountDeletion.request(student.getId(), PASSWORD);
+
+        assertThat(com.mealdeck.web.StudentAccountDto.from(student, accountDeletion).deletionScheduledFor())
+                .isEqualTo(FixedClockConfig.NOW.plus(Duration.ofHours(24)));
+    }
+
+    @Test
+    void askingEmailsTheStudentWhenTheDeletionWillHappen() {
+        mailer.clear();
+        Student student = newStudent();
+
+        accountDeletion.request(student.getId(), PASSWORD);
+
+        assertThat(mailer.deletionNoticeFor(student.getEmail())).isEqualTo(FixedClockConfig.NOW.plus(Duration.ofHours(24)));
+        accountDeletion.request(student.getId(), PASSWORD);
+        assertThat(mailer.deletionNoticesSent()).isEqualTo(1);
+    }
+
+    @Test
+    void aMailOutageDoesNotStopTheDeletionBeingScheduled() {
+        mailer.clear();
+        Student student = newStudent();
+        mailer.failNextSend();
+
+        var status = accountDeletion.request(student.getId(), PASSWORD);
+
+        assertThat(status.scheduledFor()).isEqualTo(FixedClockConfig.NOW.plus(Duration.ofHours(24)));
+        assertThat(mailer.deletionNoticesSent()).isZero();
     }
 }

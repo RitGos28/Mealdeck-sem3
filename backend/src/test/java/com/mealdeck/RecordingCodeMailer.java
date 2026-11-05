@@ -30,6 +30,27 @@ public class RecordingCodeMailer implements CodeMailer {
         sendSignupCode(email, code);
     }
 
+    private final Map<String, java.time.Instant> deletionNotices = new HashMap<>();
+    private int deletionNoticesSent;
+
+    @Override
+    public void sendDeletionScheduled(String email, java.time.Instant deleteAt, long graceHours) {
+        if (failNext) {
+            failNext = false;
+            throw new MailFailedException("simulated Resend outage", null);
+        }
+        deletionNotices.put(email, deleteAt);
+        deletionNoticesSent++;
+    }
+
+    public java.time.Instant deletionNoticeFor(String email) {
+        return deletionNotices.get(email);
+    }
+
+    public int deletionNoticesSent() {
+        return deletionNoticesSent;
+    }
+
     public String lastCodeFor(String email) {
         return lastCode.get(email);
     }
@@ -44,6 +65,8 @@ public class RecordingCodeMailer implements CodeMailer {
 
     public void clear() {
         lastCode.clear();
+        deletionNotices.clear();
+        deletionNoticesSent = 0;
         failNext = false;
     }
 }

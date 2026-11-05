@@ -8,6 +8,7 @@ import StudentShell from "./StudentShell";
 import { DeleteAccountPanel } from "./AccountDeletion";
 import FeedbackLink from "../FeedbackLink";
 import { PassportCard } from "./passport/PassportViews";
+import DietSwitch from "./DietSwitch";
 import NotOfficial from "../layout/NotOfficial";
 
 const ROLE_LABELS = { VENDOR: "Vendor", ADMIN: "Admin" };
@@ -58,6 +59,7 @@ function AccountContent({ user, router, deletion }) {
   return (
     <div className="mx-auto max-w-xl">
       {user.role === "STUDENT" && <PassportCard />}
+      {user.role === "STUDENT" && <DietSwitch initial={user.vegOnly} />}
       <section aria-label="Signed in as" className="flex items-center gap-4">
         <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-mint font-serif text-2xl text-mint-ink" aria-hidden="true">
           {user.email?.[0]?.toUpperCase() ?? "?"}

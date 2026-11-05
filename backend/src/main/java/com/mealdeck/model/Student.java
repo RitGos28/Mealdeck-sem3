@@ -34,6 +34,12 @@ public class Student {
      * recorded (2026-11), so "joined this week" never guesses. */
     private Instant createdAt;
 
+    /** "I only eat veg": a setting the student chose. It makes the menu,
+     * Deal me a dish and the passport's suggestions start veg-only, and the
+     * bag warns (never blocks) if a non-veg dish is in it. Null (or false)
+     * means no preference. Boxed so ddl-auto=update can add the column. */
+    private Boolean vegOnly;
+
     protected Student() {
     }
 
@@ -43,6 +49,14 @@ public class Student {
         this.name = name;
         this.phone = phone;
         this.createdAt = Instant.now();
+    }
+
+    public boolean isVegOnly() {
+        return Boolean.TRUE.equals(vegOnly);
+    }
+
+    public void setVegOnly(boolean vegOnly) {
+        this.vegOnly = vegOnly;
     }
 
     public Instant getCreatedAt() {
