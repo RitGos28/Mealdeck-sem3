@@ -27,8 +27,10 @@ public class StudentService {
     private final ReportRepository reportRepository;
     private final SignupCodeService signupCodeService;
     private final OrderRepository orderRepository;
+    private final ActivityLogService activityLog;
 
-    public StudentService(StudentRepository studentRepository, PasswordEncoder passwordEncoder, ReportRepository reportRepository, SignupCodeService signupCodeService, OrderRepository orderRepository, EmailStandingService emailStanding) {
+    public StudentService(StudentRepository studentRepository, PasswordEncoder passwordEncoder, ReportRepository reportRepository, SignupCodeService signupCodeService, OrderRepository orderRepository, EmailStandingService emailStanding, ActivityLogService activityLog) {
+        this.activityLog = activityLog;
         this.emailStanding = emailStanding;
         this.orderRepository = orderRepository;
         this.studentRepository = studentRepository;
@@ -65,7 +67,9 @@ public class StudentService {
         }
 
         Student student = new Student(email, passwordEncoder.encode(request.password()), request.name().trim(), blankToNull(request.phone()));
-        return studentRepository.save(student);
+        student = studentRepository.save(student);
+        activityLog.accountCreated(student.getId());
+        return student;
     }
 
     /** Forgot password: the emailed reset code proves the inbox, then the
@@ -97,7 +101,9 @@ public class StudentService {
         validateEmail(request.email(), null);
         validatePassword(request.password());
         requireName(request.name());
-        return studentRepository.save(new Student(request.email().trim().toLowerCase(), passwordEncoder.encode(request.password()), request.name().trim(), blankToNull(request.phone())));
+        Student created = studentRepository.save(new Student(request.email().trim().toLowerCase(), passwordEncoder.encode(request.password()), request.name().trim(), blankToNull(request.phone())));
+        activityLog.record(com.mealdeck.model.ActivityLog.Type.ACCOUNT_CREATED, created.getId(), null, "had an account created by an admin");
+        return created;
     }
 
     @Transactional
@@ -112,10 +118,18 @@ public class StudentService {
 
     @Transactional
     public void deleteByAdmin(Long id) {
+        delete(id, "deleted by an admin");
+    }
+
+    /** The final delete. `how` goes into the activity log: an admin's action,
+     * or the end of the student's own 24-hour grace period. */
+    @Transactional
+    public void delete(Long id, String how) {
         Student student = get(id);
         reportRepository.deleteByStudentId(id);
         orderRepository.detachStudent(id);
         studentRepository.delete(student);
+        activityLog.accountDeleted(id, how);
     }
 
     private Student get(Long id) {
