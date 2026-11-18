@@ -36,6 +36,25 @@ Demo logins: student `student@bennett.edu.in` / `student123`, vendor `bistro@mea
 
 **Bistro / Kathi** is the one stall that previews pre-ordering: its dishes have a **+** and don't open the details sheet. Open dishes at Quench, SnapEats, Paid Mess... for votes, "similar, for less" and sold-out times.
 
+## The monitor
+
+The laptop is for live demos with judges; the monitor works while you're busy, catching people walking past and explaining MealDeck without you.
+
+**A looping attract screen (60-90 s):**
+1. 5 s: hero poster, "MealDeck: every campus stall in one place".
+2. 10 s: "31 min for one dal makhani", the hook.
+3. ~40 s: the screen recording of the flow (typo search, Deal learning, a MyCamu screenshot filling the mess menu).
+4. 5 s: the ETA training table (random forest 2.1 min vs 6.1 baseline), labelled "simulated data".
+5. 10 s: a big QR code, "Try it on your phone: demo.mealdeck.in".
+
+Loop it with QuickTime (View → Loop, full screen), or a 5-slide Keynote with *Play → Loop Slideshow*.
+
+**No time to make it?** demo.mealdeck.in in full-screen Chrome on a dish sheet or the Mess page, with the QR poster beside it.
+
+**When a judge stops by:** mirror the laptop onto the monitor (Cmd+F1, or Displays → Mirror) for the live demo, then switch back to the loop.
+
+**Avoid** terminals, code or walls of text on the monitor: nobody reads them from two metres away. Keep the training output for when a judge asks to see the ML.
+
 ## The 5-minute flow
 
 **0:00 The hook.** "Yesterday a dal makhani at a campus counter took 31 minutes. MealDeck is a student-built menu guide for every campus stall, live at mealdeck.in with 8 stalls and 1,086 dishes, plus live out-of-stock reports. Pre-ordering is built and waiting for stalls to opt in. Here's the ML that makes it useful." Mention it's student-built, not an official Bennett service.
