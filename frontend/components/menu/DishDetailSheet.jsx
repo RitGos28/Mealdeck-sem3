@@ -3,11 +3,14 @@
 import BagSheet from "../BagSheet";
 import { VegDot } from "./MenuItemCard";
 import PreorderAsk from "../student/PreorderAsk";
+import { VoteButtons } from "./DishVotes";
 
 // Every size and option of a dish, read-only, for a stall that isn't taking
 // pre-orders on MealDeck yet: the student can see all the varieties and
 // prices, and the button says why it can't be added.
-export default function DishDetailSheet({ dish, stall, onClose }) {
+// cheaper: [{ item, stall, saving }] from lib/similarDishes, shown as
+// "Similar, for less"; onOpenStall(id) jumps to that stall's menu.
+export default function DishDetailSheet({ dish, stall, user, cheaper = [], onOpenStall, onClose }) {
   const vegKinds = [...new Set(dish.items.map((item) => item.veg))];
   // Choices can differ by size, so show each group once (name and options).
   const groups = [];
@@ -40,6 +43,32 @@ export default function DishDetailSheet({ dish, stall, onClose }) {
             ))}
           </ul>
         </section>
+
+        {/* Votes are per size (each is its own menu item); the first size
+            stands for a dish with one. */}
+        <VoteButtons item={dish.variants[0].item} user={user} />
+
+        {cheaper.length > 0 && (
+          <section aria-label="Similar, for less">
+            <h3 className="mb-1 text-sm font-semibold">Similar, for less <span className="text-xs font-medium text-muted">at other stalls</span></h3>
+            <ul>
+              {cheaper.map(({ item, stall: other, saving }) => (
+                <li key={item.id}>
+                  <button type="button" onClick={() => onOpenStall?.(other.id)} className="flex min-h-11 w-full items-center justify-between gap-3 border-b border-line py-2 text-left last:border-b-0 hover:bg-[#F6F8F5]">
+                    <span className="min-w-0">
+                      <span className="block truncate text-[15px]">{item.name}</span>
+                      <span className="block text-xs text-muted">{other.name}</span>
+                    </span>
+                    <span className="shrink-0 text-right">
+                      <span className="block text-[15px] font-medium tabular-nums">₹{item.price}</span>
+                      <span className="block text-xs font-semibold text-deck">₹{saving} less</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {groups.map((group) => (
           <section key={group.name} aria-label={group.name}>

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { api } from "../../../lib/api";
 import MenuItemCard from "../../menu/MenuItemCard";
 import { bagCount, dishFor } from "../../../lib/menuDishes";
 import { initials } from "../OrderAgain";
@@ -38,8 +39,12 @@ function reducedMotion() {
 // The game's state. The dealt hand is kept for this tab (by ids, matched
 // back to the live menu), so going to the bag or the login page and coming
 // back doesn't lose it; the filters are remembered on this device.
-export function useDeal(stalls, demoMode, vegDefault = false) {
+// `learning`: a logged-in student who hasn't turned learning off; their
+// keeps and skips are sent to the Deal model when they reach their hand.
+export function useDeal(stalls, demoMode, vegDefault = false, learning = false) {
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [dealing, setDealing] = useState(false);
+  const [model, setModel] = useState(null); // { personal, swipesLearned } from the last deal
   // A veg-only account starts with "Veg only" on, unless this device already
   // remembers filters the student chose.
   const hasStoredFilters = useRef(false);
@@ -78,9 +83,33 @@ export function useDeal(stalls, demoMode, vegDefault = false) {
     write("localStorage", FILTERS_KEY, next);
   }
 
-  function start() {
-    const dealt = dealHand(pool);
-    update({ phase: dealt.length ? "dealing" : "setup", hand: dealt.map(({ item }) => item.id), index: 0, kept: [], history: [] });
+  // Asks the Deal model how likely each dish is to be kept, then deals with
+  // those odds. If the model can't be reached, the deal is just random.
+  async function start() {
+    setDealing(true);
+    let scores = null;
+    if (!demoMode && pool.length > 0) {
+      try {
+        const result = await api("/api/deal/scores", { method: "POST", body: { menuItemIds: pool.map(({ item }) => item.id).slice(0, 2000) } });
+        scores = result?.scores ?? null;
+        setModel(result ? { personal: result.personal, swipesLearned: result.swipesLearned } : null);
+      } catch {
+        // Random deal instead.
+      }
+    }
+    const dealt = dealHand(pool, HAND_SIZE, scores);
+    setDealing(false);
+    update({ phase: dealt.length ? "dealing" : "setup", hand: dealt.map(({ item }) => item.id), index: 0, kept: [], history: [], sent: 0 });
+  }
+
+  // The cards decided since the last send, to the model. Fire and forget:
+  // a failed send only means the model misses those swipes.
+  function teach(state) {
+    const from = state.sent ?? 0;
+    if (!learning || demoMode || state.index <= from) return state;
+    const swipes = state.history.slice(from, state.index).map((step, i) => ({ menuItemId: state.hand[from + i], kept: step.keep }));
+    api("/api/deal/swipes", { method: "POST", body: { swipes } }).catch(() => {});
+    return { ...state, sent: state.index };
   }
 
   // keep: true to keep the current card, false to skip it.
@@ -88,17 +117,20 @@ export function useDeal(stalls, demoMode, vegDefault = false) {
     const current = hand[saved.index];
     if (!current) return;
     const index = saved.index + 1;
-    update({
+    const next = {
       ...saved,
       index,
       phase: index >= hand.length ? "hand" : "dealing",
       kept: keep && !saved.kept.includes(current.item.id) ? [...saved.kept, current.item.id] : saved.kept,
       history: [...saved.history, { keep }],
-    });
+    };
+    update(next.phase === "hand" ? teach(next) : next);
   }
 
   function undo() {
-    if (saved.index === 0) return;
+    // Cards already sent to the model stay learned; undo only goes back
+    // over cards not yet sent.
+    if (saved.index === 0 || saved.index <= (saved.sent ?? 0)) return;
     const last = saved.history.at(-1);
     const previous = hand[saved.index - 1];
     update({
@@ -113,10 +145,11 @@ export function useDeal(stalls, demoMode, vegDefault = false) {
   return {
     filters, changeFilters, pool, hand, kept,
     phase: saved.phase, index: saved.index,
+    canUndo: saved.index > (saved.sent ?? 0),
     current: hand[saved.index] ?? null,
     upcoming: hand.slice(saved.index + 1, saved.index + 3),
-    start, decide, undo,
-    showHand: () => update({ ...saved, phase: "hand" }),
+    start, decide, undo, dealing, model, learning,
+    showHand: () => update(teach({ ...saved, phase: "hand" })),
     resume: () => update({ ...saved, phase: saved.index < hand.length ? "dealing" : "hand" }),
     reset: () => update({ phase: "setup", hand: [], index: 0, kept: [], history: [] }),
   };
@@ -251,10 +284,15 @@ function Setup({ deal }) {
         ))}
       </div>
       <p className="text-sm text-muted">{pool.length === 0 ? "No open stall has a dish that fits. Try fewer filters." : `${pool.length} dishes at open stalls to deal from.`}</p>
-      <button type="button" onClick={deal.start} disabled={pool.length === 0} className="h-13 w-full rounded-full bg-deck text-base font-semibold text-white hover:bg-deck-hover disabled:opacity-50 sm:max-w-sm">
-        Deal me {Math.min(HAND_SIZE, pool.length) || HAND_SIZE} dishes
+      <button type="button" onClick={deal.start} disabled={pool.length === 0 || deal.dealing} className="h-13 w-full rounded-full bg-deck text-base font-semibold text-white hover:bg-deck-hover disabled:opacity-50 sm:max-w-sm">
+        {deal.dealing ? "Shuffling…" : `Deal me ${Math.min(HAND_SIZE, pool.length) || HAND_SIZE} dishes`}
       </button>
       <p className="text-[13px] text-muted">Swipe right to keep, left to skip. Arrow keys work too.</p>
+      <p className="text-[13px] text-muted">
+        {deal.learning
+          ? "Deals learn from what students keep, and from your own keeps and skips. You can turn that off in Account."
+          : "Deals learn from what students keep. Log in to have them learn your taste too."}
+      </p>
     </section>
   );
 }
@@ -269,7 +307,7 @@ function Dealing({ deal, demoMode, onBag }) {
       if (event.target.closest?.("input, textarea, select") || document.querySelector('[role="dialog"]')) return;
       if (event.key === "ArrowRight") { event.preventDefault(); deal.decide(true); }
       else if (event.key === "ArrowLeft") { event.preventDefault(); deal.decide(false); }
-      else if ((event.key === "ArrowUp" || event.key === "Backspace") && deal.index > 0) { event.preventDefault(); deal.undo(); }
+      else if ((event.key === "ArrowUp" || event.key === "Backspace") && deal.canUndo) { event.preventDefault(); deal.undo(); }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -285,7 +323,7 @@ function Dealing({ deal, demoMode, onBag }) {
         <DishCard key={current.item.id} entry={current} demoMode={demoMode} onDecide={deal.decide} />
       </div>
       <div className="mt-2 flex items-start justify-center gap-5">
-        <RoundButton label="Undo last card" caption="Undo" small onClick={deal.undo} disabled={deal.index === 0}>{Glyph.undo}</RoundButton>
+        <RoundButton label="Undo last card" caption="Undo" small onClick={deal.undo} disabled={!deal.canUndo}>{Glyph.undo}</RoundButton>
         <RoundButton label={`Skip ${current.item.name}`} caption="Skip" onClick={() => deal.decide(false)}>{Glyph.skip}</RoundButton>
         <RoundButton label={`Keep ${current.item.name}`} caption="Keep" primary onClick={() => deal.decide(true)}>{Glyph.keep}</RoundButton>
         {current.stall.listingOnly

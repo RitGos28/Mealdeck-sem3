@@ -109,4 +109,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             + "left join fetch o.items i left join fetch i.menuItem "
             + "left join fetch o.stall where o.student.id = :studentId order by o.createdAt desc")
     List<Order> findByStudentIdWithItems(@Param("studentId") Long studentId);
+
+    /** Dishes this student has actually picked up, which they may vote on. */
+    @Query("select distinct i.menuItem.id from Order o join o.items i "
+            + "where o.student.id = :studentId and o.status = com.mealdeck.model.OrderStatus.COMPLETED")
+    List<Long> collectedMenuItemIds(@Param("studentId") Long studentId);
 }
