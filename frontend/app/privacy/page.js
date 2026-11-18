@@ -49,7 +49,7 @@ export default function PrivacyPage() {
             <li><span className="font-semibold">MealDeck admins</span> can see accounts and orders, to run the service and sort out problems.</li>
             <li><span className="font-semibold">Other students</span> see nothing about you. The live queue shows order numbers and status only, and nobody can see who reported an item. (The live queue only exists at stalls that take pre-orders on MealDeck. At a menu-only stall you can still report a dish as out of stock.)</li>
           </ul>
-          <p>We don&apos;t sell your data, show ads, or use tracking or analytics tools.</p>
+          <p>We don&apos;t sell your data, show ads, or use any third-party tracking or analytics tools. We do count how many times each page is opened, and how many visits came from our QR code, as plain daily totals per page: no cookies, no IP addresses, and nothing that says who opened it.</p>
         </Section>
 
         <Section title="Services we use">

@@ -1,6 +1,7 @@
 import localFont from "next/font/local";
 import "./globals.css";
 import ServiceWorker from "../components/ServiceWorker";
+import VisitBeacon from "../components/layout/VisitBeacon";
 
 // Self-hosted (app/fonts, SIL OFL), so `next build` never has to reach
 // Google Fonts: a network blip there used to fail the Docker build.
@@ -46,6 +47,7 @@ export default function RootLayout({ children }) {
       <body>
         {children}
         <ServiceWorker />
+        <VisitBeacon />
       </body>
     </html>
   );
