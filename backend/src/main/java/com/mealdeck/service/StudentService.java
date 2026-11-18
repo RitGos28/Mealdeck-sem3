@@ -31,10 +31,13 @@ public class StudentService {
     private final com.mealdeck.repository.MessFlagRepository messFlagRepository;
     private final com.mealdeck.repository.MessMealRepository messMealRepository;
     private final com.mealdeck.repository.PreorderRequestRepository preorderRequestRepository;
+    private final com.mealdeck.repository.SurveyResponseRepository surveyResponseRepository;
 
     public StudentService(StudentRepository studentRepository, PasswordEncoder passwordEncoder, ReportRepository reportRepository, SignupCodeService signupCodeService, OrderRepository orderRepository, EmailStandingService emailStanding, ActivityLogService activityLog,
             com.mealdeck.repository.MessFlagRepository messFlagRepository, com.mealdeck.repository.MessMealRepository messMealRepository,
-            com.mealdeck.repository.PreorderRequestRepository preorderRequestRepository) {
+            com.mealdeck.repository.PreorderRequestRepository preorderRequestRepository,
+            com.mealdeck.repository.SurveyResponseRepository surveyResponseRepository) {
+        this.surveyResponseRepository = surveyResponseRepository;
         this.preorderRequestRepository = preorderRequestRepository;
         this.messFlagRepository = messFlagRepository;
         this.messMealRepository = messMealRepository;
@@ -147,6 +150,7 @@ public class StudentService {
         messFlagRepository.deleteByStudentId(id);
         messMealRepository.clearSubmitter(id);
         preorderRequestRepository.deleteByStudentId(id);
+        surveyResponseRepository.deleteByStudentId(id);
         orderRepository.detachStudent(id);
         studentRepository.delete(student);
         activityLog.accountDeleted(id, how);
