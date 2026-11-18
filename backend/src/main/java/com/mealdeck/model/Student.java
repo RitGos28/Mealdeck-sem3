@@ -40,6 +40,11 @@ public class Student {
      * means no preference. Boxed so ddl-auto=update can add the column. */
     private Boolean vegOnly;
 
+    /** True when the student turned off "learn from my Deal me a dish
+     * swipes". Null means learning is on (the default, said on the privacy
+     * page); boxed so ddl-auto=update can add the column. */
+    private Boolean dealLearningOff;
+
     protected Student() {
     }
 
@@ -57,6 +62,14 @@ public class Student {
 
     public void setVegOnly(boolean vegOnly) {
         this.vegOnly = vegOnly;
+    }
+
+    public boolean isDealLearning() {
+        return !Boolean.TRUE.equals(dealLearningOff);
+    }
+
+    public void setDealLearning(boolean on) {
+        this.dealLearningOff = !on;
     }
 
     public Instant getCreatedAt() {

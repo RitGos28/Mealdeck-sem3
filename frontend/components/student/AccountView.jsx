@@ -9,6 +9,7 @@ import { DeleteAccountPanel } from "./AccountDeletion";
 import FeedbackLink from "../FeedbackLink";
 import { PassportCard } from "./passport/PassportViews";
 import DietSwitch from "./DietSwitch";
+import DealLearningSwitch from "./DealLearningSwitch";
 import NotOfficial from "../layout/NotOfficial";
 
 const ROLE_LABELS = { VENDOR: "Vendor", ADMIN: "Admin" };
@@ -60,6 +61,7 @@ function AccountContent({ user, router, deletion }) {
     <div className="mx-auto max-w-xl">
       {user.role === "STUDENT" && <PassportCard />}
       {user.role === "STUDENT" && <DietSwitch initial={user.vegOnly} />}
+      {user.role === "STUDENT" && <DealLearningSwitch initial={user.dealLearning} />}
       <section aria-label="Signed in as" className="flex items-center gap-4">
         <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-mint font-serif text-2xl text-mint-ink" aria-hidden="true">
           {user.email?.[0]?.toUpperCase() ?? "?"}
