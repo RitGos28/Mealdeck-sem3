@@ -10,6 +10,7 @@ import StudentShell from "./student/StudentShell";
 import PickupChips from "./student/PickupChips";
 import OrderAgain from "./student/OrderAgain";
 import MostLoved from "./student/MostLoved";
+import SimulatedDataBanner from "./layout/SimulatedDataBanner";
 import MessCard from "./student/mess/MessCard";
 import PreorderAsk from "./student/PreorderAsk";
 import ArrowGroup from "./ArrowGroup";
@@ -623,6 +624,7 @@ export default function MenuExperience({ stalls, demoMode }) {
       <>
         <ViewSwitch view={homeView} onChange={changeHomeView} />
         {demoMode && <p className="rounded-2xl bg-mint px-4 py-3 text-sm text-mint-ink">Showing sample menu data. Start the backend to load live availability.</p>}
+        <SimulatedDataBanner />
         {homeView === "craving" ? (
           <section>
             <SectionTitle>What are you craving?</SectionTitle>
