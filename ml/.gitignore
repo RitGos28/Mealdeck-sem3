@@ -1,0 +1,4 @@
+# Regenerated in seconds by simulate.py and train_eta.py.
+data/
+models/
+__pycache__/
