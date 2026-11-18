@@ -139,7 +139,7 @@ echo "  building the frontend (about a minute)..."
 # /api/ws to the backend). Local only: straight at this Mac's backend.
 WS_URL="ws://$IP:8080/api/ws"
 [ "$PUBLIC" = 1 ] && WS_URL=""
-(cd frontend && { [ -d node_modules ] || npm ci --no-audit --no-fund; } && NEXT_PUBLIC_WS_URL="$WS_URL" npm run build) \
+(cd frontend && { [ -d node_modules ] || npm ci --no-audit --no-fund; } && NEXT_PUBLIC_WS_URL="$WS_URL" NEXT_PUBLIC_DEMO_GUEST=1 npm run build) \
   > "$STATE/build.log" 2>&1 || { echo "  frontend build failed: see $STATE/build.log"; exit 1; }
 (cd frontend && exec npx next start -H 0.0.0.0 -p 3000) > "$STATE/frontend.log" 2>&1 &
 echo $! > "$STATE/frontend.pid"
