@@ -17,15 +17,27 @@ public class MenuController {
 
     private final MenuService menuService;
     private final StudentRepository studentRepository;
+    private final com.mealdeck.repository.VendorRepository vendorRepository;
+    private final List<String> demoVendors;
 
-    public MenuController(MenuService menuService, StudentRepository studentRepository) {
+    public MenuController(MenuService menuService, StudentRepository studentRepository, com.mealdeck.repository.VendorRepository vendorRepository,
+            @org.springframework.beans.factory.annotation.Value("${mealdeck.demo.vendor-accounts:vendor@mealdeck.in}") List<String> demoVendors) {
         this.menuService = menuService;
         this.studentRepository = studentRepository;
+        this.vendorRepository = vendorRepository;
+        this.demoVendors = demoVendors.stream().map(e -> e.trim().toLowerCase()).filter(e -> !e.isEmpty()).toList();
     }
 
+    /** Every stall students can see. A stall run by a demo vendor login
+     * (vendor@mealdeck.in, public for Play reviewers) is never listed: it's
+     * a pretend stall, not a place to order. */
     @GetMapping("/api/stalls")
     public List<StallDto> stalls() {
-        return menuService.listStalls().stream().map(StallDto::from).toList();
+        java.util.Set<Long> demoStalls = vendorRepository.findAll().stream()
+                .filter(vendor -> demoVendors.contains(vendor.getEmail().toLowerCase()) && vendor.getStall() != null)
+                .map(vendor -> vendor.getStall().getId())
+                .collect(java.util.stream.Collectors.toSet());
+        return menuService.listStalls().stream().filter(stall -> !demoStalls.contains(stall.getId())).map(StallDto::from).toList();
     }
 
     @PostMapping("/api/menu-items/{id}/report")

@@ -11,6 +11,7 @@ import com.mealdeck.repository.MenuItemRepository;
 import com.mealdeck.repository.ReportRepository;
 import com.mealdeck.repository.StallRepository;
 import com.mealdeck.repository.StudentRepository;
+import com.mealdeck.web.MenuItemRequests.CreateMenuItemRequest;
 import com.mealdeck.web.MenuItemRequests.UpdateMenuItemRequest;
 import com.mealdeck.web.MenuItemRequests.UpdateStallRequest;
 import java.math.BigDecimal;
@@ -162,7 +163,7 @@ class MenuServiceTests {
         menuService.reportOutOfStock(item, newStudent("c"));
         assertThat(reload(item).isAvailable()).isFalse();
 
-        menuService.updateItem(bistro.getId(), item, new UpdateMenuItemRequest(null, null, null, true));
+        menuService.updateItem(bistro.getId(), item, new UpdateMenuItemRequest(null, null, null, true, null));
 
         assertThat(reload(item).isAvailable()).isTrue();
         assertThat(reload(item).getReportCount()).isZero();
@@ -172,12 +173,29 @@ class MenuServiceTests {
     }
 
     @Test
+    void categoriesAreTrimmedClearedByBlankAndCappedInLength() {
+        Stall bistro = stall("Bistro / Kathi");
+        Long item = menuService.addItem(bistro.getId(),
+                new CreateMenuItemRequest("Masala Chai", new BigDecimal("20"), true, "  Chai   Nagri ")).getId();
+        assertThat(reload(item).getCategory()).isEqualTo("Chai Nagri");
+
+        menuService.updateItem(bistro.getId(), item, new UpdateMenuItemRequest(null, null, null, null, null));
+        assertThat(reload(item).getCategory()).isEqualTo("Chai Nagri");
+
+        menuService.updateItem(bistro.getId(), item, new UpdateMenuItemRequest(null, null, null, null, " "));
+        assertThat(reload(item).getCategory()).isNull();
+
+        assertRejected(() -> menuService.updateItem(bistro.getId(), item,
+                new UpdateMenuItemRequest(null, null, null, null, "x".repeat(41))), HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
     void markingAnItemUnavailableKeepsItsVotes() {
         Stall bistro = stall("Bistro / Kathi");
         Long item = bistro.getMenuItems().getFirst().getId();
         menuService.reportOutOfStock(item, newStudent("early"));
 
-        menuService.updateItem(bistro.getId(), item, new UpdateMenuItemRequest(null, null, null, false));
+        menuService.updateItem(bistro.getId(), item, new UpdateMenuItemRequest(null, null, null, false, null));
 
         assertThat(reload(item).getReportCount()).isEqualTo(1);
         assertThat(reportRepository.count()).isEqualTo(1);
@@ -210,7 +228,7 @@ class MenuServiceTests {
         BigDecimal price = coffee.getPrice();
 
         assertRejected(() -> menuService.updateItem(bistro.getId(), coffee.getId(),
-                new UpdateMenuItemRequest("Hacked", BigDecimal.ONE, null, false)), HttpStatus.FORBIDDEN);
+                new UpdateMenuItemRequest("Hacked", BigDecimal.ONE, null, false, null)), HttpStatus.FORBIDDEN);
         assertRejected(() -> menuService.deleteItem(bistro.getId(), coffee.getId()), HttpStatus.FORBIDDEN);
 
         MenuItem after = reload(coffee.getId());

@@ -32,14 +32,29 @@ public class OrderItem {
     @Column(nullable = false)
     private BigDecimal priceAtOrder;
 
+    /** What the student picked, as the stall reads it ("Bread: Butter Roti ×2
+     * · Style: Gravy"); null for dishes without choices. A snapshot, like
+     * the price, so later menu edits don't rewrite past orders. */
+    @Column(length = 300)
+    private String choices;
+
     protected OrderItem() {
     }
 
     public OrderItem(Order order, MenuItem menuItem, int quantity, BigDecimal priceAtOrder) {
+        this(order, menuItem, quantity, priceAtOrder, null);
+    }
+
+    public OrderItem(Order order, MenuItem menuItem, int quantity, BigDecimal priceAtOrder, String choices) {
         this.order = order;
         this.menuItem = menuItem;
         this.quantity = quantity;
         this.priceAtOrder = priceAtOrder;
+        this.choices = choices;
+    }
+
+    public String getChoices() {
+        return choices;
     }
 
     public Long getId() {

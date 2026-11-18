@@ -23,11 +23,23 @@ public class StudentService {
 
     private final StudentRepository studentRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailStandingService emailStanding;
     private final ReportRepository reportRepository;
     private final SignupCodeService signupCodeService;
     private final OrderRepository orderRepository;
+    private final ActivityLogService activityLog;
+    private final com.mealdeck.repository.MessFlagRepository messFlagRepository;
+    private final com.mealdeck.repository.MessMealRepository messMealRepository;
+    private final com.mealdeck.repository.PreorderRequestRepository preorderRequestRepository;
 
-    public StudentService(StudentRepository studentRepository, PasswordEncoder passwordEncoder, ReportRepository reportRepository, SignupCodeService signupCodeService, OrderRepository orderRepository) {
+    public StudentService(StudentRepository studentRepository, PasswordEncoder passwordEncoder, ReportRepository reportRepository, SignupCodeService signupCodeService, OrderRepository orderRepository, EmailStandingService emailStanding, ActivityLogService activityLog,
+            com.mealdeck.repository.MessFlagRepository messFlagRepository, com.mealdeck.repository.MessMealRepository messMealRepository,
+            com.mealdeck.repository.PreorderRequestRepository preorderRequestRepository) {
+        this.preorderRequestRepository = preorderRequestRepository;
+        this.messFlagRepository = messFlagRepository;
+        this.messMealRepository = messMealRepository;
+        this.activityLog = activityLog;
+        this.emailStanding = emailStanding;
         this.orderRepository = orderRepository;
         this.studentRepository = studentRepository;
         this.passwordEncoder = passwordEncoder;
@@ -44,9 +56,9 @@ public class StudentService {
     public Student signup(SignupRequest request) {
         String email = SignupCodeService.normalize(request.email());
         if (!EmailDomains.isStudentEmail(email)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Only " + EmailDomains.STUDENT_DOMAIN + " emails are accepted");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, EmailDomains.studentEmailProblem(email));
         }
+        emailStanding.requireCanSignUp(email);
         if (request.password() == null || request.password().length() < MIN_PASSWORD_LENGTH) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Password must be at least " + MIN_PASSWORD_LENGTH + " characters");
@@ -63,7 +75,9 @@ public class StudentService {
         }
 
         Student student = new Student(email, passwordEncoder.encode(request.password()), request.name().trim(), blankToNull(request.phone()));
-        return studentRepository.save(student);
+        student = studentRepository.save(student);
+        activityLog.accountCreated(student.getId());
+        return student;
     }
 
     /** Forgot password: the emailed reset code proves the inbox, then the
@@ -86,14 +100,26 @@ public class StudentService {
         return studentRepository.save(student);
     }
 
+    /** The student's own "I only eat veg" setting (null/false = no preference). */
+    @Transactional
+    public boolean setVegOnly(Long studentId, boolean vegOnly) {
+        Student student = get(studentId);
+        student.setVegOnly(vegOnly);
+        return studentRepository.save(student).isVegOnly();
+    }
+
     public List<Student> list() { return studentRepository.findAll(); }
+
+    public java.util.Optional<Student> findByEmail(String email) { return studentRepository.findByEmail(email); }
 
     @Transactional
     public Student createByAdmin(CreateStudentRequest request) {
         validateEmail(request.email(), null);
         validatePassword(request.password());
         requireName(request.name());
-        return studentRepository.save(new Student(request.email().trim().toLowerCase(), passwordEncoder.encode(request.password()), request.name().trim(), blankToNull(request.phone())));
+        Student created = studentRepository.save(new Student(request.email().trim().toLowerCase(), passwordEncoder.encode(request.password()), request.name().trim(), blankToNull(request.phone())));
+        activityLog.record(com.mealdeck.model.ActivityLog.Type.ACCOUNT_CREATED, created.getId(), null, "had an account created by an admin");
+        return created;
     }
 
     @Transactional
@@ -108,10 +134,22 @@ public class StudentService {
 
     @Transactional
     public void deleteByAdmin(Long id) {
+        delete(id, "deleted by an admin");
+    }
+
+    /** The final delete. `how` goes into the activity log: an admin's action,
+     * or the end of the student's own 24-hour grace period. */
+    @Transactional
+    public void delete(Long id, String how) {
         Student student = get(id);
         reportRepository.deleteByStudentId(id);
+        // Mess: their "isn't correct" flags go; menus they added stay, anonymously.
+        messFlagRepository.deleteByStudentId(id);
+        messMealRepository.clearSubmitter(id);
+        preorderRequestRepository.deleteByStudentId(id);
         orderRepository.detachStudent(id);
         studentRepository.delete(student);
+        activityLog.accountDeleted(id, how);
     }
 
     private Student get(Long id) {
@@ -119,7 +157,7 @@ public class StudentService {
     }
 
     private void validateEmail(String email, Long currentId) {
-        if (!EmailDomains.isStudentEmail(email)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only " + EmailDomains.STUDENT_DOMAIN + " emails are accepted");
+        if (!EmailDomains.isStudentEmail(email)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, EmailDomains.studentEmailProblem(email));
         studentRepository.findByEmail(email.trim().toLowerCase()).filter(student -> !student.getId().equals(currentId))
                 .ifPresent(student -> { throw new ResponseStatusException(HttpStatus.CONFLICT, "An account with that email already exists"); });
     }

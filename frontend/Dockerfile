@@ -29,6 +29,10 @@ ENV NODE_ENV=production \
 USER node
 COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
+# Icons, the offline page and /.well-known/assetlinks.json (which lets the
+# Android app open full-screen) are static files the standalone server
+# serves from ./public.
+COPY --from=build --chown=node:node /app/public ./public
 
 EXPOSE 3000
 # 127.0.0.1, not localhost: Alpine resolves localhost to ::1 first, and the

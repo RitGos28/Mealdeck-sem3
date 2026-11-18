@@ -44,6 +44,13 @@ public class Stall {
      * turned off by hand. */
     private Boolean ordersPaused;
 
+    /** Admin-only: the menu is shown but the stall takes no pre-orders.
+     * Only stalls whose owner has agreed take orders, so a stall is menu
+     * only until an admin sets this to false: null (every existing row
+     * after ddl-auto=update, and every new stall) means menu only. Unlike
+     * ordersPaused it never resets by itself. */
+    private Boolean listingOnly;
+
     protected Stall() {
     }
 
@@ -93,6 +100,14 @@ public class Stall {
 
     public void setSlotCapacity(Integer slotCapacity) {
         this.slotCapacity = slotCapacity;
+    }
+
+    public boolean isListingOnly() {
+        return !Boolean.FALSE.equals(listingOnly);
+    }
+
+    public void setListingOnly(boolean listingOnly) {
+        this.listingOnly = listingOnly;
     }
 
     public boolean isOrdersPaused() {

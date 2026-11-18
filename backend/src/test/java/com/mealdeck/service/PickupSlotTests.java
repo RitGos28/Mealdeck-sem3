@@ -69,9 +69,13 @@ class PickupSlotTests {
                 .filter(s -> s.getName().equals("Bistro / Kathi")).findFirst().orElseThrow();
     }
 
+    /** Each order comes from a fresh student: these tests are about slot
+     * capacity and queue order, not the cap on one student's open orders. */
     private List<Order> order(Stall stall, String time) {
         MenuItem item = stall.getMenuItems().getFirst();
-        return orderService.checkout(studentId(), new CreateOrderRequest(
+        Long someone = studentRepository.save(new com.mealdeck.model.Student(
+                "slot" + System.nanoTime() + "@bennett.edu.in", "x", "Slot Test", null)).getId();
+        return orderService.checkout(someone, new CreateOrderRequest(
                 List.of(new OrderItemRequest(item.getId(), 1)),
                 Map.of(stall.getId(), LocalTime.parse(time))));
     }

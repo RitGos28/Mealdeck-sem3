@@ -7,6 +7,7 @@ import VendorMenu from "./VendorMenu";
 import { api, formatInstant, formatTime } from "../../lib/api";
 import { LiveIndicator, useLiveTopic } from "../../lib/liveQueue";
 import { FINAL_STATUSES, StatusBadge } from "../../lib/orderStatus";
+import { AlertsToggle, useNewOrderAlerts } from "./NewOrderAlerts";
 
 // New orders arrive over the live socket; this slow refresh only covers a
 // socket that can't connect at all.
@@ -49,11 +50,19 @@ function OrderCard({ order, onUpdated, readOnly }) {
         <div>
           <p className="font-display text-lg font-bold">#{order.id} · {order.customerName}</p>
           <p className="text-sm text-gray-500">{order.customerContact}</p>
+          {order.hostelRoom && <p className="text-sm font-semibold text-[#315c3d]">Find them at: {order.hostelRoom}</p>}
+          {order.recentNoShows > 0 && <p className="mt-1 inline-block rounded-full bg-[#FBEDE6] px-2.5 py-0.5 text-xs font-semibold text-[#9a4a3f]">{order.recentNoShows} {order.recentNoShows === 1 ? "order" : "orders"} not collected in the last 30 days</p>}
         </div>
         <StatusBadge status={order.status} />
       </div>
       <ul className="mb-3 text-sm">
-        {order.items.map((item) => <li key={item.menuItemId}>{item.quantity}× {item.menuItemName}</li>)}
+        {order.items.map((item, i) => (
+          <li key={i}>
+            {item.quantity}× {item.menuItemName}
+            {/* The student's picks, bold so the counter can't miss them. */}
+            {item.choices && <span className="block pl-5 text-[13px] font-bold text-[#163D29]">{item.choices}</span>}
+          </li>
+        ))}
       </ul>
       {order.noShowAt && <p className="mb-3 text-xs font-semibold text-[#9a4a3f]">Auto no-show at {formatInstant(order.noShowAt)} if not collected</p>}
       <div className="flex flex-wrap items-center gap-2">
@@ -212,6 +221,7 @@ export default function VendorOrders() {
   // The public queue topic carries no names or phone numbers, so a push is
   // only a cue to reload the full list through the logged-in vendor API.
   const connected = useLiveTopic(stall && viewingToday ? `/topic/stalls/${stall.id}/queue` : null, { onMessage: load, onConnect: load });
+  const alerts = useNewOrderAlerts(orders, viewingToday);
 
   function handleUpdated(updated) {
     setOrders((current) => current.map((order) => (order.id === updated.id ? updated : order)));
@@ -266,6 +276,7 @@ export default function VendorOrders() {
               <div className="flex flex-wrap items-center gap-4">
                 {stall && <SlotCapacity key={stall.slotCapacity} stall={stall} onSaved={setStall} />}
                 {stall && <PauseOrders stall={stall} onSaved={setStall} />}
+                {stall && <AlertsToggle alerts={alerts} />}
               </div>
               {stall && <LiveIndicator connected={connected} />}
             </div>

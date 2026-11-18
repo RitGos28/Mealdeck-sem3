@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import java.time.Instant;
 
 @Entity
 public class Student {
@@ -24,6 +25,21 @@ public class Student {
 
     private String phone;
 
+    /** Set when the student asks to delete their account; the account is
+     * deleted for good a grace period later (AccountDeletionService), and
+     * clearing it cancels. Null when no deletion is pending. */
+    private Instant deletionRequestedAt;
+
+    /** When the account was made. Null for accounts made before this was
+     * recorded (2026-11), so "joined this week" never guesses. */
+    private Instant createdAt;
+
+    /** "I only eat veg": a setting the student chose. It makes the menu,
+     * Deal me a dish and the passport's suggestions start veg-only, and the
+     * bag warns (never blocks) if a non-veg dish is in it. Null (or false)
+     * means no preference. Boxed so ddl-auto=update can add the column. */
+    private Boolean vegOnly;
+
     protected Student() {
     }
 
@@ -32,6 +48,19 @@ public class Student {
         this.passwordHash = passwordHash;
         this.name = name;
         this.phone = phone;
+        this.createdAt = Instant.now();
+    }
+
+    public boolean isVegOnly() {
+        return Boolean.TRUE.equals(vegOnly);
+    }
+
+    public void setVegOnly(boolean vegOnly) {
+        this.vegOnly = vegOnly;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
     }
 
     public Long getId() {
@@ -58,4 +87,6 @@ public class Student {
     public void setName(String name) { this.name = name; }
     public void setPhone(String phone) { this.phone = phone; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    public Instant getDeletionRequestedAt() { return deletionRequestedAt; }
+    public void setDeletionRequestedAt(Instant deletionRequestedAt) { this.deletionRequestedAt = deletionRequestedAt; }
 }

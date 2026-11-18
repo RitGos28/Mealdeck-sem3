@@ -43,8 +43,10 @@ public class VendorController {
     private final MenuService menuService;
     private final OrderService orderService;
     private final ImageStorageService imageStorageService;
+    private final com.mealdeck.service.EmailStandingService emailStanding;
 
-    public VendorController(VendorRepository vendorRepository, MenuService menuService, OrderService orderService, ImageStorageService imageStorageService) {
+    public VendorController(VendorRepository vendorRepository, MenuService menuService, OrderService orderService, ImageStorageService imageStorageService, com.mealdeck.service.EmailStandingService emailStanding) {
+        this.emailStanding = emailStanding;
         this.vendorRepository = vendorRepository;
         this.menuService = menuService;
         this.orderService = orderService;
@@ -59,6 +61,10 @@ public class VendorController {
     @PatchMapping("/stall")
     public StallDto updateStall(Authentication authentication, @RequestBody UpdateStallRequest request) {
         Stall stall = ownStall(authentication);
+        if (request.listingOnly() != null) {
+            // Which stalls take pre-orders is decided by MealDeck, not the stall.
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only an admin can change whether a stall takes pre-orders");
+        }
         return StallDto.from(menuService.updateStall(stall.getId(), request));
     }
 
@@ -95,14 +101,20 @@ public class VendorController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         Long stallId = ownStall(authentication).getId();
         List<Order> orders = date == null ? orderService.todaysOrdersForStall(stallId) : orderService.ordersForStallOn(stallId, date);
-        return orders.stream().map(OrderDto::from).toList();
+        return withNoShowCounts(orders);
+    }
+
+    /** The stall sees how many pre-orders each customer recently left uncollected. */
+    private List<OrderDto> withNoShowCounts(List<Order> orders) {
+        var counts = emailStanding.recentNoShows(orders.stream().map(Order::getCustomerEmailKey).toList());
+        return orders.stream().map(order -> OrderDto.from(order).withRecentNoShows(counts.getOrDefault(order.getCustomerEmailKey(), 0))).toList();
     }
 
     @PatchMapping("/orders/{code}/status")
     public OrderDto updateOrderStatus(Authentication authentication, @PathVariable String code, @RequestBody UpdateOrderStatusRequest request) {
         OrderStatus next = parseStatus(request.status());
         Order order = orderService.advanceStatus(ownStall(authentication).getId(), orderService.getOrderByCode(code).getId(), next);
-        return OrderDto.from(order);
+        return withNoShowCounts(List.of(order)).getFirst();
     }
 
     private Stall ownStall(Authentication authentication) {

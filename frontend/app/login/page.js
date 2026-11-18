@@ -9,10 +9,10 @@ function safeNext(value) {
 }
 
 export default async function LoginPage({ searchParams }) {
-  const { next } = await searchParams;
+  const { next, mode } = await searchParams;
   return (
     <AuthCard title="Student login" subtitle="Log in with your Bennett email to report stock and place pre-orders.">
-      <StudentAuth next={safeNext(next)} />
+      <StudentAuth next={safeNext(next)} initialMode={mode === "forgot" ? "reset" : "login"} />
     </AuthCard>
   );
 }

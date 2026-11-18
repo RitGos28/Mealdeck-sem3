@@ -155,7 +155,7 @@ class CheckoutTests {
     }
 
     @Test
-    void deletingAStudentKeepsTheirOrdersOnTheVendorsList() {
+    void deletingAStudentKeepsTheirOrdersOnTheVendorsListAnonymised() {
         Stall bistro = stall("Bistro / Kathi");
         Student leaver = studentRepository.save(new Student("leaver@bennett.edu.in", "unused", "Leaver", null));
         Long orderId = orderService.checkout(leaver.getId(), new CreateOrderRequest(
@@ -165,7 +165,9 @@ class CheckoutTests {
 
         Order kept = orderService.getOrder(orderId);
         assertThat(kept.getStudent()).isNull();
-        assertThat(kept.getCustomerName()).isEqualTo("Leaver");
+        assertThat(kept.getCustomerName()).isEqualTo("Deleted student");
+        assertThat(kept.getCustomerContact()).isEqualTo("(deleted)");
+        assertThat(kept.getItems()).isNotEmpty();
     }
 
     @Test
@@ -266,5 +268,81 @@ class CheckoutTests {
     void advancingAnUnknownOrderIsNotFound() {
         assertRejected(() -> orderService.advanceStatus(stall("Bistro / Kathi").getId(), 999_999L, OrderStatus.ACCEPTED),
                 HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void aStudentCanHaveTwoOpenOrdersAtAStallButNotThree() {
+        Stall bistro = stall("Bistro / Kathi");
+        orderAt(bistro);
+        orderAt(bistro);
+
+        assertRejected(() -> orderAt(bistro), HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void finishingAnOrderFreesASpotUnderTheCap() {
+        Stall bistro = stall("Bistro / Kathi");
+        Long first = orderAt(bistro);
+        orderAt(bistro);
+        assertRejected(() -> orderAt(bistro), HttpStatus.CONFLICT);
+
+        Order done = orderRepository.findById(first).orElseThrow();
+        done.setStatus(com.mealdeck.model.OrderStatus.COMPLETED);
+        orderRepository.save(done);
+
+        orderAt(bistro);
+    }
+
+    @Test
+    void theCapIsPerStall() {
+        Stall bistro = stall("Bistro / Kathi");
+        Stall snapEats = stall("SnapEats");
+        orderAt(bistro);
+        orderAt(bistro);
+
+        orderAt(snapEats);
+    }
+
+    @Test
+    void theOptionalHostelRoomIsKeptOnTheOrderAndWipedWhenTheAccountGoes() {
+        Stall bistro = stall("Bistro / Kathi");
+        MenuItem item = bistro.getMenuItems().getFirst();
+
+        Order order = orderService.checkout(studentId(), new CreateOrderRequest(
+                List.of(new OrderItemRequest(item.getId(), 1)), Map.of(bistro.getId(), NOON), "  Hostel 4, room 212 ")).getFirst();
+        assertThat(order.getHostelRoom()).isEqualTo("Hostel 4, room 212");
+        assertThat(com.mealdeck.web.OrderDto.from(order).hostelRoom()).isEqualTo("Hostel 4, room 212");
+
+        orderRepository.detachStudent(studentId());
+        assertThat(orderRepository.findById(order.getId()).orElseThrow().getHostelRoom()).isNull();
+    }
+
+    @Test
+    void aBlankRoomMeansNoneAndAVeryLongOneIsRefused() {
+        Stall bistro = stall("Bistro / Kathi");
+        MenuItem item = bistro.getMenuItems().getFirst();
+
+        Order plain = orderService.checkout(studentId(), new CreateOrderRequest(
+                List.of(new OrderItemRequest(item.getId(), 1)), Map.of(bistro.getId(), NOON), "   ")).getFirst();
+        assertThat(plain.getHostelRoom()).isNull();
+
+        assertRejected(() -> orderService.checkout(studentId(), new CreateOrderRequest(
+                List.of(new OrderItemRequest(item.getId(), 1)), Map.of(bistro.getId(), NOON), "x".repeat(81))), HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void ordersLeftOpenOnEarlierDaysDontCountTowardsTheCap() {
+        // Nothing closes a placed order a stall never touched, so yesterday's
+        // must not lock the student out today.
+        Stall bistro = stall("Bistro / Kathi");
+        var student = studentRepository.findById(studentId()).orElseThrow();
+        java.time.LocalDate yesterday = java.time.LocalDate.now(clock).minusDays(1);
+        for (int i = 0; i < 3; i++) {
+            orderRepository.save(new Order(bistro, student, yesterday, NOON));
+        }
+
+        orderAt(bistro);
+        orderAt(bistro);
+        assertRejected(() -> orderAt(bistro), HttpStatus.CONFLICT);
     }
 }
