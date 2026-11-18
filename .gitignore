@@ -4,3 +4,6 @@ CLAUDE.md
 
 # macOS metadata files created on non-Apple drives
 ._*
+
+# demo.sh logs and pids
+.demo/

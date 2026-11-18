@@ -69,10 +69,12 @@ jobs:
           docker build -t "mealdeck-ci-backend:$tag" backend
           docker build -t "mealdeck-ci-frontend:$tag" \
             --build-arg BACKEND_INTERNAL_URL=http://backend:8080 frontend
+          # The demo site's ETA model server (docker-compose "demo" profile).
+          docker build -t "mealdeck-ci-eta:$tag" ml
 
       - name: Remove CI images
         if: always()
-        run: docker image rm -f "mealdeck-ci-backend:${{ github.run_id }}" "mealdeck-ci-frontend:${{ github.run_id }}" 2>/dev/null || true
+        run: docker image rm -f "mealdeck-ci-backend:${{ github.run_id }}" "mealdeck-ci-frontend:${{ github.run_id }}" "mealdeck-ci-eta:${{ github.run_id }}" 2>/dev/null || true
 
   deploy:
     needs: test

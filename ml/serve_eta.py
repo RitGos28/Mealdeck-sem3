@@ -110,14 +110,17 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--model", default=str(ROOT / "models" / "eta-model.joblib"))
     parser.add_argument("--port", type=int, default=8099)
+    # 127.0.0.1 on a laptop; 0.0.0.0 inside the demo's container, where only
+    # the demo's private Docker network can reach it.
+    parser.add_argument("--host", default="127.0.0.1")
     args = parser.parse_args()
 
     if not Path(args.model).exists():
         sys.exit(f"No model at {args.model}; run simulate.py then train_eta.py first")
     bundle = joblib.load(args.model)
-    server = ThreadingHTTPServer(("127.0.0.1", args.port), make_handler(bundle))
+    server = ThreadingHTTPServer((args.host, args.port), make_handler(bundle))
     held_out = bundle["metrics"]["held_out"]["random forest"]
-    print(f"ETA model on http://127.0.0.1:{args.port} (SIMULATED data, held-out MAE {held_out['mae_min']} min)")
+    print(f"ETA model on http://{args.host}:{args.port} (SIMULATED data, held-out MAE {held_out['mae_min']} min)", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
