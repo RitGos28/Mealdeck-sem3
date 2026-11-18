@@ -37,12 +37,16 @@ public class MenuService {
     private final StudentRepository studentRepository;
     private final ApplicationEventPublisher events;
 
+    private final ActivityLogService activityLog;
+
     public MenuService(
             StallRepository stallRepository,
             MenuItemRepository menuItemRepository,
             ReportRepository reportRepository,
             StudentRepository studentRepository,
-            ApplicationEventPublisher events) {
+            ApplicationEventPublisher events,
+            ActivityLogService activityLog) {
+        this.activityLog = activityLog;
         this.stallRepository = stallRepository;
         this.menuItemRepository = menuItemRepository;
         this.reportRepository = reportRepository;
@@ -72,6 +76,7 @@ public class MenuService {
 
         reportRepository.save(new Report(item, student));
         menuItemRepository.incrementReportCount(menuItemId);
+        activityLog.outOfStockReported(studentId, menuItemId, item.getName());
 
         MenuItem updated = menuItemRepository.findById(menuItemId).orElseThrow();
         if (reportRepository.countDistinctStudentsByMenuItemId(menuItemId) >= REPORT_THRESHOLD) {
@@ -128,6 +133,9 @@ public class MenuService {
         if (request.ordersPaused() != null) {
             stall.setOrdersPaused(request.ordersPaused());
         }
+        if (request.listingOnly() != null) {
+            stall.setListingOnly(request.listingOnly());
+        }
         stallRepository.save(stall);
         // Capacity and closed-today both change which slots are bookable.
         events.publishEvent(new QueueChangedEvent(stallId));
@@ -137,7 +145,25 @@ public class MenuService {
     @Transactional
     public MenuItem addItem(Long stallId, CreateMenuItemRequest request) {
         Stall stall = getStall(stallId);
-        return menuItemRepository.save(new MenuItem(stall, request.name(), request.price(), request.veg()));
+        MenuItem item = new MenuItem(stall, request.name(), request.price(), request.veg());
+        item.setCategory(cleanCategory(request.category()));
+        item.setChoices(MenuChoices.store(request.choices()));
+        return menuItemRepository.save(item);
+    }
+
+    static final int MAX_CATEGORY_LENGTH = 40;
+
+    /** Trims a category; blank becomes null (no category). */
+    static String cleanCategory(String category) {
+        if (category == null || category.isBlank()) {
+            return null;
+        }
+        String trimmed = category.strip().replaceAll("\\s+", " ");
+        if (trimmed.length() > MAX_CATEGORY_LENGTH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Category names can be at most " + MAX_CATEGORY_LENGTH + " characters");
+        }
+        return trimmed;
     }
 
     @Transactional
@@ -152,6 +178,12 @@ public class MenuService {
         if (request.veg() != null) {
             item.setVeg(request.veg());
         }
+        if (request.category() != null) {
+            item.setCategory(cleanCategory(request.category()));
+        }
+        if (request.choices() != null) {
+            item.setChoices(MenuChoices.store(request.choices()));
+        }
         if (request.available() != null) {
             item.setAvailable(request.available());
             if (request.available()) {
@@ -162,6 +194,17 @@ public class MenuService {
             }
         }
         return menuItemRepository.save(item);
+    }
+
+    @Transactional
+    public MenuItem updateItemImage(Long stallId, Long itemId, String imageUrl) {
+        MenuItem item = requireItemOnStall(stallId, itemId);
+        item.setImage(imageUrl);
+        return menuItemRepository.save(item);
+    }
+
+    public MenuItem getItemOnStall(Long stallId, Long itemId) {
+        return requireItemOnStall(stallId, itemId);
     }
 
     @Transactional

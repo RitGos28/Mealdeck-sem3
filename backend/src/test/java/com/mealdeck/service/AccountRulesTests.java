@@ -132,4 +132,15 @@ class AccountRulesTests {
         assertRejected(() -> adminAccountService.updateVendor(vendor.getId(), new UpdateVendorRequest("bistro@mealdeck.in", null, null)),
                 HttpStatus.CONFLICT);
     }
+
+    @Test
+    void theVegOnlySettingIsSavedOnTheAccountAndDefaultsToOff() {
+        var student = studentService.signup(signup("veggie@bennett.edu.in", "secret1", "secret1", "Veggie Student"));
+        assertThat(student.isVegOnly()).isFalse();
+
+        assertThat(studentService.setVegOnly(student.getId(), true)).isTrue();
+        assertThat(studentService.findByEmail("veggie@bennett.edu.in").orElseThrow().isVegOnly()).isTrue();
+
+        assertThat(studentService.setVegOnly(student.getId(), false)).isFalse();
+    }
 }

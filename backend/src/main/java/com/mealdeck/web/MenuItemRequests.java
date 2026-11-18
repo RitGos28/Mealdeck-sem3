@@ -6,14 +6,27 @@ import java.math.BigDecimal;
  * same reasoning as AuthDtos. */
 public class MenuItemRequests {
 
-    public record CreateMenuItemRequest(String name, BigDecimal price, boolean veg) {
+    /** `category` is optional: null or blank means no category. `choices`
+     * (free choices like Bread or Dry/Gravy) is optional too. */
+    public record CreateMenuItemRequest(String name, BigDecimal price, boolean veg, String category, java.util.List<ChoiceGroup> choices) {
+        public CreateMenuItemRequest(String name, BigDecimal price, boolean veg, String category) {
+            this(name, price, veg, category, null);
+        }
     }
 
-    /** Any field left null on an update is left unchanged. */
-    public record UpdateMenuItemRequest(String name, BigDecimal price, Boolean veg, Boolean available) {
+    /** Any field left null on an update is left unchanged; a blank
+     * `category` clears it, and an empty `choices` list removes them. */
+    public record UpdateMenuItemRequest(String name, BigDecimal price, Boolean veg, Boolean available, String category, java.util.List<ChoiceGroup> choices) {
+        public UpdateMenuItemRequest(String name, BigDecimal price, Boolean veg, Boolean available, String category) {
+            this(name, price, veg, available, category, null);
+        }
     }
 
-    public record UpdateStallRequest(java.time.LocalTime openTime, java.time.LocalTime closeTime, Boolean closedToday, Integer slotCapacity, Boolean ordersPaused) {
+    /** listingOnly is admin-only; the vendor endpoint refuses it. */
+    public record UpdateStallRequest(java.time.LocalTime openTime, java.time.LocalTime closeTime, Boolean closedToday, Integer slotCapacity, Boolean ordersPaused, Boolean listingOnly) {
+        public UpdateStallRequest(java.time.LocalTime openTime, java.time.LocalTime closeTime, Boolean closedToday, Integer slotCapacity, Boolean ordersPaused) {
+            this(openTime, closeTime, closedToday, slotCapacity, ordersPaused, null);
+        }
     }
 
     public record CreateStallRequest(String stallName, String vendorEmail, String vendorPassword, String vendorRealEmail) {

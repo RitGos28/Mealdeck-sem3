@@ -60,7 +60,7 @@ For live updates under `next dev`, set `NEXT_PUBLIC_WS_URL=ws://localhost:8080/a
 
 ### Demo logins
 
-An empty database is seeded with stalls and these accounts:
+With the `demo` profile (`./run.sh --demo`, and the tests), an empty database is seeded with stalls and these accounts:
 
 | Role    | Email                  | Password   |
 |---------|------------------------|------------|
@@ -68,7 +68,7 @@ An empty database is seeded with stalls and these accounts:
 | Admin   | admin@mealdeck.in      | admin123   |
 | Student | student@bennett.edu.in | student123 |
 
-These passwords are public. Change them from the admin dashboard on any deployment real people use.
+These passwords are public, so the seeding never runs in production. A production database starts empty apart from one admin, from `ADMIN_EMAIL` and `ADMIN_REAL_EMAIL` in the env file (see `.env.example`). Admins have no password: each login is a code emailed to `ADMIN_REAL_EMAIL`. Add stalls and vendors from the admin dashboard.
 
 ### Environment variables
 
@@ -97,7 +97,9 @@ The backend tests cover:
 
 ## CI/CD
 
-`.github/workflows/deploy.yml` runs on a **self-hosted GitHub Actions runner** on the production server:
+> **Current state (November 2026):** tests run on **GitHub-hosted runners** (`ubuntu-latest`), and the automatic deploy job is **switched off**. The production server's disk failed, MealDeck moved to a different machine with no runner, and it is deployed there by hand (`git pull`, then `docker compose ... up -d --build`) until CI builds images and the server pulls them. The design below is how it worked on the self-hosted runner, and how it works again if the deploy job's `if:` is restored.
+
+`.github/workflows/deploy.yml` ran on a **self-hosted GitHub Actions runner** on the production server:
 
 1. **On every push and PR:** backend tests, then frontend lint and build. PRs from forks are skipped, since the runner is the production machine. `main` only accepts PRs whose `test` check passed.
 2. **On merge to `main`:**

@@ -4,6 +4,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -11,6 +12,7 @@ import com.mealdeck.FixedClockConfig;
 import com.mealdeck.model.MenuItem;
 import com.mealdeck.model.Order;
 import com.mealdeck.model.Stall;
+import com.mealdeck.model.Student;
 import com.mealdeck.model.Vendor;
 import com.mealdeck.repository.StallRepository;
 import com.mealdeck.repository.StudentRepository;
@@ -127,6 +129,17 @@ class SecurityRulesTests {
     }
 
     @Test
+    void orderChoicesArriveAsJsonAndAreChecked() throws Exception {
+        // The picks map binds from JSON; a plain dish refuses any picks.
+        Stall bistro = stall("Bistro / Kathi");
+        Long itemId = bistro.getMenuItems().getFirst().getId();
+        String body = "{\"items\":[{\"menuItemId\":" + itemId + ",\"quantity\":1,\"choices\":{\"Bread\":\"Naan\"}}],\"pickupTimes\":{\"" + bistro.getId() + "\":\"12:00\"}}";
+        mvc.perform(post("/api/orders").with(STUDENT).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("has no choices to make")));
+    }
+
+    @Test
     void vendorEndpointsActOnlyOnTheCallersOwnStall() throws Exception {
         Stall snapEats = stall("SnapEats");
         MenuItem coffee = snapEats.getMenuItems().getFirst();
@@ -178,6 +191,25 @@ class SecurityRulesTests {
     }
 
     @Test
+    void myOrdersListsOnlyTheLoggedInStudentsOwnOrders() throws Exception {
+        Stall bistro = stall("Bistro / Kathi");
+        Long studentId = studentRepository.findByEmail("student@bennett.edu.in").orElseThrow().getId();
+        Long otherId = studentRepository.save(new Student("other.student@bennett.edu.in", "unused", "Other Student", null)).getId();
+        CreateOrderRequest oneRoll = new CreateOrderRequest(
+                List.of(new OrderItemRequest(bistro.getMenuItems().getFirst().getId(), 1)), Map.of(bistro.getId(), LocalTime.of(12, 0)));
+        Order mine = orderService.checkout(studentId, oneRoll).getFirst();
+        Order theirs = orderService.checkout(otherId, oneRoll).getFirst();
+
+        mvc.perform(get("/api/orders")).andExpect(status().isForbidden());
+        mvc.perform(get("/api/orders").with(VENDOR)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/orders").with(ADMIN)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/orders").with(STUDENT))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.code == '" + mine.getPublicCode() + "')]").isNotEmpty())
+                .andExpect(jsonPath("$[?(@.code == '" + theirs.getPublicCode() + "')]").isEmpty());
+    }
+
+    @Test
     void vendorOrderHistoryTakesADate() throws Exception {
         mvc.perform(get("/api/vendor/orders").param("date", "2026-09-28").with(VENDOR))
                 .andExpect(status().isOk())
@@ -211,5 +243,49 @@ class SecurityRulesTests {
         mvc.perform(post("/api/auth/vendor/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"bistro@mealdeck.in\",\"password\":\"wrong\"}"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void messTodayIsPublicButAddingAMenuNeedsAStudent() throws Exception {
+        String lunch = "{\"items\":\"Rajma, rice, roti\"}";
+
+        mvc.perform(get("/api/mess/today")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.meals.length()").value(4))
+                .andExpect(jsonPath("$.meals[1].priceInr").value(70));
+        mvc.perform(post("/api/mess/today/lunch").contentType(MediaType.APPLICATION_JSON).content(lunch)).andExpect(status().isForbidden());
+        mvc.perform(post("/api/mess/today/lunch").with(VENDOR).contentType(MediaType.APPLICATION_JSON).content(lunch)).andExpect(status().isForbidden());
+        mvc.perform(post("/api/mess/today/lunch").with(ADMIN).contentType(MediaType.APPLICATION_JSON).content(lunch)).andExpect(status().isForbidden());
+        mvc.perform(post("/api/mess/today/lunch").with(STUDENT).contentType(MediaType.APPLICATION_JSON).content(lunch)).andExpect(status().isOk());
+
+        // The student now sees it as theirs; a guest just sees the menu.
+        mvc.perform(get("/api/mess/today").with(STUDENT)).andExpect(jsonPath("$.meals[1].youAdded").value(true));
+        mvc.perform(get("/api/mess/today")).andExpect(jsonPath("$.meals[1].youAdded").value(false))
+                .andExpect(jsonPath("$.meals[1].items[0]").value("Rajma"));
+        mvc.perform(post("/api/mess/today/lunch/flags").contentType(MediaType.APPLICATION_JSON).content("{\"correction\":\"Dal\"}")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void messAdminRoutesNeedTheAdminRole() throws Exception {
+        mvc.perform(get("/api/admin/mess")).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/mess").with(STUDENT)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/mess").with(VENDOR)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/mess").with(ADMIN)).andExpect(status().isOk());
+    }
+
+    @Test
+    void preorderRequestsAreForStudentsAndTheCountsForAdmins() throws Exception {
+        Long stallId = stall("Bistro / Kathi").getId();
+
+        mvc.perform(get("/api/preorder-requests")).andExpect(status().isForbidden());
+        mvc.perform(get("/api/preorder-requests").with(VENDOR)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/preorder-requests").with(STUDENT)).andExpect(status().isOk());
+        mvc.perform(put("/api/preorder-requests/" + stallId)).andExpect(status().isForbidden());
+        mvc.perform(put("/api/preorder-requests/" + stallId).with(ADMIN)).andExpect(status().isForbidden());
+        // A student gets past security; the demo Bistro takes orders, so the service refuses it.
+        mvc.perform(put("/api/preorder-requests/" + stallId).with(STUDENT)).andExpect(status().isConflict());
+
+        mvc.perform(get("/api/admin/preorder-requests")).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/preorder-requests").with(STUDENT)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/preorder-requests").with(ADMIN)).andExpect(status().isOk());
     }
 }

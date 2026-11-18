@@ -1,6 +1,7 @@
 import AuthCard from "../../../components/auth/AuthCard";
 import AuthForm from "../../../components/auth/AuthForm";
 import Field from "../../../components/auth/Field";
+import NotOfficial from "../../../components/layout/NotOfficial";
 
 export const metadata = { title: "Vendor login · MealDeck" };
 
@@ -11,6 +12,7 @@ export default function VendorLoginPage() {
         <Field label="Email" name="email" type="email" autoComplete="username" required />
         <Field label="Password" name="password" type="password" autoComplete="current-password" required />
       </AuthForm>
+      <NotOfficial className="mt-4 text-gray-500" />
     </AuthCard>
   );
 }

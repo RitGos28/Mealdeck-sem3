@@ -24,7 +24,9 @@ WORKDIR /app
 # midnight reset are pinned to IST in code too).
 ENV TZ=Asia/Kolkata
 
-RUN addgroup -S app && adduser -S app -G app
+RUN addgroup -S app && adduser -S app -G app \
+    && mkdir /app/uploads \
+    && chown app:app /app/uploads
 USER app
 
 # Ordered least- to most-frequently changing, so a code change only

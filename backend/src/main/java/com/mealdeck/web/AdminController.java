@@ -38,13 +38,23 @@ public class AdminController {
     private final MenuService menuService;
     private final OrderService orderService;
     private final AnalyticsService analyticsService;
+    private final com.mealdeck.service.PitchService pitchService;
     private final AdminAccountService adminAccountService;
     private final StudentService studentService;
+    private final com.mealdeck.service.AccountDeletionService accountDeletion;
+    private final com.mealdeck.service.EmailStandingService emailStanding;
+    private final com.mealdeck.service.ActivityLogService activityLog;
+    private final com.mealdeck.service.PreorderRequestService preorderRequests;
 
-    public AdminController(MenuService menuService, OrderService orderService, AnalyticsService analyticsService, AdminAccountService adminAccountService, StudentService studentService) {
+    public AdminController(MenuService menuService, OrderService orderService, AnalyticsService analyticsService, com.mealdeck.service.PitchService pitchService, AdminAccountService adminAccountService, StudentService studentService, com.mealdeck.service.AccountDeletionService accountDeletion, com.mealdeck.service.EmailStandingService emailStanding, com.mealdeck.service.ActivityLogService activityLog, com.mealdeck.service.PreorderRequestService preorderRequests) {
+        this.preorderRequests = preorderRequests;
+        this.activityLog = activityLog;
+        this.accountDeletion = accountDeletion;
+        this.emailStanding = emailStanding;
         this.menuService = menuService;
         this.orderService = orderService;
         this.analyticsService = analyticsService;
+        this.pitchService = pitchService;
         this.adminAccountService = adminAccountService;
         this.studentService = studentService;
     }
@@ -63,6 +73,11 @@ public class AdminController {
     @PatchMapping("/stalls/{id}")
     public StallDto updateStall(@PathVariable Long id, @RequestBody UpdateStallRequest request) {
         return StallDto.from(menuService.updateStall(id, request));
+    }
+
+    @DeleteMapping("/stalls/{id}")
+    public void deleteStall(@PathVariable Long id) {
+        adminAccountService.deleteStall(id);
     }
 
     @PostMapping("/stalls/{stallId}/menu-items")
@@ -94,6 +109,31 @@ public class AdminController {
         return OrderDto.from(order);
     }
 
+    @GetMapping("/pitch")
+    public PitchDto pitch() {
+        return pitchService.summarize();
+    }
+
+    /** How many students asked for pre-ordering at each stall, most asked first. */
+    @GetMapping("/preorder-requests")
+    public List<com.mealdeck.service.PreorderRequestService.StallDemand> preorderRequests() {
+        return preorderRequests.demand();
+    }
+
+    /** The activity trail, newest first; studentId narrows it to one student. */
+    @GetMapping("/activity")
+    public List<ActivityDto> activity(@org.springframework.web.bind.annotation.RequestParam(defaultValue = "200") int limit,
+                                      @org.springframework.web.bind.annotation.RequestParam(required = false) Long studentId) {
+        var entries = studentId == null ? activityLog.recent(limit) : activityLog.forStudent(studentId, limit);
+        return entries.stream().map(ActivityDto::from).toList();
+    }
+
+    /** Clears the whole trail. Without this, lines are dropped after a year. */
+    @DeleteMapping("/activity")
+    public java.util.Map<String, Long> clearActivity() {
+        return java.util.Map.of("removed", activityLog.clearAll());
+    }
+
     @GetMapping("/analytics")
     public AnalyticsDto analytics() {
         return analyticsService.summarize();
@@ -109,16 +149,33 @@ public class AdminController {
     public void deleteVendor(@PathVariable Long id) { adminAccountService.deleteVendor(id); }
 
     @GetMapping("/students")
-    public List<StudentAccountDto> students() { return studentService.list().stream().map(StudentAccountDto::from).toList(); }
+    public List<StudentAccountDto> students() { return studentService.list().stream().map(student -> StudentAccountDto.from(student, accountDeletion)).toList(); }
 
     @PostMapping("/students")
-    public StudentAccountDto createStudent(@RequestBody CreateStudentRequest request) { return StudentAccountDto.from(studentService.createByAdmin(request)); }
+    public StudentAccountDto createStudent(@RequestBody CreateStudentRequest request) { return StudentAccountDto.from(studentService.createByAdmin(request), accountDeletion); }
 
     @PatchMapping("/students/{id}")
-    public StudentAccountDto updateStudent(@PathVariable Long id, @RequestBody UpdateStudentRequest request) { return StudentAccountDto.from(studentService.updateByAdmin(id, request)); }
+    public StudentAccountDto updateStudent(@PathVariable Long id, @RequestBody UpdateStudentRequest request) { return StudentAccountDto.from(studentService.updateByAdmin(id, request), accountDeletion); }
 
     @DeleteMapping("/students/{id}")
     public void deleteStudent(@PathVariable Long id) { studentService.deleteByAdmin(id); }
+
+    public record FlagEmailRequest(String email, String reason, Integer days) {
+    }
+
+    /** "Suspicious emails": admin flags plus emails paused for no-shows. */
+    @GetMapping("/flagged-emails")
+    public List<com.mealdeck.service.EmailStandingService.Entry> flaggedEmails() { return emailStanding.list(); }
+
+    @PostMapping("/flagged-emails")
+    public com.mealdeck.service.EmailStandingService.Entry flagEmail(@RequestBody FlagEmailRequest request) { return emailStanding.flag(request.email(), request.reason(), request.days()); }
+
+    @DeleteMapping("/flagged-emails/{id}")
+    public void unflagEmail(@PathVariable Long id) { emailStanding.unflag(id); }
+
+    /** Cancels a deletion the student scheduled, within its grace period. */
+    @DeleteMapping("/students/{id}/deletion")
+    public void cancelStudentDeletion(@PathVariable Long id) { accountDeletion.cancel(id); }
 
     private OrderStatus parseStatus(String value) {
         try {

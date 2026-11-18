@@ -43,6 +43,10 @@ public class OrderService {
     private final SlotService slotService;
     private final ApplicationEventPublisher events;
     private final Clock clock;
+    private final AccountDeletionService accountDeletion;
+    private final EmailStandingService emailStanding;
+    private final ActivityLogService activityLog;
+    private final int maxOpenPerStall;
 
     public OrderService(
             OrderRepository orderRepository,
@@ -51,7 +55,14 @@ public class OrderService {
             StudentRepository studentRepository,
             SlotService slotService,
             ApplicationEventPublisher events,
-            Clock clock) {
+            Clock clock,
+            AccountDeletionService accountDeletion,
+            EmailStandingService emailStanding,
+            ActivityLogService activityLog,
+            @org.springframework.beans.factory.annotation.Value("${mealdeck.orders.max-open-per-stall:2}") int maxOpenPerStall) {
+        this.maxOpenPerStall = maxOpenPerStall;
+        this.activityLog = activityLog;
+        this.emailStanding = emailStanding;
         this.orderRepository = orderRepository;
         this.stallRepository = stallRepository;
         this.studentRepository = studentRepository;
@@ -59,6 +70,7 @@ public class OrderService {
         this.menuItemRepository = menuItemRepository;
         this.slotService = slotService;
         this.clock = clock;
+        this.accountDeletion = accountDeletion;
     }
 
     /** A cart can hold items from several stalls; each vendor must only ever
@@ -74,7 +86,11 @@ public class OrderService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Log in as a student to order"));
         Map<Long, LocalTime> pickupTimes = request.pickupTimes() != null ? request.pickupTimes() : Map.of();
         LocalDate today = slotService.today();
+        accountDeletion.requireCanOrder(student, pickupTimes.values(), today);
+        emailStanding.requireCanOrder(student);
+        String emailKey = emailStanding.keyFor(student.getEmail());
 
+        String hostelRoom = cleanRoom(request.hostelRoom());
         Map<Long, Order> ordersByStall = new LinkedHashMap<>();
         for (OrderItemRequest line : request.items()) {
             if (line.quantity() <= 0) {
@@ -85,35 +101,64 @@ public class OrderService {
             if (!item.isAvailable()) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, item.getName() + " is out of stock");
             }
+            if (item.getStall().isListingOnly()) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        item.getStall().getName() + " isn't taking pre-orders yet. Order at the counter for now");
+            }
 
             Order order = ordersByStall.computeIfAbsent(item.getStall().getId(), stallId -> {
                 LocalTime pickupTime = pickupTimes.get(stallId);
                 slotService.requireBookable(item.getStall(), pickupTime);
-                return new Order(item.getStall(), student, today, pickupTime);
+                Order created = new Order(item.getStall(), student, today, pickupTime);
+                created.setCustomerEmailKey(emailKey);
+                created.setHostelRoom(hostelRoom);
+                return created;
             });
-            order.addItem(new OrderItem(order, item, line.quantity(), item.getPrice()));
+            // Free choices are checked against the dish's own options, so an
+            // order only ever carries picks the stall actually offers.
+            String choices = MenuChoices.describe(item.getChoices(), line.choices(), item.getName());
+            order.addItem(new OrderItem(order, item, line.quantity(), item.getPrice(), choices));
         }
 
         // Lock in ascending stall id, so two carts spanning the same stalls
         // can't each hold one lock while waiting on the other's.
         for (Long stallId : new TreeSet<>(ordersByStall.keySet())) {
-            requireRoomInSlot(stallId, ordersByStall.get(stallId).getPickupTime(), today);
+            requireRoomInSlot(stallId, ordersByStall.get(stallId).getPickupTime(), today, studentId);
         }
 
         List<Order> orders = orderRepository.saveAll(new ArrayList<>(ordersByStall.values()));
+        orders.forEach(order -> activityLog.preordered(studentId, order));
         ordersByStall.keySet().forEach(stallId -> events.publishEvent(new QueueChangedEvent(stallId)));
         return orders;
+    }
+
+    static final int MAX_ROOM_LENGTH = 80;
+
+    /** The optional "Hostel + room": trimmed, blank means none, and too long is refused. */
+    private static String cleanRoom(String room) {
+        if (room == null || room.isBlank()) return null;
+        String trimmed = room.trim();
+        if (trimmed.length() > MAX_ROOM_LENGTH) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Hostel and room can be at most " + MAX_ROOM_LENGTH + " characters");
+        }
+        return trimmed;
     }
 
     /** The stall row stays locked until checkout commits, so the count and
      * the insert can't interleave with another checkout for the same stall:
      * of two students racing for the last spot, the second one sees it
      * taken. */
-    private void requireRoomInSlot(Long stallId, LocalTime pickupTime, LocalDate date) {
+    private void requireRoomInSlot(Long stallId, LocalTime pickupTime, LocalDate date, Long studentId) {
         Stall stall = stallRepository.findByIdForUpdate(stallId).orElseThrow();
         if (stall.isOrdersPaused()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     stall.getName() + " has paused pre-orders. Try again in a bit");
+        }
+        // Under the same stall lock, so two checkouts can't both slip past the cap.
+        if (orderRepository.countOpenForStudentAtStall(studentId, stallId, date) >= maxOpenPerStall) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "You already have " + maxOpenPerStall + " orders waiting at " + stall.getName()
+                            + ". Pick one up (or have the stall cancel it) before ordering again.");
         }
         long booked = orderRepository.countActiveInSlot(stallId, date, pickupTime);
         if (booked >= stall.getSlotCapacity()) {
@@ -144,6 +189,10 @@ public class OrderService {
     public Order getOrder(Long id) {
         return orderRepository.findByIdWithItems(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No order " + id));
+    }
+
+    public List<Order> ordersForStudent(Long studentId) {
+        return orderRepository.findByStudentIdWithItems(studentId);
     }
 
     @Transactional

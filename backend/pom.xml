@@ -36,6 +36,12 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-websocket</artifactId>
 		</dependency>
+		<!-- Logins live in MySQL (SPRING_SESSION tables), so a deploy or a
+		     reboot doesn't log everyone out. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-session-jdbc</artifactId>
+		</dependency>
 
 		<dependency>
 			<groupId>com.mysql</groupId>

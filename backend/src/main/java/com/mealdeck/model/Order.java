@@ -4,6 +4,8 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -54,8 +56,23 @@ public class Order {
     @Column(nullable = false)
     private String customerContact;
 
+    /** One-way code of the student's email (EmailKeys), so the no-show
+     * limit still counts this order after the account is deleted. Wiped
+     * once the order is older than the no-show window. */
+    @Column(length = 64)
+    private String customerEmailKey;
+
+    /** Optional "Hostel + room" the student typed at checkout, so the stall
+     * knows where to find them (night stalls, runners). Wiped when the
+     * account is deleted. */
+    @Column(length = 80)
+    private String hostelRoom;
+
+    // Plain text, not a MySQL ENUM: ddl-auto=update never edits an ENUM's
+    // value list, so a new value would be rejected ("Data truncated").
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(nullable = false, length = 32)
     private OrderStatus status = OrderStatus.PLACED;
 
     @Column(nullable = false)
@@ -94,6 +111,12 @@ public class Order {
     public String getPublicCode() {
         return publicCode;
     }
+
+    public String getHostelRoom() { return hostelRoom; }
+    public void setHostelRoom(String hostelRoom) { this.hostelRoom = hostelRoom; }
+
+    public String getCustomerEmailKey() { return customerEmailKey; }
+    public void setCustomerEmailKey(String customerEmailKey) { this.customerEmailKey = customerEmailKey; }
 
     public void setPublicCode(String publicCode) {
         this.publicCode = publicCode;

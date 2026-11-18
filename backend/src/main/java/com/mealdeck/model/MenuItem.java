@@ -34,6 +34,16 @@ public class MenuItem {
     @Column(nullable = false)
     private int reportCount = 0;
 
+    private String image;
+
+    /** Free-text group on the menu ("Kathi Rolls", "Cold Beverages"); null = none. */
+    @Column(length = 40)
+    private String category;
+
+    /** Free choices, "Name=option1|option2" per line (see MenuChoices); null when none. */
+    @Column(length = 1500)
+    private String choices;
+
     protected MenuItem() {
     }
 
@@ -90,5 +100,29 @@ public class MenuItem {
 
     public void setVeg(boolean veg) {
         this.veg = veg;
+    }
+
+    public String getImage() {
+        return image;
+    }
+
+    public void setImage(String image) {
+        this.image = image;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getChoices() {
+        return choices;
+    }
+
+    public void setChoices(String choices) {
+        this.choices = choices;
     }
 }

@@ -1,10 +1,10 @@
 // Client-side calls use relative /api/... paths, which next.config.mjs
 // rewrites to the backend -- so the session cookie stays same-origin.
-export async function api(path, { method = "GET", body } = {}) {
+export async function api(path, { method = "GET", body, formData } = {}) {
   const response = await fetch(path, {
     method,
     headers: body ? { "Content-Type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
+    body: formData ?? (body ? JSON.stringify(body) : undefined),
   });
   if (!response.ok) {
     let message = `Something went wrong (${response.status})`;

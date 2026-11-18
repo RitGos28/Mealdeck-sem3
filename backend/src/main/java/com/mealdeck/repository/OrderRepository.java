@@ -13,6 +13,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
+    long countByStallId(Long stallId);
+
     // Fetch join so OrderDto.from() can read items/menuItem/stall outside the
     // transaction without a LazyInitializationException (open-in-view is off,
     // same reasoning as StallRepository.findAllWithMenuItems).
@@ -35,10 +37,44 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Object[]> countActiveBySlot(@Param("stallId") Long stallId, @Param("date") LocalDate date);
 
     /** Before deleting a student account: their orders stay on the vendor's
-     * history under the name/contact copied at checkout. */
-    @Modifying(clearAutomatically = true)
-    @Query("update Order o set o.student = null where o.student.id = :studentId")
+     * history (items, prices, times) so the stall's records still add up,
+     * but anonymised: the name and contact copied at checkout are wiped. */
+    // flushAutomatically: this clears the persistence context, which would
+    // otherwise throw away deletes still pending from earlier in the same
+    // transaction (a deleted student's flags, requests and reports).
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update Order o set o.student = null, o.customerName = 'Deleted student', o.customerContact = '(deleted)', o.hostelRoom = null where o.student.id = :studentId")
     void detachStudent(@Param("studentId") Long studentId);
+
+    /** Pickup days of no-shows for this email code since `since`, newest first. */
+    @Query("select o.pickupDate from Order o where o.customerEmailKey = :key and o.status = com.mealdeck.model.OrderStatus.NO_SHOW and o.pickupDate >= :since order by o.pickupDate desc")
+    List<LocalDate> noShowDates(@Param("key") String key, @Param("since") LocalDate since);
+
+    /** No-shows since `since` for each of these email codes: rows of [key, count].
+     * One query for a whole order list, so the vendor screen doesn't ask once per order. */
+    @Query("select o.customerEmailKey, count(o) from Order o where o.customerEmailKey in :keys "
+            + "and o.status = com.mealdeck.model.OrderStatus.NO_SHOW and o.pickupDate >= :since group by o.customerEmailKey")
+    List<Object[]> noShowCounts(@Param("keys") java.util.Collection<String> keys, @Param("since") LocalDate since);
+
+    /** Email codes with at least `limit` no-shows since `since`: [key, count, latest pickup day]. */
+    @Query("select o.customerEmailKey, count(o), max(o.pickupDate) from Order o where o.customerEmailKey is not null and o.status = com.mealdeck.model.OrderStatus.NO_SHOW and o.pickupDate >= :since group by o.customerEmailKey having count(o) >= :limit")
+    List<Object[]> repeatNoShows(@Param("since") LocalDate since, @Param("limit") long limit);
+
+    /** Retention: drop email codes from orders older than the no-show window. */
+    @Modifying
+    @Query("update Order o set o.customerEmailKey = null where o.customerEmailKey is not null and o.pickupDate < :before")
+    int forgetEmailKeysBefore(@Param("before") LocalDate before);
+
+    /** Orders this student has at one stall for `date` that aren't finished
+     * yet (placed, accepted or ready): the open-order cap counts these. Only
+     * the day's own orders: nothing closes an order a stall never touched, so
+     * yesterday's must not lock a student out today. */
+    @Query("select count(o) from Order o where o.student.id = :studentId and o.stall.id = :stallId and o.pickupDate = :date "
+            + "and o.status in (com.mealdeck.model.OrderStatus.PLACED, com.mealdeck.model.OrderStatus.ACCEPTED, com.mealdeck.model.OrderStatus.READY)")
+    long countOpenForStudentAtStall(@Param("studentId") Long studentId, @Param("stallId") Long stallId, @Param("date") LocalDate date);
+
+    /** Whether the student has an order a stall is still working on. */
+    boolean existsByStudentIdAndStatusIn(Long studentId, java.util.Collection<com.mealdeck.model.OrderStatus> statuses);
 
     @Query("select distinct o.stall.id from Order o where o.pickupDate = :date")
     List<Long> findStallIdsWithOrdersOn(@Param("date") LocalDate date);
@@ -67,4 +103,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<Order> findByPublicCodeWithItems(@Param("code") String code);
 
     List<Order> findByPublicCodeIsNull();
+
+    /** A student's "My orders": newest first. */
+    @Query("select distinct o from Order o "
+            + "left join fetch o.items i left join fetch i.menuItem "
+            + "left join fetch o.stall where o.student.id = :studentId order by o.createdAt desc")
+    List<Order> findByStudentIdWithItems(@Param("studentId") Long studentId);
 }
