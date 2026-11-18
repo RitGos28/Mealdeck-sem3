@@ -10,6 +10,11 @@
 #                        `cloudflared tunnel login`; creates the tunnel and
 #                        its DNS record the first time). Admin password login
 #                        is off in this mode: the demo is open to anyone.
+#   ./demo.sh public --no-tunnel
+#                        public settings, but no tunnel here: another machine's
+#                        cloudflared forwards demo.mealdeck.in to this one
+#                        (e.g. over Tailscale: /api/ -> <this Mac>:8080,
+#                        everything else -> <this Mac>:3000).
 #   ./demo.sh stop       stop everything
 #   ./demo.sh status     what's running, and the links
 #
@@ -49,8 +54,7 @@ stop_all() {
 links() {
   local ip; ip=$(lan_ip)
   echo
-  [ -f "$STATE/tunnel.pid" ] && kill -0 "$(cat "$STATE/tunnel.pid")" 2>/dev/null && \
-    echo "  Public:       https://$PUBLIC_HOST   (QR code: https://$PUBLIC_HOST/?src=qr)"
+  [ "${PUBLIC:-0}" = 1 ] && echo "  Public:       https://$PUBLIC_HOST   (QR code: https://$PUBLIC_HOST/?src=qr)"
   echo "  On this Mac:  http://localhost:3000"
   echo "  On a phone:   http://$ip:3000   (same Wi-Fi or hotspot)"
   echo "  Logins:       student@bennett.edu.in / student123   ·   bistro@mealdeck.in / vendor123 (at /vendor/login)"
@@ -71,15 +75,16 @@ wait_for() { # url name seconds
 }
 
 PUBLIC=0
+OWN_TUNNEL=0
 case "${1:-start}" in
   stop) stop_all; exit 0 ;;
   status) status; exit 0 ;;
   start) ;;
-  public) PUBLIC=1 ;;
-  *) echo "Usage: $0 [start|public|stop|status]"; exit 2 ;;
+  public) PUBLIC=1; [ "${2:-}" = "--no-tunnel" ] || OWN_TUNNEL=1 ;;
+  *) echo "Usage: $0 [start|public [--no-tunnel]|stop|status]"; exit 2 ;;
 esac
 
-if [ "$PUBLIC" = 1 ]; then
+if [ "$OWN_TUNNEL" = 1 ]; then
   command -v cloudflared > /dev/null || { echo "Install cloudflared first: brew install cloudflared"; exit 1; }
   [ -f "$HOME/.cloudflared/cert.pem" ] || { echo "Log in to Cloudflare once first: cloudflared tunnel login"; exit 1; }
   TUNNEL_ID=$(cloudflared tunnel list --output json 2>/dev/null | python3 -c "import json,sys; print(next((t['id'] for t in json.load(sys.stdin) if t['name']=='$TUNNEL'), ''))")
@@ -144,10 +149,12 @@ wait_for http://127.0.0.1:8080/api/stalls backend 180 || exit 1
 wait_for http://127.0.0.1:3000/ frontend 60 || exit 1
 seeded=$(grep -o 'SIMULATED demo history: .*' "$STATE/backend.log" | head -1)
 [ -n "$seeded" ] && echo "  $seeded"
-if [ "$PUBLIC" = 1 ]; then
+if [ "$OWN_TUNNEL" = 1 ]; then
   cloudflared tunnel --no-autoupdate --config "$STATE/tunnel.yml" run "$TUNNEL" > "$STATE/tunnel.log" 2>&1 &
   echo $! > "$STATE/tunnel.pid"
-  wait_for "https://$PUBLIC_HOST/api/demo-info" tunnel 60 || echo "  (the tunnel may need a minute more for DNS; check $STATE/tunnel.log)"
+fi
+if [ "$PUBLIC" = 1 ]; then
+  wait_for "https://$PUBLIC_HOST/api/demo-info" "public site" 60 || echo "  ($PUBLIC_HOST isn't answering yet: check the tunnel)"
 fi
 echo "Demo is up."
 links
