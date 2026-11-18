@@ -55,6 +55,15 @@ Loop it with QuickTime (View → Loop, full screen), or a 5-slide Keynote with *
 
 **Avoid** terminals, code or walls of text on the monitor: nobody reads them from two metres away. Keep the training output for when a judge asks to see the ML.
 
+## Posters
+
+For Canva (or as AI image prompts; AI images often misspell text, so add the wording in Canva). Shared style: *flat vector, deep forest green #163D29 and cream with mint accents, bold sans-serif, generous whitespace.* Put a QR code for `https://demo.mealdeck.in/?src=qr` on each.
+
+1. **Hero:** "MealDeck: every campus stall in one place", above a fanned hand of playing cards showing samosa, masala dosa, chai, kathi roll and momos.
+2. **Search:** "Typos welcome", a phone whose search bar reads `panner tika` and shows the right paneer tikka result.
+3. **The wait:** a huge "31 min", with "for one dal makhani" underneath, and a queue of students at a food counter under a clock.
+4. **Deal:** "AI that learns your taste", a hand swiping food cards left and right, ✓/✗ icons and a small circuit-brain icon.
+
 ## The 5-minute flow
 
 **0:00 The hook.** "Yesterday a dal makhani at a campus counter took 31 minutes. MealDeck is a student-built menu guide for every campus stall, live at mealdeck.in with 8 stalls and 1,086 dishes, plus live out-of-stock reports. Pre-ordering is built and waiting for stalls to opt in. Here's the ML that makes it useful." Mention it's student-built, not an official Bennett service.
