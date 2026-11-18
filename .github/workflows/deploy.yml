@@ -1,7 +1,10 @@
-# Test on every push/PR, then redeploy the Docker Compose stack on the
-# self-hosted ProLiant runner whenever main changes.
+# Test on every push/PR on GitHub-hosted runners. The deploy job (below) is
+# switched off for now: production moved off the ProLiant (whose disk
+# failed) to a small shared box with no runner, and is deployed by hand
+# there until images are built here and pulled by the server instead.
 #
-# One-time setup on the runner machine: put the production env file (same
+# When the deploy job is switched back on, one-time setup on the runner
+# machine: put the production env file (same
 # keys as .env.example, real passwords) at ~/mealdeck.env, or point the
 # MEALDECK_ENV_FILE repo variable at another path. It lives outside the
 # checkout because actions/checkout wipes untracked files on every run.
@@ -17,10 +20,9 @@ on:
 
 jobs:
   test:
-    # Public repo on a self-hosted runner: never run PRs from forks, since
-    # their code would execute on the server.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: self-hosted
+    # GitHub's own machines: free for a public repo, and nothing here runs
+    # on our servers, so a fork's PR can't reach them either.
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -74,7 +76,10 @@ jobs:
 
   deploy:
     needs: test
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    # Off: no self-hosted runner is registered now, so this would wait
+    # forever on every merge. To turn it back on, restore:
+    #   if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: false
     runs-on: self-hosted
     # Never two deploys at once; a newer push queues behind a running one.
     concurrency:
