@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../lib/api";
 import MenuItemCard from "./MenuItemCard";
+import ArrowGroup from "../ArrowGroup";
 import { bagCount, groupDishes } from "../../lib/menuDishes";
 
 // Phones start a big menu with its categories folded, so a stall with 150
@@ -85,7 +86,7 @@ function ItemRow({ stall, items, demoMode, cart, onAddToCart, onChangeQuantity, 
   return (
     <div className="relative">
       <Arrow direction={-1} onClick={() => scrollBy(-1)} hidden={edges.start} />
-      <ul ref={rowRef} className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 lg:-mx-1 lg:flex lg:snap-x lg:gap-3 lg:overflow-x-auto lg:scroll-smooth lg:px-1 lg:pt-1 lg:pb-3 lg:[scrollbar-width:thin]">
+      <ArrowGroup ref={rowRef} className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 lg:-mx-1 lg:flex lg:snap-x lg:gap-3 lg:overflow-x-auto lg:scroll-smooth lg:px-1 lg:pt-1 lg:pb-3 lg:[scrollbar-width:thin]">
         {groupDishes(items).map((dish) => (
           <li key={dish.key} className="lg:w-[172px] lg:shrink-0 lg:snap-start">
             <MenuItemCard
@@ -99,7 +100,7 @@ function ItemRow({ stall, items, demoMode, cart, onAddToCart, onChangeQuantity, 
             />
           </li>
         ))}
-      </ul>
+      </ArrowGroup>
       <Arrow direction={1} onClick={() => scrollBy(1)} hidden={edges.end} />
     </div>
   );

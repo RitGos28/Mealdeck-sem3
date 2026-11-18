@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useQueueLength } from "../menu/MenuSection";
+import ArrowGroup from "../ArrowGroup";
 import { initials } from "./OrderAgain";
 import { CRAVINGS, cravingDishes, cravingSummary, stallStatus, stallTint, topCategories } from "./browse";
 
@@ -68,9 +69,9 @@ function StallRow({ stall, demoMode, onOpen }) {
 
 export function StallList({ stalls, demoMode, onOpen }) {
   return (
-    <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2 lg:gap-3">
+    <ArrowGroup className="grid grid-cols-1 gap-2 lg:grid-cols-2 lg:gap-3">
       {stalls.map((stall) => <StallRow key={stall.id} stall={stall} demoMode={demoMode} onOpen={onOpen} />)}
-    </ul>
+    </ArrowGroup>
   );
 }
 
@@ -79,7 +80,7 @@ export function CravingGrid({ stalls, demoMode, onOpen }) {
   if (cravings.length === 0) return <p className="py-8 text-center text-muted">Nothing to order right now.</p>;
   return (
     <>
-      <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 lg:gap-3">
+      <ArrowGroup className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 lg:gap-3">
         {cravings.map(({ craving, summary }) => (
           <li key={craving.id}>
             <a href={`/?craving=${craving.id}`} onClick={(event) => { event.preventDefault(); onOpen(craving.id); }} className="flex h-[76px] flex-col justify-end rounded-2xl px-3 py-2.5 transition-[filter] hover:brightness-[.97]" style={{ background: craving.tint }}>
@@ -88,7 +89,7 @@ export function CravingGrid({ stalls, demoMode, onOpen }) {
             </a>
           </li>
         ))}
-      </ul>
+      </ArrowGroup>
       <p className="mt-3 text-[13px] text-muted">Tap one to see it from every stall, cheapest first.</p>
     </>
   );
@@ -104,7 +105,7 @@ export function StallTabs({ stalls, activeId, onOpen }) {
   }, [activeId]);
   return (
     <nav aria-label="Stalls" className="sticky top-0 z-10 -mx-5 -mt-6 mb-3 rounded-t-3xl border-b border-line bg-white px-5 pt-4 pb-3 sm:-mx-8 sm:px-8 lg:static lg:mx-0 lg:mt-0 lg:border-0 lg:p-0 lg:pb-1">
-      <ul ref={rowRef} className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] lg:flex-wrap">
+      <ArrowGroup ref={rowRef} className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] lg:flex-wrap">
         {stalls.map((stall) => {
           const active = String(stall.id) === String(activeId);
           return (
@@ -115,7 +116,7 @@ export function StallTabs({ stalls, activeId, onOpen }) {
             </li>
           );
         })}
-      </ul>
+      </ArrowGroup>
     </nav>
   );
 }
