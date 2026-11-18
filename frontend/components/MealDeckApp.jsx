@@ -57,6 +57,31 @@ const DISH_IMAGES = {
 };
 
 const DISH_IMAGE_KEYWORDS = [
+  // Match the broad menu groups first. Production menus contain many
+  // variations (for example Cheese Maggi and Schezwan Maggi), so a useful
+  // representative photo is better than an empty initials tile. A vendor's
+  // own uploaded photo above always takes priority.
+  ["momo", "https://images.unsplash.com/photo-1625220194771-7ebdea0b70b9?auto=format&fit=crop&w=800&q=80"],
+  ["noodle", "https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=800&q=80"],
+  ["maggi", "https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=800&q=80"],
+  ["pasta", "https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=800&q=80"],
+  ["pazzta", "https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=800&q=80"],
+  ["macaroni", "https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=800&q=80"],
+  ["chow", "https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=800&q=80"],
+  ["rice bowl", "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?auto=format&fit=crop&w=800&q=80"],
+  ["biryani", "https://images.unsplash.com/photo-1563379926898-05f4575a45d8?auto=format&fit=crop&w=800&q=80"],
+  ["pizza", "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80"],
+  ["salad", "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80"],
+  ["cookie", "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=800&q=80"],
+  ["tikka", "https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?auto=format&fit=crop&w=800&q=80"],
+  ["kebab", "https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?auto=format&fit=crop&w=800&q=80"],
+  ["tandoori", "https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?auto=format&fit=crop&w=800&q=80"],
+  ["naan", "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=800&q=80"],
+  ["parantha", "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=800&q=80"],
+  ["paratha", "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=800&q=80"],
+  ["tea", "https://images.unsplash.com/photo-1571934811356-5cc061b6821f?auto=format&fit=crop&w=800&q=80"],
+  ["chai", "https://images.unsplash.com/photo-1571934811356-5cc061b6821f?auto=format&fit=crop&w=800&q=80"],
+  ["egg", "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=800&q=80"],
   ["dosa", "https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&w=800&q=80"],
   ["idli", "https://images.unsplash.com/photo-1630409351217-bc4fa6422075?auto=format&fit=crop&w=800&q=80"],
   ["roll", "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=800&q=80"],
@@ -69,14 +94,16 @@ const DISH_IMAGE_KEYWORDS = [
   ["shake", "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=800&q=80"],
 ];
 
-// The vendor's own photo, else a stock photo matched on the dish name. No
-// match gives null, so the row shows an initials tile rather than a random
-// dish that might not be what's served.
+const DEFAULT_DISH_IMAGE = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80";
+
+// A vendor-uploaded photo is used first. Otherwise match the dish or category
+// to a representative photo, then fall back to a general food image.
 function imageForDish(item) {
   if (item.image) return item.image;
   const name = item.name.trim().toLowerCase();
+  const searchableText = `${name} ${item.category ?? ""}`.trim().toLowerCase();
   if (DISH_IMAGES[name]) return DISH_IMAGES[name];
-  return DISH_IMAGE_KEYWORDS.find(([keyword]) => name.includes(keyword))?.[1] ?? null;
+  return DISH_IMAGE_KEYWORDS.find(([keyword]) => searchableText.includes(keyword))?.[1] ?? DEFAULT_DISH_IMAGE;
 }
 
 // Wide screens (lg+) keep the bag in a sticky column beside the menu;
