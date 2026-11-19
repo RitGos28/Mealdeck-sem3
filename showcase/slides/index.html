@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MealDeck monitor loop</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../assets/brand.css">
+<style>
+  /* A 1920 x 1080 stage scaled to fit any screen. Open in Chrome, press F
+     for full screen. Auto-advances every 8 s and loops. Arrow keys / space
+     step through by hand; P pauses. */
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0d2318; }
+  #stage { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; transform-origin: 0 0; }
+  .slide { position: absolute; inset: 0; background: var(--cream); padding: 70px 110px 130px; display: none; align-items: center; }
+  .slide.on { display: flex; animation: in .6s ease both; }
+  @keyframes in { from { opacity: 0; } to { opacity: 1; } }
+  .dark { background: var(--deck); color: var(--card); }
+
+  .col { flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+  .side { flex: none; display: flex; gap: 48px; align-items: center; margin-left: 80px; }
+  .kicker { font-family: var(--display); font-weight: 700; font-size: 30px; color: var(--dot); letter-spacing: .02em; }
+  .dark .kicker { color: var(--sand); }
+  h1 { font-family: var(--display); font-weight: 700; font-size: 124px; line-height: .95; letter-spacing: -.04em; color: var(--deck); margin-top: 22px; }
+  .dark h1 { color: var(--card); }
+  .sub { margin-top: 36px; font-size: 40px; line-height: 1.35; color: var(--ink); max-width: 900px; }
+  .dark .sub { color: var(--on-deck); }
+  .note { margin-top: 30px; font-size: 26px; color: var(--muted); max-width: 860px; line-height: 1.4; }
+  .dark .note { color: var(--on-deck); }
+  .tag { display: inline-block; font-size: 22px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--nonveg); border: 2px solid currentColor; border-radius: 8px; padding: 4px 12px; }
+
+  .brand { position: absolute; left: 110px; bottom: 54px; display: flex; align-items: center; gap: 16px; font-family: var(--display); font-weight: 700; font-size: 32px; color: var(--deck); }
+  .brand img { width: 52px; border-radius: 12px; }
+  .dark .brand { color: var(--card); }
+  .url { position: absolute; right: 110px; bottom: 62px; font-size: 28px; font-weight: 600; color: var(--muted); }
+  .dark .url { color: var(--sand); }
+
+  .phone { --w: 360px; }
+  .phone.big { --w: 372px; }
+  .phone.small { --w: 320px; }
+
+  .bars { margin-top: 48px; display: grid; gap: 26px; max-width: 820px; }
+  .bar .row { display: flex; justify-content: space-between; align-items: baseline; font-size: 30px; margin-bottom: 10px; }
+  .bar b { font-family: var(--display); font-size: 56px; color: var(--deck); }
+  .bar .track { height: 22px; background: var(--line); border-radius: 12px; overflow: hidden; }
+  .bar .fill { height: 100%; background: var(--deck); border-radius: 12px; transform-origin: left; animation: grow 1.2s .3s ease both; }
+  .bar.base .fill { background: #9AA79F; }
+  .bar.base b { color: var(--muted); }
+  @keyframes grow { from { transform: scaleX(0); } }
+
+  .big31 { font-family: var(--display); font-weight: 700; font-size: 420px; line-height: .8; letter-spacing: -.06em; color: var(--sand); }
+  .big31 span { font-size: 140px; letter-spacing: -.03em; margin-left: 20px; }
+  .for { font-family: var(--serif); font-size: 104px; color: var(--card); margin-top: 30px; }
+
+  .arrow { font-size: 80px; color: var(--deck); }
+
+  .eta { margin-top: 50px; display: flex; gap: 70px; align-items: flex-end; }
+  .eta .n { font-family: var(--display); font-weight: 700; font-size: 170px; line-height: .9; letter-spacing: -.04em; color: var(--deck); }
+  .eta .n.base { color: #9AA79F; }
+  .eta .l { font-size: 30px; color: var(--muted); margin-top: 12px; }
+
+  .qrs { display: flex; gap: 70px; margin-left: 80px; align-items: center; }
+  .qrbox { width: 420px; background: var(--card); border-radius: 28px; padding: 34px; text-align: center; }
+  .qrbox .q { width: 100%; }
+  .qrbox .t { margin-top: 22px; font-family: var(--display); font-weight: 700; font-size: 38px; color: var(--deck); }
+  .qrbox .u { margin-top: 6px; font-size: 26px; color: var(--muted); }
+
+  .progress { position: absolute; left: 0; right: 0; bottom: 0; height: 8px; display: flex; gap: 6px; padding: 0 110px 26px; height: 34px; align-items: flex-end; pointer-events: none; }
+  .progress i { flex: 1; height: 6px; border-radius: 3px; background: rgba(22, 61, 41, .15); overflow: hidden; }
+  .progress i.done { background: rgba(22, 61, 41, .45); }
+  .progress i.now::after { content: ""; display: block; height: 100%; background: rgba(22, 61, 41, .55); animation: tick var(--t) linear both; transform-origin: left; }
+  .on-dark .progress i { background: rgba(255, 253, 246, .18); }
+  .on-dark .progress i.done, .on-dark .progress i.now::after { background: rgba(255, 253, 246, .55); }
+  @keyframes tick { from { transform: scaleX(0); } }
+  .print .progress { display: none; }
+  .print .slide.on, .print .bar .fill { animation: none; }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- 1. Hook -->
+  <section class="slide">
+    <div class="col">
+      <div class="kicker">Bennett University · 8 stalls · 1,086 dishes</div>
+      <h1>Every campus stall's menu in one place.</h1>
+      <p class="sub">Prices, what's sold out right now and what other students thought. Check on your phone before you walk over.</p>
+    </div>
+    <div class="side"><div class="phone big"><div class="island"></div><div class="screen"><img src="../assets/app/home.png" alt=""></div></div></div>
+    <div class="brand"><img src="../assets/icon.png" alt="">MealDeck</div><div class="url">demo.mealdeck.in</div>
+  </section>
+
+  <!-- 2. The wait -->
+  <section class="slide dark">
+    <div class="col">
+      <div class="kicker">Why we built it</div>
+      <div class="big31" style="margin-top:40px">31<span>min</span></div>
+      <div class="for">for one dal makhani.</div>
+      <p class="note" style="font-size:32px">We timed it at a campus counter. MealDeck starts with menus; pre-ordering is built and waiting for stalls to opt in.</p>
+    </div>
+    <div class="brand"><img src="../assets/icon.png" alt="">MealDeck</div><div class="url">demo.mealdeck.in</div>
+  </section>
+
+  <!-- 3. Typo search -->
+  <section class="slide">
+    <div class="col">
+      <div class="kicker">01 · Search</div>
+      <h1>Typos are fine.</h1>
+      <p class="sub" style="font-size:36px">"panner tika" still finds Paneer Tikka. Tested on 39 misspelled searches:</p>
+      <div class="bars">
+        <div class="bar base"><div class="row"><span>Plain search</span><b>26%</b></div><div class="track"><div class="fill" style="width:26%"></div></div></div>
+        <div class="bar"><div class="row"><span>MealDeck, ranked first</span><b>87%</b></div><div class="track"><div class="fill" style="width:87%"></div></div></div>
+        <div class="bar"><div class="row"><span>MealDeck, in the top 10</span><b>100%</b></div><div class="track"><div class="fill" style="width:100%"></div></div></div>
+      </div>
+    </div>
+    <div class="side"><div class="phone big"><div class="island"></div><div class="screen"><img src="../assets/app/search.png" alt=""></div></div></div>
+    <div class="brand"><img src="../assets/icon.png" alt="">MealDeck</div><div class="url">Character-trigram model · 1,086 real dishes</div>
+  </section>
+
+  <!-- 4. Deal -->
+  <section class="slide">
+    <div class="col">
+      <div class="kicker">02 · Deal me a dish</div>
+      <h1>Swipe when you can't decide.</h1>
+      <p class="sub">Keep or skip ten dishes. The next hand leans towards what you kept.</p>
+      <p class="note">Online logistic regression: a model shared by everyone plus a personal one, updated after every hand. One switch in Account turns it off and deletes your swipes.</p>
+    </div>
+    <div class="side"><div class="phone big"><div class="island"></div><div class="screen"><img src="../assets/app/deal.png" alt=""></div></div></div>
+    <div class="brand"><img src="../assets/icon.png" alt="">MealDeck</div><div class="url">demo.mealdeck.in</div>
+  </section>
+
+  <!-- 5. Mess from screenshots -->
+  <section class="slide">
+    <div class="col">
+      <div class="kicker">03 · Mess menu</div>
+      <h1>Fill it in from a screenshot.</h1>
+      <p class="sub">Pick your MyCamu screenshots and all four meals fill in for everyone.</p>
+      <p class="note">Tesseract OCR runs in the phone's browser, so the screenshot is never uploaded. You check every dish before it's saved.</p>
+    </div>
+    <div class="side">
+      <div class="phone small"><div class="island"></div><div class="screen"><img src="../assets/app/mycamu-sample.png" alt=""></div></div>
+      <div class="arrow">→</div>
+      <div class="phone small"><div class="island"></div><div class="screen"><img src="../assets/app/mess.png" alt=""></div></div>
+    </div>
+    <div class="brand"><img src="../assets/icon.png" alt="">MealDeck</div><div class="url">Sample screenshots: demo.mealdeck.in/demo-mess</div>
+  </section>
+
+  <!-- 6. Dish details -->
+  <section class="slide">
+    <div class="col">
+      <div class="kicker">04 · Every dish</div>
+      <h1>Open any dish.</h1>
+      <p class="sub" style="font-size:36px">You see cheaper look-alikes at other stalls (<b>Similar, for less</b>), the time it usually sells out, and how many students said Amazing or Not worth it.</p>
+      <p class="note">29% of dishes have a cheaper look-alike on campus. Oreo shake: ₹147 → ₹85.</p>
+    </div>
+    <div class="side"><div class="phone big"><div class="island"></div><div class="screen"><img src="../assets/app/dish.png" alt=""></div></div></div>
+    <div class="brand"><img src="../assets/icon.png" alt="">MealDeck</div><div class="url">demo.mealdeck.in</div>
+  </section>
+
+  <!-- 7. ETA model -->
+  <section class="slide">
+    <div class="col">
+      <div class="kicker">05 · Pickup time</div>
+      <h1>Predicting when it's ready.</h1>
+      <div class="eta">
+        <div><div class="n">2.1<span style="font-size:70px"> min</span></div><div class="l">Random forest, average error</div></div>
+        <div><div class="n base">6.1<span style="font-size:70px"> min</span></div><div class="l">Guessing the average</div></div>
+      </div>
+      <p class="note" style="margin-top:50px"><span class="tag">Simulated data</span>&nbsp; No stall takes pre-orders yet, so it's trained on 1,600 simulated orders and tested on 400 more. It leans most on how many orders are ahead in the queue.</p>
+    </div>
+    <div class="brand"><img src="../assets/icon.png" alt="">MealDeck</div><div class="url">demo.mealdeck.in</div>
+  </section>
+
+  <!-- 8. Try it -->
+  <section class="slide dark">
+    <div class="col">
+      <div class="kicker">Try it now</div>
+      <h1>Scan it. Search something with a typo.</h1>
+      <p class="sub">Android user? Leave your Gmail at the table to test the app before it's on the Play Store.</p>
+    </div>
+    <div class="qrs">
+      <div class="qrbox"><img class="q" src="../assets/qr/demo.svg" alt=""><div class="t">The demo</div><div class="u">demo.mealdeck.in</div></div>
+      <div class="qrbox"><img class="q" src="../assets/qr/site.svg" alt=""><div class="t">Real menus</div><div class="u">mealdeck.in</div></div>
+    </div>
+    <div class="brand"><img src="../assets/icon.png" alt="">MealDeck</div><div class="url" style="color:var(--on-deck)">Built by Bennett students. Not an official university service.</div>
+  </section>
+
+  <div class="progress" id="progress"></div>
+</div>
+<script>
+  const SECONDS = 8;
+  const params = new URLSearchParams(location.search);
+  const printing = params.has("print");
+  if (printing) document.body.classList.add("print");
+  const slides = [...document.querySelectorAll(".slide")];
+  const stage = document.getElementById("stage");
+  const progress = document.getElementById("progress");
+  progress.innerHTML = slides.map(() => "<i></i>").join("");
+  const ticks = [...progress.children];
+  let at = 0, timer = null, paused = printing;
+
+  function fit() {
+    const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+    stage.style.transform = `scale(${s}) translate(-50%, -50%)`;
+  }
+  function show(i) {
+    at = (i + slides.length) % slides.length;
+    slides.forEach((s, j) => s.classList.toggle("on", j === at));
+    stage.classList.toggle("on-dark", slides[at].classList.contains("dark"));
+    ticks.forEach((t, j) => { t.className = j < at ? "done" : j === at && !paused ? "now" : ""; t.style.setProperty("--t", SECONDS + "s"); });
+    clearTimeout(timer);
+    if (!paused) timer = setTimeout(() => show(at + 1), SECONDS * 1000);
+  }
+  addEventListener("resize", fit);
+  addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === " ") show(at + 1);
+    else if (e.key === "ArrowLeft") show(at - 1);
+    else if (e.key === "p" || e.key === "P") { paused = !paused; show(at); }
+    else if (e.key === "f" || e.key === "F") document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+  });
+  stage.addEventListener("click", () => show(at + 1));
+  window.slideCount = () => slides.length;
+  window.showSlide = (i) => show(i);
+  fit(); show(0);
+</script>
+</body>
+</html>

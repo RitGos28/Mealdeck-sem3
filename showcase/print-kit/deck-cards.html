@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MealDeck table cards</title>
+<link rel="stylesheet" href="../assets/brand.css">
+<style>
+  /* Playing-card sized dish cards (63 x 88 mm, 9 per A4) to scatter on the
+     table or tape along the edge. Cut along the grey lines: all straight. */
+  @page { size: A4; margin: 0; }
+  html, body { background: #fff; }
+  .sheet { width: 210mm; height: 297mm; display: grid; place-content: center; break-after: page; }
+  .grid { display: grid; grid-template-columns: repeat(3, 63mm); grid-auto-rows: 88mm; border-top: .2mm dashed #AAB4AE; border-left: .2mm dashed #AAB4AE; }
+  .c { border-right: .2mm dashed #AAB4AE; border-bottom: .2mm dashed #AAB4AE; padding: 5mm; display: flex; flex-direction: column; position: relative; }
+  .c .top { display: flex; justify-content: space-between; align-items: center; font-family: var(--display); font-weight: 700; font-size: 4.4mm; color: var(--deck); }
+  .c .pip { width: 3.6mm; height: 3.6mm; border-radius: 50%; background: var(--dot); }
+  .c .pip.nv { background: var(--nonveg); border-radius: .6mm; transform: rotate(45deg) scale(.85); }
+  .c .name { margin-top: auto; font-family: var(--serif); font-size: 8mm; line-height: 1; color: var(--deck); }
+  .c .stall { margin-top: 2.5mm; font-size: 3.2mm; color: var(--muted); }
+  .c .foot { margin-top: 5mm; padding-top: 2.5mm; border-top: .3mm solid var(--line); display: flex; justify-content: space-between; font-size: 2.6mm; color: var(--muted); }
+  .c .foot b { font-family: var(--display); color: var(--deck); }
+  .c.brand { background: var(--deck); color: var(--card); align-items: center; justify-content: center; text-align: center; }
+  .c.brand img { width: 26mm; border-radius: 5mm; }
+  .c.brand .n { margin-top: 4mm; font-family: var(--display); font-weight: 700; font-size: 7mm; }
+  .c.brand .u { margin-top: 1.5mm; font-size: 3.2mm; color: var(--sand); }
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script>
+  // Real dishes and prices from the live menus (menu/*.csv). true = veg.
+  const dishes = [
+    ["Masala Dosa", "Southern Stories", 80, true], ["Veg Steam Momos", "House of Chow", 95, true],
+    ["Masala Chai", "Infinity Kitchens", 21, true], ["Chole Bhature", "SnapEats", 89, true],
+    ["Double Maggi", "Hotspot", 45, true], ["Choco Oreo Shake", "Quench", 85, true],
+    ["Aloo Samosa", "Infinity Kitchens", 20, true], ["Chilli Paneer", "House of Chow", 115, true],
+    ["Dal Makhani Rice", "Paid Mess", 120, true], ["Veg Hakka Noodles", "House of Chow", 85, true],
+    ["Arrabbiata", "Quench", 90, true], ["Bhel Puri", "House of Chow", 50, true],
+    ["Egg Wrap", "Infinity Kitchens", 95, false], ["Chicken Noodles", "Paid Mess", 140, false],
+    ["Crispy Paneer Sandwich", "Infinity Kitchens", 94, true], ["Cold Coffee Shake", "Quench", 70, true],
+  ];
+  const card = ([name, stall, price, veg]) => `
+    <div class="c"><div class="top"><span class="pip${veg ? "" : " nv"}"></span>₹${price}</div>
+      <div class="name">${name}</div><div class="stall">${stall}</div>
+      <div class="foot"><b>MealDeck</b><span>mealdeck.in</span></div></div>`;
+  const brand = `<div class="c brand"><img src="../assets/icon.png" alt=""><div class="n">MealDeck</div><div class="u">mealdeck.in</div></div>`;
+  // Two sheets: 8 dishes + 1 logo card each.
+  let html = "";
+  for (let s = 0; s < 2; s++) {
+    const cells = dishes.slice(s * 8, s * 8 + 8).map(card);
+    cells.splice(4, 0, brand);
+    html += `<div class="sheet"><div class="grid">${cells.join("")}</div></div>`;
+  }
+  document.getElementById("out").innerHTML = html;
+</script>
+</body>
+</html>

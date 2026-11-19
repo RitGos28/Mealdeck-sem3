@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MealDeck poster: hero</title>
+<link rel="stylesheet" href="../assets/brand.css">
+<link rel="stylesheet" href="poster.css">
+<style>
+  h1 { font-size: 21mm; margin-top: 8mm; }
+  .lede { margin-top: 6mm; }
+  .search { margin-top: 6mm; display: inline-flex; align-items: center; gap: 3mm; align-self: flex-start;
+    background: #fff; border: .5mm solid var(--line); border-radius: 99mm; padding: 3mm 6mm 3mm 5mm; font-size: 4.6mm; }
+  .search .q { font-family: ui-monospace, Menlo, monospace; color: var(--ink); }
+  .search .arrow { color: var(--muted); }
+  .search .a { font-weight: 700; color: var(--deck); }
+
+  .fan { position: relative; flex: none; height: 88mm; margin: 2mm -15mm 0; overflow: hidden; }
+  .fan .card { position: absolute; bottom: 7mm; left: 50%; width: 48mm; height: 68mm; padding: 4mm; border: .4mm solid rgba(22,61,41,.28); font-size: 3.4mm;
+    transform-origin: 50% 120%; }
+  .card .corner { display: flex; align-items: center; gap: 1.6mm; font-family: var(--display); font-weight: 700; font-size: 3.4mm; color: var(--deck); }
+  .card .name { margin-top: 3mm; max-width: 28mm; font-family: var(--serif); font-size: 6.4mm; line-height: 1.02; color: var(--deck); }
+  .card .meta { margin-top: 2mm; max-width: 28mm; color: var(--muted); font-size: 3mm; line-height: 1.3; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="brand"><img src="../assets/icon.png" alt="">MealDeck<small>Bennett University</small></div>
+
+  <h1>Menus for every food stall on&nbsp;campus.</h1>
+  <p class="lede">Prices for 1,086 dishes across 8 stalls, and which ones are sold out today.</p>
+
+  <div class="search"><span class="q">panner tika</span><span class="arrow">→</span><span class="a">Paneer Tikka</span><span class="arrow">· search works with typos</span></div>
+
+  <div class="fan" id="fan"></div>
+
+  <div class="band">
+    <div class="qr"><img src="../assets/qr/demo.svg" alt="QR code for demo.mealdeck.in"></div>
+    <div>
+      <div class="cta">Scan to try the demo</div>
+      <div class="url">demo.mealdeck.in</div>
+      <div class="also">The real site is <b>mealdeck.in</b></div>
+    </div>
+  </div>
+  <div class="fine">Built by Bennett students. Not an official Bennett University service.</div>
+</div>
+<script>
+  // Five real dishes from the live menus, fanned like a hand of cards.
+  const hand = [
+    ["Masala Dosa", "Southern Stories", 80, true],
+    ["Veg Steam Momos", "House of Chow", 95, true],
+    ["Masala Chai", "Infinity Kitchens", 21, true],
+    ["Chole Bhature", "SnapEats", 89, true],
+    ["Double Maggi", "Hotspot", 45, true],
+  ];
+  const fan = document.getElementById("fan");
+  hand.forEach(([name, stall, price, veg], i) => {
+    const angle = (i - 2) * 7, shift = (i - 2) * 31;
+    fan.insertAdjacentHTML("beforeend", `
+      <div class="card" style="transform: translateX(calc(-50% + ${shift}mm)) rotate(${angle}deg); z-index:${i}">
+        <div class="corner"><span class="pip${veg ? "" : " nv"}"></span>₹${price}</div>
+        <div class="name">${name}</div>
+        <div class="meta">${stall}</div>
+      </div>`);
+  });
+</script>
+</body>
+</html>

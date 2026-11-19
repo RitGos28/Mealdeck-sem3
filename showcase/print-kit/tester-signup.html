@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MealDeck tester sign-up sheet</title>
+<link rel="stylesheet" href="../assets/brand.css">
+<style>
+  /* Plain A4, prints fine in black and white. Print as many copies as you
+     need: 18 rows a page. */
+  @page { size: A4; margin: 12mm 12mm 10mm; }
+  html, body { background: #fff; }
+  .head { display: flex; align-items: center; gap: 3mm; }
+  .head img { width: 10mm; height: 10mm; border-radius: 2.4mm; }
+  .head h1 { font-family: var(--display); font-size: 7.4mm; color: var(--deck); letter-spacing: -.02em; }
+  .head .pg { margin-left: auto; font-size: 3.4mm; color: var(--muted); }
+  .sub { margin-top: 2.5mm; font-size: 3.7mm; line-height: 1.45; color: var(--ink); }
+  .sub b { color: var(--deck); }
+  table { margin-top: 5mm; width: 100%; border-collapse: collapse; font-size: 3.3mm; }
+  th { text-align: left; font-weight: 600; color: var(--muted); padding: 0 2mm 1.5mm; border-bottom: .5mm solid var(--deck); }
+  td { height: 11.2mm; border-bottom: .3mm solid #B9C2BC; padding: 0 2mm; vertical-align: bottom; color: #B9C2BC; }
+  td.n { width: 8mm; color: var(--muted); font-weight: 600; }
+  col.name { width: 48mm; }
+  col.tick { width: 22mm; }
+  .tick { text-align: center; }
+  .box { display: inline-block; width: 4.4mm; height: 4.4mm; border: .35mm solid #8A968F; border-radius: .8mm; margin-bottom: 1.6mm; }
+  .at { font-family: ui-monospace, Menlo, monospace; font-size: 3.6mm; float: right; margin-bottom: 1.4mm; color: #8A968F; }
+  .foot { margin-top: 4mm; font-size: 3mm; line-height: 1.5; color: var(--muted); }
+</style>
+</head>
+<body>
+  <div class="head"><img src="../assets/icon.png" alt=""><h1>Test the MealDeck Android app</h1><span class="pg">Sheet ____</span></div>
+  <p class="sub">Write the <b>Gmail your Android phone uses for the Play Store</b>, in CAPITALS please. We'll email you one invite link; keep the app for 14 days. <b>iPhone?</b> Use mealdeck.in, no need to sign up.</p>
+  <table>
+    <colgroup><col><col class="name"><col><col class="tick"></colgroup>
+    <thead><tr><th></th><th>Name</th><th>Gmail address</th><th class="tick">Email me when it's public</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <p class="foot">We use these addresses only to add you to the Play Store test and to tell you when the app is public, then we delete them. Want off the list? Email or tell us at the table.<br>Built by Bennett students. Not an official Bennett University service.</p>
+<script>
+  document.getElementById("rows").innerHTML = Array.from({ length: 18 }, (_, i) =>
+    `<tr><td class="n">${i + 1}</td><td></td><td><span class="at">@gmail.com</span></td><td class="tick"><span class="box"></span></td></tr>`).join("");
+</script>
+</body>
+</html>

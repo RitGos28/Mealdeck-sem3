@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MealDeck stickers</title>
+<link rel="stylesheet" href="../assets/brand.css">
+<style>
+  /* 24 labels of 70 x 37 mm, edge to edge: the standard "24 per sheet" A4
+     label layout. On label paper there's nothing to cut; on plain paper cut
+     the straight lines and use tape. */
+  @page { size: A4; margin: 0; }
+  html, body { background: #fff; }
+  .sheet { width: 210mm; height: 297mm; padding: 4.5mm 0; display: grid; grid-template-columns: repeat(3, 70mm); grid-auto-rows: 36mm; }
+  .s { outline: .15mm dashed #C4CCC7; outline-offset: -.1mm; padding: 4mm 5mm; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+  .s .big { font-family: var(--display); font-weight: 700; font-size: 6.4mm; line-height: 1; letter-spacing: -.02em; color: var(--deck); }
+  .s .small { margin-top: 1.6mm; font-size: 2.9mm; line-height: 1.3; color: var(--muted); }
+  .s .serif { font-family: var(--serif); font-weight: 400; font-size: 7.4mm; letter-spacing: 0; }
+  .s.dark { background: var(--deck); }
+  .s.dark .big { color: var(--card); }
+  .s.dark .small { color: var(--on-deck); }
+  .s.qr { flex-direction: row; align-items: center; gap: 3.5mm; }
+  .s.qr img { width: 26mm; flex: none; }
+  .s.logo { flex-direction: row; align-items: center; gap: 3mm; }
+  .s.logo img { width: 15mm; border-radius: 3.4mm; }
+  code { font-family: ui-monospace, Menlo, monospace; font-size: .9em; }
+</style>
+</head>
+<body>
+<div class="sheet" id="sheet"></div>
+<script>
+  const designs = [
+    `<div class="s logo"><img src="../assets/icon.png" alt=""><div><div class="big">MealDeck</div><div class="small">Every campus stall's menu</div></div></div>`,
+    `<div class="s qr"><img src="../assets/qr/demo.svg" alt=""><div><div class="big" style="font-size:5mm">Try the demo</div><div class="small">demo.mealdeck.in</div></div></div>`,
+    `<div class="s dark"><div class="big">Typos welcome.</div><div class="small"><code>panner tika</code> → Paneer Tikka</div></div>`,
+    `<div class="s"><div class="big serif">31 min</div><div class="small">for one dal makhani. We timed it.</div></div>`,
+    `<div class="s dark"><div class="big">1,086 dishes</div><div class="small">8 stalls, with prices, in one place</div></div>`,
+    `<div class="s"><div class="big">Similar, for less</div><div class="small">Oreo shake ₹147 → ₹85 at another stall</div></div>`,
+    `<div class="s qr"><img src="../assets/qr/site.svg" alt=""><div><div class="big" style="font-size:5mm">mealdeck.in</div><div class="small">The real site, live menus</div></div></div>`,
+    `<div class="s dark"><div class="big">Built by students</div><div class="small">Not an official Bennett University service</div></div>`,
+  ];
+  // Each design three times, shuffled so a sheet doesn't look like rows of repeats.
+  const order = [0,1,2, 3,4,5, 6,7,0, 2,3,1, 5,6,4, 7,0,2, 1,4,3, 6,5,7];
+  document.getElementById("sheet").innerHTML = order.map((i) => designs[i]).join("");
+</script>
+</body>
+</html>

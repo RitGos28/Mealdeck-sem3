@@ -17,8 +17,8 @@ The demo **never touches the real database**: it uses an in-memory database that
 - [ ] Run `./demo.sh public --no-tunnel` once and click through the flow below.
 - [ ] Run `python3 ml/train_eta.py` once yourself, so you can explain the output.
 - [ ] Record a 1-2 minute screen recording of the flow (fallback if the network fails).
-- [ ] Print 2-3 table signs with QR codes for `https://mealdeck.in/?src=qr` and `https://demo.mealdeck.in/?src=qr` ("?src=qr" lets the visit counter tell scans apart) and the line "Student-built, not an official Bennett University service".
-- [ ] Get that morning's MyCamu mess-menu screenshots (one per meal) from a hosteller, for the live import.
+- [ ] Print the kit in `showcase/out/` (what to print, and on what, is in [`showcase/README.md`](showcase/README.md)). QR codes point at `?src=qr` so the visit counter tells scans apart.
+- [ ] Get that morning's MyCamu mess-menu screenshots (one per meal) from a hosteller, for the live import. Fallback: the sample screenshots at `/demo-mess` (marked DEMO, one pair for every weekday).
 - [ ] Collect a few misspelled dish names from friends: a fair test set for search that the model was never tuned on.
 
 **Bring:** university ID cards, laptop and charger, an extension board, charged phones and a power bank, a phone with mobile data (hotspot fallback), the printed signs, a USB-C-to-HDMI adapter.
@@ -34,20 +34,13 @@ It prints the links when everything answers. Check `https://demo.mealdeck.in` on
 
 Demo logins: student `student@bennett.edu.in` / `student123`, vendor `bistro@mealdeck.in` / `vendor123` (at `/vendor/login`). Admin password login is off in public mode; an admin code goes to `.demo/backend.log` instead of email.
 
-**Bistro / Kathi** is the one stall that previews pre-ordering: its dishes have a **+** and don't open the details sheet. Open dishes at Quench, SnapEats, Paid Mess... for votes, "similar, for less" and sold-out times.
+**Bistro / Kathi** is the one stall that previews pre-ordering: its dishes have a **+** and don't open the details sheet. It's open round the clock in the demo; the real stalls keep their hours (8 AM–10 PM), so Deal and "By craving" are empty before 8. Open dishes at Quench, SnapEats, Paid Mess... for votes, "similar, for less" and sold-out times.
 
 ## The monitor
 
 The laptop is for live demos with judges; the monitor works while you're busy, catching people walking past and explaining MealDeck without you.
 
-**A looping attract screen (60-90 s):**
-1. 5 s: hero poster, "MealDeck: every campus stall in one place".
-2. 10 s: "31 min for one dal makhani", the hook.
-3. ~40 s: the screen recording of the flow (typo search, Deal learning, a MyCamu screenshot filling the mess menu).
-4. 5 s: the ETA training table (random forest 2.1 min vs 6.1 baseline), labelled "simulated data".
-5. 10 s: a big QR code, "Try it on your phone: demo.mealdeck.in".
-
-Loop it with QuickTime (View → Loop, full screen), or a 5-slide Keynote with *Play → Loop Slideshow*.
+**The loop:** open `showcase/slides/index.html` in Chrome on the monitor and press F. Eight slides, 8 s each, loops on its own (arrows step, P pauses). PNGs of each slide are in `showcase/out/` if you'd rather use Keynote.
 
 **No time to make it?** demo.mealdeck.in in full-screen Chrome on a dish sheet or the Mess page, with the QR poster beside it.
 
@@ -55,14 +48,9 @@ Loop it with QuickTime (View → Loop, full screen), or a 5-slide Keynote with *
 
 **Avoid** terminals, code or walls of text on the monitor: nobody reads them from two metres away. Keep the training output for when a judge asks to see the ML.
 
-## Posters
+## Posters and decoration
 
-For Canva (or as AI image prompts; AI images often misspell text, so add the wording in Canva). Shared style: *flat vector, deep forest green #163D29 and cream with mint accents, bold sans-serif, generous whitespace.* Put a QR code for `https://demo.mealdeck.in/?src=qr` on each.
-
-1. **Hero:** "MealDeck: every campus stall in one place", above a fanned hand of playing cards showing samosa, masala dosa, chai, kathi roll and momos.
-2. **Search:** "Typos welcome", a phone whose search bar reads `panner tika` and shows the right paneer tikka result.
-3. **The wait:** a huge "31 min", with "for one dal makhani" underneath, and a queue of students at a food counter under a clock.
-4. **Deal:** "AI that learns your taste", a hand swiping food cards left and right, ✓/✗ icons and a small circuit-brain icon.
+Print-ready PDFs are in `showcase/out/`, built from the HTML in `showcase/` (`python3 showcase/tools/render.py`). See [`showcase/README.md`](showcase/README.md) for sizes and paper.
 
 ## The 5-minute flow
 
@@ -72,7 +60,7 @@ For Canva (or as AI image prompts; AI images often misspell text, so add the wor
 
 **1:15 The model learns from the judge.** Log in as the demo student, open **Deal me a dish**, ask the judge to keep every drink and skip all food for one hand, then deal again: the deck shifts towards drinks. *Online logistic regression: a shared model from every student's swipes plus a personal one that learns how you differ, updated after every hand. On by default; one switch in Account turns it off and deletes your swipes.*
 
-**2:15 A neural network reads a screenshot, on the phone.** Mess tab, **Fill from MyCamu screenshots**, pick the morning's screenshots: all four meals appear, sorted and cleaned. *Tesseract OCR running in the browser: the screenshot never leaves the phone; our parser turns the text into meals. Hostellers see the mess menu in MyCamu; day scholars can't.* Point at **"Probably: ..."** on any meal still empty: a guess from the same weekday in past weeks, always labelled as one.
+**2:15 A neural network reads a screenshot, on the phone.** Mess tab, **Fill from MyCamu screenshots**, pick the morning's screenshots (or the DEMO ones from `/demo-mess`, linked under the button): all four meals appear, sorted and cleaned. The button only shows while a meal is empty, so reset the demo once someone has filled today's menu. *Tesseract OCR running in the browser: the screenshot never leaves the phone; our parser turns the text into meals. Hostellers see the mess menu in MyCamu; day scholars can't.* Point at **"Probably: ..."** on any meal still empty: a guess from the same weekday in past weeks, always labelled as one.
 
 **3:00 Small things that save time and money** (pick one or two). Open a dish at a menu-only stall: **Similar, for less** at other stalls, **Often sold out by 2 PM**, **Amazing / Not worth it** votes. Vendor view: add a dish called "Paneer Tikka Roll" and the stall's own sections are suggested. *k-nearest neighbours on the stall's own menu: right first time 69% vs 14% for always picking the biggest section.*
 

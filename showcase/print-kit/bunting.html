@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MealDeck bunting</title>
+<link rel="stylesheet" href="../assets/brand.css">
+<style>
+  /* One pennant per A4 page, spelling MEALDECK. Two straight cuts per page
+     (the triangle's sides), fold the top strip over a string and tape it.
+     Mostly white paper, so it's cheap even in colour. */
+  @page { size: A4; margin: 0; }
+  html, body { background: #fff; }
+  .p { width: 210mm; height: 297mm; position: relative; break-after: page; }
+  svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .letter { position: absolute; left: 0; right: 0; top: 70mm; text-align: center; font-family: var(--serif); font-size: 120mm; line-height: 1; }
+  .note { position: absolute; left: 0; right: 0; top: 8mm; text-align: center; font-size: 3mm; color: #9AA59F; }
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script>
+  const word = "MEALDECK";
+  document.getElementById("out").innerHTML = [...word].map((ch, i) => {
+    const dark = i % 2 === 0;
+    const fill = dark ? "#163D29" : "#FFFDF6";
+    const ink = dark ? "#FFFDF6" : "#163D29";
+    return `<div class="p">
+      <svg viewBox="0 0 210 297" xmlns="http://www.w3.org/2000/svg">
+        <line x1="5" y1="34" x2="205" y2="34" stroke="#AAB4AE" stroke-width=".4" stroke-dasharray="3 2"/>
+        <polygon points="5,34 205,34 105,290" fill="${fill}" stroke="#163D29" stroke-width="${dark ? 0 : 1.2}"/>
+        <circle cx="105" cy="262" r="5" fill="${dark ? "#EFD9A7" : "#2E8B57"}"/>
+      </svg>
+      <div class="note">${i + 1} / 8 · fold the strip above the dashed line over the string, then cut the two sides of the triangle</div>
+      <div class="letter" style="color:${ink}">${ch}</div>
+    </div>`;
+  }).join("");
+</script>
+</body>
+</html>

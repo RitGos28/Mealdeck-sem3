@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MealDeck poster: the ML</title>
+<link rel="stylesheet" href="../assets/brand.css">
+<link rel="stylesheet" href="poster.css">
+<style>
+  h1 { font-size: 12.5mm; margin-top: 8mm; }
+  .lede { margin-top: 4mm; font-size: 4.4mm; }
+
+  .search { margin-top: 5mm; border: .5mm solid var(--deck); border-radius: 4mm; padding: 5mm 7mm; display: grid; grid-template-columns: 1fr 62mm; gap: 8mm; align-items: center; }
+  .search h2 { font-family: var(--display); font-size: 7mm; color: var(--deck); letter-spacing: -.02em; }
+  .search p { margin-top: 2mm; font-size: 3.5mm; line-height: 1.45; color: var(--muted); }
+  .search code { font-family: ui-monospace, Menlo, monospace; color: var(--ink); background: var(--mint); padding: .3mm 1.2mm; border-radius: 1mm; }
+  .bars { display: grid; gap: 3mm; }
+  .bar { font-size: 3.2mm; }
+  .bar .row { display: flex; justify-content: space-between; margin-bottom: 1mm; }
+  .bar b { font-family: var(--display); font-size: 5mm; color: var(--deck); }
+  .bar .track { height: 3mm; background: var(--line); border-radius: 2mm; overflow: hidden; }
+  .bar .fill { height: 100%; background: var(--deck); }
+  .bar.base .fill { background: #9AA79F; }
+  .bar.base b { color: var(--muted); }
+
+  .grid { margin-top: 4mm; display: grid; grid-template-columns: 1fr 1fr; gap: 0 9mm; }
+  .item { padding: 3mm 0; border-top: .35mm solid var(--line); }
+  .item .k { font-family: var(--display); font-weight: 700; font-size: 3.2mm; color: var(--dot); }
+  .item h3 { margin-top: .6mm; font-family: var(--display); font-size: 4.8mm; color: var(--deck); letter-spacing: -.015em; }
+  .item p { margin-top: 1.2mm; font-size: 3.2mm; line-height: 1.42; color: var(--ink); }
+  .item .num { margin-top: 1.2mm; font-size: 3.3mm; color: var(--muted); }
+  .item .num b { font-family: var(--display); font-size: 4.6mm; color: var(--deck); }
+  .sim { display: inline-block; margin-left: 1mm; font-size: 2.7mm; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--nonveg); border: .3mm solid currentColor; border-radius: 1mm; padding: 0 1mm; vertical-align: .3mm; }
+
+  .band { padding: 5mm 15mm 4mm; }
+  .band .qr { width: 30mm; padding: 2.2mm; }
+  .band .cta { font-size: 6.5mm; }
+  .band .url { font-size: 4.4mm; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="brand"><img src="../assets/icon.png" alt="">MealDeck<small>How it works</small></div>
+
+  <h1>The ML, and how we tested it</h1>
+  <p class="lede">No LLMs. Each model is small enough to run on a laptop or in the browser.</p>
+
+  <div class="search">
+    <div>
+      <div class="k" style="font-family:var(--display);font-weight:700;font-size:3.2mm;color:var(--dot)">01</div><h2>Search that handles typos</h2>
+      <p>Search <code>panner tika</code> or <code>manchoorian</code> and you still get the right dish. It's a character-trigram model built from all 1,086 dishes. We tested it on 39 misspelled searches.</p>
+    </div>
+    <div class="bars">
+      <div class="bar base"><div class="row"><span>Plain search found it</span><b>26%</b></div><div class="track"><div class="fill" style="width:26%"></div></div></div>
+      <div class="bar"><div class="row"><span>MealDeck, ranked first</span><b>87%</b></div><div class="track"><div class="fill" style="width:87%"></div></div></div>
+      <div class="bar"><div class="row"><span>MealDeck, in the top 10</span><b>100%</b></div><div class="track"><div class="fill" style="width:100%"></div></div></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="item">
+      <div class="k">02</div>
+      <h3>Deal me a dish</h3>
+      <p>You swipe through 10 dishes and keep or skip each one. It uses online logistic regression, with one model for everyone plus a personal one, updated after each hand.</p>
+      <div class="num">You can turn it off in Account, which also deletes your swipes.</div>
+    </div>
+    <div class="item">
+      <div class="k">03</div>
+      <h3>Mess menu from a screenshot</h3>
+      <p>Pick your MyCamu mess-menu screenshots and the day's four meals get filled in. Tesseract OCR reads them in the browser, then our parser splits the text into meals.</p>
+      <div class="num">The images aren't uploaded anywhere.</div>
+    </div>
+    <div class="item">
+      <div class="k">04</div>
+      <h3>Section suggestions for stalls</h3>
+      <p>When a vendor adds a dish, we suggest which section it goes in, using k-nearest neighbours on their existing menu.</p>
+      <div class="num">First guess right <b>69%</b> of the time (14% if you always pick the biggest section)</div>
+    </div>
+    <div class="item">
+      <div class="k">05</div>
+      <h3>Similar, for less</h3>
+      <p>Shows cheaper similar dishes at other stalls, using the same similarity as search. Veg only matches veg, and half plates aren't matched with full ones.</p>
+      <div class="num"><b>29%</b> of dishes have one, e.g. Oreo shake ₹147 → ₹85</div>
+    </div>
+    <div class="item">
+      <div class="k">06</div>
+      <h3>Pickup-time prediction <span class="sim">simulated data</span></h3>
+      <p>A random forest estimates how long an order will take. The biggest factor is how many orders are ahead of yours.</p>
+      <div class="num">Average error <b>2.1 min</b> (6.1 min if you just guess the average)</div>
+    </div>
+    <div class="item">
+      <div class="k">07</div>
+      <h3>Mess guesses</h3>
+      <p>If nobody has added today's menu yet, we guess from the same day in past weeks and mark it "Probably".</p>
+    </div>
+  </div>
+
+  <div class="band">
+    <div class="qr"><img src="../assets/qr/demo.svg" alt="QR code for demo.mealdeck.in"></div>
+    <div>
+      <div class="cta">Try it on your phone</div>
+      <div class="url">demo.mealdeck.in</div>
+      <div class="also">The demo's order history is simulated (it says so on every page). No stall takes pre-orders yet, so the pickup-time model is trained on 1,600 simulated orders and tested on 400.</div>
+    </div>
+  </div>
+  <div class="fine">Built by Bennett students. Not an official Bennett University service.</div>
+</div>
+</body>
+</html>
