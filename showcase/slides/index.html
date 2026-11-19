@@ -187,6 +187,8 @@
   <div class="progress" id="progress"></div>
 </div>
 <script>
+  // Always load the latest screenshots (Chrome caches local images).
+  document.querySelectorAll("img").forEach((img) => { img.src = img.getAttribute("src") + "?v=" + Date.now(); });
   const SECONDS = 8;
   const params = new URLSearchParams(location.search);
   const printing = params.has("print");
