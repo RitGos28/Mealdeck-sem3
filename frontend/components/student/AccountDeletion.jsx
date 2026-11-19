@@ -48,6 +48,12 @@ export function WhatYouLose() {
   );
 }
 
+// "24 hours" from the grace period in minutes.
+function graceText(minutes = 1440) {
+  if (minutes % 60 === 0) return `${minutes / 60} hour${minutes === 60 ? "" : "s"}`;
+  return `${minutes} minutes`;
+}
+
 // Asking to delete (with CONFIRM and the password), or, once asked, when
 // it happens and the button to cancel.
 export function DeleteAccountPanel({ deletion }) {
