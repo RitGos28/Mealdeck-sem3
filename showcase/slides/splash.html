@@ -14,10 +14,14 @@
   .wrap { display: grid; grid-template-columns: auto auto; gap: 9vmin; align-items: center; }
   .left { display: flex; flex-direction: column; }
   .logo { display: flex; align-items: center; gap: 2.6vmin; }
-  .logo img { width: 13vmin; border-radius: 3vmin; }
-  .logo span { font-family: var(--display); font-weight: 700; font-size: 10vmin; letter-spacing: -.03em; }
-  .line { margin-top: 4vmin; font-family: var(--serif); font-size: 5.6vmin; line-height: 1.1; color: var(--sand); max-width: 62vmin; }
-  .small { margin-top: 3vmin; font-size: 2.2vmin; line-height: 1.45; color: var(--on-deck); max-width: 62vmin; }
+  .logo img { width: 10vmin; border-radius: 3vmin; }
+  .logo span { font-family: var(--display); font-weight: 700; font-size: 8vmin; letter-spacing: -.03em; }
+  .line { margin-top: 3vmin; font-family: var(--serif); font-size: 5vmin; line-height: 1.1; color: var(--sand); max-width: 74vmin; }
+  .what { margin-top: 4vmin; list-style: none; display: grid; gap: 1.5vmin; max-width: 90vmin; }
+  .what li { position: relative; padding-left: 3vmin; font-size: 2.7vmin; line-height: 1.35; color: var(--card); }
+  .what li::before { content: ""; position: absolute; left: 0; top: .9vmin; width: 1.2vmin; height: 1.2vmin; border-radius: 50%; background: var(--sand); }
+  .what b { font-weight: 600; color: var(--sand); }
+  .small { margin-top: 4vmin; font-size: 2.2vmin; line-height: 1.45; color: var(--on-deck); max-width: 90vmin; }
   .qr { background: var(--card); border-radius: 2.6vmin; padding: 3vmin; width: 34vmin; text-align: center; }
   .qr img { width: 100%; display: block; }
   .qr div { margin-top: 1.8vmin; font-family: var(--display); font-weight: 700; font-size: 2.6vmin; color: var(--deck); }
@@ -33,9 +37,16 @@
     <div class="left">
       <div class="logo"><img src="../assets/icon.png" alt=""><span>MealDeck</span></div>
       <div class="line">Menus for every food stall on campus.</div>
+      <ul class="what">
+        <li><b>Every stall's menu and prices</b> in one place: 8 stalls, 1,086 dishes.</li>
+        <li><b>Search that handles typos.</b> "panner tika" still finds Paneer Tikka.</li>
+        <li><b>See what's sold out</b> before you walk over.</li>
+        <li><b>Mess menu from a MyCamu screenshot</b>, read on your phone.</li>
+        <li><b>Can't decide?</b> Deal me a dish, which learns what you like.</li>
+      </ul>
       <div class="small">This is a demo, built by students. Bennett is mentioned only because the menus are from its campus stalls; MealDeck is not endorsed or sponsored by Bennett University.</div>
     </div>
-    <div class="qr"><img src="../assets/qr/demo.svg" alt="QR code for demo.mealdeck.in"><div>demo.mealdeck.in</div></div>
+    <div class="qr"><img src="../assets/qr/demo.svg" alt="QR code for demo.mealdeck.in"><div>Scan to try it</div><div style="margin-top:.4vmin;font-family:var(--body);font-weight:500;font-size:2.2vmin;color:var(--muted)">demo.mealdeck.in</div></div>
   </div>
 </body>
 </html>
