@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MealDeck splash</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../assets/brand.css">
+<style>
+  /* A still full-screen splash (screensaver / desktop picture / idle screen).
+     Sized in vmin so it fits 16:9 and 16:10 alike. Rendered to PNG at the
+     Mac's 2560 x 1664 and at 2560 x 1440 / 1920 x 1080 by tools/render.py. */
+  html, body { width: 100%; height: 100%; overflow: hidden; background: var(--deck); }
+  body { display: grid; place-items: center; color: var(--card); }
+  .wrap { display: grid; grid-template-columns: auto auto; gap: 9vmin; align-items: center; }
+  .left { display: flex; flex-direction: column; }
+  .logo { display: flex; align-items: center; gap: 2.6vmin; }
+  .logo img { width: 13vmin; border-radius: 3vmin; }
+  .logo span { font-family: var(--display); font-weight: 700; font-size: 10vmin; letter-spacing: -.03em; }
+  .line { margin-top: 4vmin; font-family: var(--serif); font-size: 5.6vmin; line-height: 1.1; color: var(--sand); max-width: 62vmin; }
+  .small { margin-top: 3vmin; font-size: 2.2vmin; color: var(--on-deck); }
+  .qr { background: var(--card); border-radius: 2.6vmin; padding: 3vmin; width: 34vmin; text-align: center; }
+  .qr img { width: 100%; display: block; }
+  .qr div { margin-top: 1.8vmin; font-family: var(--display); font-weight: 700; font-size: 2.6vmin; color: var(--deck); }
+  /* The playing-card motif from the logo, faint, in the corners. */
+  .deco { position: fixed; width: 22vmin; aspect-ratio: 5 / 7; border-radius: 2vmin; border: .35vmin solid rgba(255, 253, 246, .1); }
+  .c1 { left: -6vmin; top: -5vmin; transform: rotate(-14deg); }
+  .c2 { right: -7vmin; bottom: -6vmin; transform: rotate(12deg); }
+</style>
+</head>
+<body>
+  <div class="deco c1"></div><div class="deco c2"></div>
+  <div class="wrap">
+    <div class="left">
+      <div class="logo"><img src="../assets/icon.png" alt=""><span>MealDeck</span></div>
+      <div class="line">Menus for every food stall on campus.</div>
+      <div class="small">Built by Bennett students. Not an official Bennett University service.</div>
+    </div>
+    <div class="qr"><img src="../assets/qr/demo.svg" alt="QR code for demo.mealdeck.in"><div>demo.mealdeck.in</div></div>
+  </div>
+</body>
+</html>

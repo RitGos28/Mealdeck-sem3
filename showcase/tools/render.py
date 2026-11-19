@@ -24,7 +24,11 @@ JOBS = [
     ("kit", "print-kit/stickers.html", "kit-2-stickers", "pdf", None),
     ("kit", "print-kit/table-tent.html", "kit-3-table-tent", "pdf", None),
     ("kit", "print-kit/bunting.html", "kit-4-bunting", "pdf", None),
-    ("slides", "slides/index.html", "slides", "slides", (1920, 1080)),
+    ("slides", "slides/index.html", "slides-27in", "slides", (2560, 1440)),
+    ("slides", "slides/tv.html", "slides-tv", "slides", (1920, 1080)),
+    ("splash", "slides/splash.html", "splash-mac-2560x1664", "png", (2560, 1664)),
+    ("splash", "slides/splash.html", "splash-2560x1440", "png", (2560, 1440)),
+    ("splash", "slides/splash.html", "splash-1920x1080", "png", (1920, 1080)),
 ]
 
 
@@ -49,6 +53,9 @@ def main(groups):
                 page.set_viewport_size({"width": 1240, "height": 1754})
                 page.screenshot(path=str(OUT / f"{name}.png"), full_page=False)
                 print("pdf ", name)
+            elif kind == "png":
+                page.screenshot(path=str(OUT / f"{name}.png"))
+                print("png ", name)
             else:
                 # One PNG per slide, for Keynote / Google Slides / a USB stick.
                 count = page.evaluate("window.slideCount()")
