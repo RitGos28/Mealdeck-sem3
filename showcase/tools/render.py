@@ -26,6 +26,7 @@ JOBS = [
     ("kit", "print-kit/bunting.html", "kit-4-bunting", "pdf", None),
     ("slides", "slides/index.html", "slides-27in", "slides", (2560, 1440)),
     ("slides", "slides/tv.html", "slides-tv", "slides", (1920, 1080)),
+    ("slides", "slides/tech.html", "slides-tech", "slides", (2560, 1440)),
     ("splash", "slides/splash.html", "splash-mac-2560x1664", "png", (2560, 1664)),
     ("splash", "slides/splash.html", "splash-2560x1440", "png", (2560, 1440)),
     ("splash", "slides/splash.html", "splash-1920x1080", "png", (1920, 1080)),
