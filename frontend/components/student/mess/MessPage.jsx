@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, formatInstant } from "../../../lib/api";
-import { priceText } from "../../../lib/mess";
+import { HIDE_PRICE, priceText } from "../../../lib/mess";
 import BagSheet from "../../BagSheet";
 import StudentShell from "../StudentShell";
 import MessScreenshotImport from "./MessScreenshotImport";
@@ -79,7 +79,7 @@ function MealRow({ meal, prediction, weekday, onAdd, onFlag }) {
     <li className="border-b border-line py-4 last:border-b-0">
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="font-serif text-xl">{meal.label}</h2>
-        <span className="text-xs text-muted">{priceText(meal.priceInr)}</span>
+        {!HIDE_PRICE && <span className="text-xs text-muted">{priceText(meal.priceInr)}</span>}
       </div>
       <p className={`mt-1 text-[15px] ${added ? "" : "text-muted"}`}>{added ? meal.items.join(", ") : "Not added yet"}</p>
       {!added && prediction && (
@@ -162,7 +162,7 @@ export default function MessPage() {
                 ))}
               </ul>
               <p className="mt-4 rounded-2xl bg-mint px-4 py-3 text-[13px] text-mint-ink">
-                Free for hostellers. Menus are added by students and start fresh each morning. When 3 different students say a menu isn&apos;t correct, the most common correction replaces it. A menu marked &ldquo;Checked&rdquo; has been confirmed by an admin.
+                Free for hostellers. Students add the menu each morning; if 3 say it&apos;s wrong, the most common correction replaces it.
               </p>
             </>
           )}

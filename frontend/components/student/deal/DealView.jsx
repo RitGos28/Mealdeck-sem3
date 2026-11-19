@@ -290,8 +290,8 @@ function Setup({ deal }) {
       <p className="text-[13px] text-muted">Swipe right to keep, left to skip. Arrow keys work too.</p>
       <p className="text-[13px] text-muted">
         {deal.learning
-          ? "Deals learn from what students keep, and from your own keeps and skips. You can turn that off in Account."
-          : "Deals learn from what students keep. Log in to have them learn your taste too."}
+          ? "Deals learn from your keeps and skips. Turn it off in Account."
+          : "Deals learn from what students keep. Log in so they learn yours too."}
       </p>
     </section>
   );
@@ -339,7 +339,7 @@ function Dealing({ deal, demoMode, onBag }) {
   );
 }
 
-function Hand({ deal, demoMode, cart, onAdd, onChangeQuantity, onHome }) {
+function Hand({ deal, demoMode, cart, onAdd, onView, onChangeQuantity, onHome }) {
   const groups = [];
   for (const entry of deal.kept) {
     const group = groups.find((g) => g.stall.id === entry.stall.id);
@@ -374,7 +374,7 @@ function Hand({ deal, demoMode, cart, onAdd, onChangeQuantity, onHome }) {
 
 export function DealBody({ deal, demoMode, cart, onAdd, onView, onChangeQuantity, onHome }) {
   if (deal.phase === "dealing" && deal.current) return <Dealing deal={deal} demoMode={demoMode} onBag={onAdd} />;
-  if (deal.phase === "hand") return <Hand deal={deal} demoMode={demoMode} cart={cart} onAdd={onAdd} onChangeQuantity={onChangeQuantity} onHome={onHome} />;
+  if (deal.phase === "hand") return <Hand deal={deal} demoMode={demoMode} cart={cart} onAdd={onAdd} onView={onView} onChangeQuantity={onChangeQuantity} onHome={onHome} />;
   return <Setup deal={deal} />;
 }
 

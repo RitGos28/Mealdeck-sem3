@@ -57,13 +57,43 @@ function DailyBars({ days }) {
   );
 }
 
+// Page opens: anonymous daily totals (PageViewService), including how many
+// came from the showcase QR code ("/?src=qr").
+function Visits({ visits }) {
+  const max = Math.max(1, ...visits.days.map((d) => d.views));
+  return (
+    <section aria-labelledby="visits" className="rounded-2xl border border-[#e1e8dd] bg-white p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="visits" className="text-sm font-semibold text-gray-700">Visits <span className="font-normal text-gray-500">(pages opened, no cookies or IDs)</span></h2>
+        <span className="text-xs text-gray-500">today {visits.today} · last 7 days {visits.lastWeek} · last 14 days {visits.lastTwoWeeks} · from the QR code {visits.fromQrLastTwoWeeks}</span>
+      </div>
+      <div className="mt-3 flex h-20 items-end gap-[2px] border-b border-[#e1e8dd]" role="img" aria-label={visits.days.map((d) => `${d.date}: ${d.views}`).join(", ")}>
+        {visits.days.map((d) => (
+          <div key={d.date} title={`${d.date}: ${d.views} (${d.fromQr} from QR)`} className="flex h-full flex-1 items-end">
+            <div className="w-full rounded-t-[4px] bg-[#2f6b45]" style={{ height: d.views ? `${(d.views / max) * 100}%` : "2px", opacity: d.views ? 1 : 0.25 }} />
+          </div>
+        ))}
+      </div>
+      {visits.pages.length > 0 && (
+        <ol className="mt-3 grid gap-1 text-sm sm:grid-cols-2">
+          {visits.pages.slice(0, 8).map((p) => (
+            <li key={p.path} className="flex justify-between gap-3"><span className="font-mono text-xs text-gray-700">{p.path}</span><span className="tabular-nums">{p.views}{p.fromQr ? <span className="text-gray-500"> ({p.fromQr} QR)</span> : null}</span></li>
+          ))}
+        </ol>
+      )}
+    </section>
+  );
+}
+
 export default function PitchView() {
   const [pitch, setPitch] = useState(null);
+  const [visits, setVisits] = useState(null);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     api("/api/admin/pitch").then(setPitch, (err) => setError(err.message));
+    api("/api/admin/views").then(setVisits, () => {});
   }, []);
 
   if (error) return <p className="rounded-xl bg-[#fbe9e7] px-4 py-3 text-sm text-[#9a4a3f]" role="alert">{error}</p>;
@@ -107,6 +137,8 @@ export default function PitchView() {
         <Tile value={rupees(pitch.orderValue)} label="Order value" note="paid at the counter, to the stalls" />
         <Tile value={`${pitch.stallsTakingOrders} of ${pitch.stallsListed}`} label="Stalls taking pre-orders" note={`${pitch.dishesListed} dishes listed`} />
       </div>
+
+      {visits && <Visits visits={visits} />}
 
       <DailyBars days={pitch.lastTwoWeeks} />
 

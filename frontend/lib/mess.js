@@ -11,6 +11,10 @@ export function currentMeal(now = new Date()) {
   return "DINNER";
 }
 
+// The demo hides mess prices for now: the stored lunch price (Rs 70) is out
+// of date (it's Rs 75 now).
+export const HIDE_PRICE = process.env.NEXT_PUBLIC_DEMO_GUEST === "1";
+
 // What a plate costs a day scholar; hostellers pay nothing (it's in their fees).
 export function priceText(priceInr) {
   return priceInr == null ? "Price at the counter" : `₹${priceInr} day scholars`;

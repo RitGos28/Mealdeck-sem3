@@ -1,0 +1,24 @@
+/* A4 portrait posters. Vector PDF, so it prints at A3 too: choose
+   "Fit to page" / "Scale to fit" and paper size A3. */
+@page { size: A4; margin: 0; }
+html, body { width: 210mm; height: 297mm; overflow: hidden; }
+body { position: relative; overflow: hidden; }
+
+.page { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 16mm 15mm 0; }
+
+.brand { display: flex; align-items: center; gap: 3mm; font-family: var(--display); font-weight: 700; font-size: 7mm; color: var(--deck); letter-spacing: -.02em; }
+.brand img { width: 11mm; height: 11mm; border-radius: 2.6mm; }
+.brand small { margin-left: auto; font-family: var(--body); font-weight: 600; font-size: 3.3mm; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+
+h1 { font-family: var(--display); font-weight: 700; color: var(--deck); letter-spacing: -.035em; line-height: .95; }
+.lede { font-size: 5.2mm; line-height: 1.35; color: var(--ink); max-width: 160mm; }
+
+.band {
+  margin: auto -15mm 0; background: var(--deck); color: var(--card);
+  padding: 10mm 15mm 9mm; display: flex; gap: 9mm; align-items: center;
+}
+.band .qr { width: 42mm; flex: none; background: var(--card); padding: 3mm; border-radius: 3mm; }
+.band .cta { font-family: var(--display); font-weight: 700; font-size: 9mm; line-height: 1.05; letter-spacing: -.02em; }
+.band .url { margin-top: 2.5mm; font-size: 5mm; font-weight: 600; color: var(--sand); }
+.band .also { margin-top: 4mm; font-size: 3.6mm; line-height: 1.45; color: var(--on-deck); }
+.fine { background: var(--deck); margin: -.3mm -15mm 0; padding: .3mm 15mm 7mm; font-size: 3mm; color: var(--on-deck); }

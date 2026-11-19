@@ -55,7 +55,7 @@ export default function PreorderAsk({ stall, className = "" }) {
       >
         {asked ? "✓ You asked for pre-orders here · undo" : state === "loggedOut" ? "Want to pre-order here? Log in to say so" : "Want to pre-order here?"}
       </button>
-      <p className="mt-1.5 text-xs text-muted">We count these and show the stall how many students asked.</p>
+      <p className="mt-1.5 text-xs text-muted">The stall sees how many students asked.</p>
       {message && <p role="alert" className="mt-1 text-xs text-danger">{message}</p>}
     </div>
   );

@@ -79,6 +79,32 @@ These passwords are public, so the seeding never runs in production. A productio
 | `RESEND_API_KEY` | Emailing sign-up codes. If it's empty or still the `<resend api key>` placeholder, codes are written to the backend log instead. |
 | `MAIL_FROM` | Sender address; its domain must be verified in Resend |
 | `WS_ALLOWED_ORIGINS` | Pages allowed to open the live-queue socket (defaults cover mealdeck.in, localhost and the Tailscale address) |
+| `COMPOSE_PROFILES` | `demo` also runs demo.mealdeck.in (below) |
+| `DEMO_HOST_PORT` | Local port for the demo site's nginx (default 8083) |
+
+## demo.mealdeck.in
+
+A second, throwaway copy of MealDeck with **simulated** history (orders, votes, Deal swipes, sold-out times, past mess menus) and every real menu, so the features that need weeks of data can be shown. It says so in a "Demo data" banner on every page.
+
+- **Never touches the real database.** It runs the `demo` Spring profile (an in-memory H2 database, wiped and reseeded on every start), gets no database password, and lives on its own Docker network where MySQL doesn't exist. The history seeder refuses to run against anything but the in-memory database.
+- **Same code as the real site.** The demo services reuse the `backend` and `frontend` images, plus `ml/` for the pickup-ETA model (trained on start from simulated orders).
+- Admin password login is off; the student and vendor demo logins work (and reset on every restart).
+
+On the server, once:
+
+```bash
+echo 'COMPOSE_PROFILES=demo' >> ~/mealdeck.env      # or pass --profile demo
+# Cloudflare: send demo.mealdeck.in to the demo's nginx on this box
+#   in /etc/cloudflared/config.yml, before the catch-all rule:
+#     - hostname: demo.mealdeck.in
+#       service: http://127.0.0.1:8083
+cloudflared tunnel route dns <tunnel name> demo.mealdeck.in
+sudo systemctl restart cloudflared
+```
+
+After that, `git pull && docker compose -p mealdeck --env-file ~/mealdeck.env up -d --build` updates the real site and the demo together, and the demo starts fresh.
+
+To run the same demo on a laptop without Docker (for example with no internet), use `./demo.sh` (`./demo.sh stop` to stop it).
 
 ## Tests
 

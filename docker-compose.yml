@@ -106,6 +106,103 @@ services:
       backend:
         condition: service_healthy
 
+  # ---- demo.mealdeck.in: a throwaway demo with SIMULATED history ----------
+  # Only started with the "demo" profile: COMPOSE_PROFILES=demo in the env
+  # file, or `docker compose --profile demo up`. Then one
+  # `git pull && docker compose up -d --build` updates both sites.
+  #
+  # It never touches the real database: the demo backend runs the "demo"
+  # Spring profile (an in-memory H2 database, wiped and reseeded on every
+  # start; DemoHistorySeeder refuses anything else), gets no database
+  # password, and lives on its own "demo" network, where MySQL doesn't exist.
+  # On that network the demo services answer to the names "backend",
+  # "frontend" and "eta", so the same images and nginx config work unchanged.
+  # Memory is capped: it shares a small box with the real site.
+
+  demo-eta:
+    profiles: ["demo"]
+    build: ./ml
+    image: mealdeck-demo-eta
+    restart: unless-stopped
+    logging: *logging
+    volumes:
+      - ./menu:/menu:ro
+    networks:
+      demo:
+        aliases: [eta]
+    mem_limit: 300m
+
+  demo-backend:
+    profiles: ["demo"]
+    image: mealdeck-backend      # built by the backend service above
+    pull_policy: never
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      SPRING_PROFILES_ACTIVE: demo
+      DEMO_HISTORY: "true"
+      DEMO_MENU_DIR: /menu
+      ML_ETA_ENABLED: "true"
+      ML_ETA_URL: http://eta:8099
+      # Public demo: no admin login with the demo's well-known password.
+      MEALDECK_ADMIN_PASSWORDLOGIN: "false"
+      RESEND_API_KEY: ""
+      WS_ALLOWED_ORIGINS: https://demo.mealdeck.in,http://localhost:*,http://127.0.0.1:*
+      JAVA_TOOL_OPTIONS: -Xmx320m -Xss512k -XX:MaxMetaspaceSize=192m -XX:+UseSerialGC -XX:TieredStopAtLevel=1
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+    volumes:
+      - ./menu:/menu:ro
+    networks:
+      demo:
+        aliases: [backend]
+    mem_limit: 600m
+
+  demo-frontend:
+    profiles: ["demo"]
+    image: mealdeck-frontend     # built by the frontend service above
+    pull_policy: never
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      BACKEND_INTERNAL_URL: http://backend:8080
+      NODE_OPTIONS: --max-old-space-size=192
+    networks:
+      demo:
+        aliases: [frontend]
+    depends_on:
+      demo-backend:
+        condition: service_healthy
+    mem_limit: 256m
+
+  demo-nginx:
+    profiles: ["demo"]
+    image: nginx:1.29-alpine
+    restart: unless-stopped
+    logging: *logging
+    # Local only: the Cloudflare tunnel on this box sends demo.mealdeck.in here.
+    ports:
+      - "127.0.0.1:${DEMO_HOST_PORT:-8083}:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d:ro
+    networks:
+      - demo
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/nginx-health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    depends_on:
+      demo-frontend:
+        condition: service_healthy
+      demo-backend:
+        condition: service_healthy
+    mem_limit: 64m
+
+networks:
+  # The demo's own network; the real site's services stay on "default".
+  demo:
+
 volumes:
   mysql_data:
   uploads_data:

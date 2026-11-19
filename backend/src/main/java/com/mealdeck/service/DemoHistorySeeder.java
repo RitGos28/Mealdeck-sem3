@@ -99,6 +99,7 @@ public class DemoHistorySeeder {
     private final Clock clock;
     private final com.mealdeck.repository.SoldOutEventRepository soldOutRepository;
     private final com.mealdeck.repository.MessMealRepository messMealRepository;
+    private final String datasourceUrl;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -110,7 +111,9 @@ public class DemoHistorySeeder {
             OrderRepository orderRepository, DishVoteRepository voteRepository, DealSwipeRepository swipeRepository,
             SlotService slotService, DealLearningService dealLearning, Clock clock,
             com.mealdeck.repository.SoldOutEventRepository soldOutRepository,
-            com.mealdeck.repository.MessMealRepository messMealRepository) {
+            com.mealdeck.repository.MessMealRepository messMealRepository,
+            @Value("${spring.datasource.url:}") String datasourceUrl) {
+        this.datasourceUrl = datasourceUrl;
         this.soldOutRepository = soldOutRepository;
         this.messMealRepository = messMealRepository;
         this.enabled = enabled;
@@ -134,6 +137,11 @@ public class DemoHistorySeeder {
     @Transactional
     public void seed() {
         if (!enabled || studentRepository.findByEmail(simEmail(1)).isPresent()) return;
+        // Simulated history must never land in a real database: only the
+        // throwaway in-memory one the demo profile uses.
+        if (!datasourceUrl.startsWith("jdbc:h2:mem:")) {
+            throw new IllegalStateException("DEMO_HISTORY is only for the in-memory demo database, not " + datasourceUrl.replaceAll("//[^/@]*@", "//***@"));
+        }
         if (!menuDir.isBlank()) {
             loadMenus(Path.of(menuDir));
             // Stalls already loaded in this transaction keep their old
@@ -251,6 +259,15 @@ public class DemoHistorySeeder {
                         date.atTime(9, 0).atZone(ZoneId.of("Asia/Kolkata")).toInstant()));
                 messMeals++;
             }
+        }
+
+        // The stalls taking pre-orders stay open round the clock in the demo,
+        // so a visitor never finds the preview stall "Closed now" (the
+        // history above was simulated within normal hours).
+        for (Stall stall : ordering) {
+            stall.setOpenTime(LocalTime.MIDNIGHT);
+            stall.setCloseTime(LocalTime.of(23, 59));
+            stallRepository.save(stall);
         }
 
         swipeRepository.flush();

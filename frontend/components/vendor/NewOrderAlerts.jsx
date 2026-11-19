@@ -142,7 +142,7 @@ export function AlertsToggle({ alerts }) {
         title={alerts.enabled ? "A chime and a notification when a new order comes in" : "Turn on new-order alerts"}
         className={`rounded-full px-3 py-1.5 text-xs font-semibold ${alerts.enabled ? "bg-[#0f2419] text-white hover:bg-[#1a3827]" : "border border-[#c9d1c2] bg-white text-[#12180f] hover:border-[#3f6b3a]"}`}
       >
-        {alerts.enabled ? "🔔 Alerts: on" : "🔕 Alerts: off"}
+        {alerts.enabled ? "Alerts: on" : "Alerts: off"}
       </button>
       {/* Without this, a vendor who never touches the switch is never asked. */}
       {alerts.enabled && alerts.permission === "default" && (

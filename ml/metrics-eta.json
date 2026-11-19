@@ -1,0 +1,49 @@
+{
+  "data": "SIMULATED (ml/simulate.py)",
+  "trained_at": "2026-11-18T03:09:37+00:00",
+  "train_orders": 1600,
+  "test_orders": 400,
+  "held_out": {
+    "mean baseline": {
+      "mae_min": 6.13,
+      "rmse_min": 7.74,
+      "r2": -0.009,
+      "within_3_min": 0.292
+    },
+    "linear regression": {
+      "mae_min": 2.27,
+      "rmse_min": 3.07,
+      "r2": 0.841,
+      "within_3_min": 0.743
+    },
+    "random forest": {
+      "mae_min": 2.13,
+      "rmse_min": 3.12,
+      "r2": 0.835,
+      "within_3_min": 0.765
+    }
+  },
+  "forest_cv_mae_min": {
+    "mean": 2.27,
+    "std": 0.04
+  },
+  "feature_importance": {
+    "orders_ahead": 0.346,
+    "qty_main": 0.2586,
+    "qty_tandoor": 0.1434,
+    "total_qty": 0.0818,
+    "slot_load": 0.029,
+    "hour": 0.0199,
+    "weekday": 0.0197,
+    "qty_snack": 0.0166,
+    "lines": 0.0155,
+    "qty_cold_drink": 0.0155,
+    "rush_hour": 0.0134,
+    "qty_roll": 0.0131,
+    "qty_sandwich_burger": 0.0126,
+    "qty_hot_drink": 0.0081,
+    "qty_dessert": 0.0045,
+    "weekend": 0.0022,
+    "qty_packaged": 0.0
+  }
+}

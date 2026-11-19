@@ -138,6 +138,9 @@ export default function MessScreenshotImport({ meals, user, onSaved }) {
         </span>
         <span aria-hidden="true" className="text-xl text-deck">+</span>
       </button>
+      {process.env.NEXT_PUBLIC_DEMO_GUEST === "1" && (
+        <p className="mt-2 text-sm text-muted">No MyCamu? <a href="/demo-mess" className="font-semibold text-deck underline">Get sample screenshots</a></p>
+      )}
       {error && <p role="alert" className="mt-2 rounded-xl bg-[#FBEDE6] px-3 py-2.5 text-sm text-danger">{error}</p>}
 
       {(phase === "review" || phase === "saving") && (

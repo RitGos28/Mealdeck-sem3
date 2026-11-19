@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MealDeck poster: Android testers</title>
+<link rel="stylesheet" href="../assets/brand.css">
+<link rel="stylesheet" href="poster.css">
+<style>
+  h1 { font-size: 21mm; margin-top: 20mm; text-wrap: balance; }
+  .lede { margin-top: 8mm; }
+  .steps { margin-top: 12mm; display: grid; gap: 6mm; counter-reset: s; }
+  .steps li { list-style: none; display: grid; grid-template-columns: 13mm 1fr; gap: 4mm; align-items: start; font-size: 5mm; line-height: 1.35; }
+  .steps li::before { counter-increment: s; content: counter(s); font-family: var(--display); font-weight: 700; font-size: 6mm; color: var(--card); background: var(--deck); width: 11mm; height: 11mm; border-radius: 50%; display: grid; place-items: center; }
+  .steps small { display: block; margin-top: 1mm; font-size: 3.7mm; color: var(--muted); }
+  .iphone { margin-top: 12mm; padding: 5mm 6mm; border-radius: 3mm; background: var(--mint); font-size: 4mm; line-height: 1.45; color: var(--deck); }
+  .iphone b { font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="brand"><img src="../assets/icon.png" alt="">MealDeck<small>Android app</small></div>
+
+  <h1>Looking for Android testers</h1>
+  <p class="lede">Before a new app can go on the Play Store, Google makes it go through a 14-day test with real users.</p>
+
+  <ol class="steps">
+    <li><div>Write your name and Gmail on the sheet at our table.<small>Use the Google account your Play Store is signed in with.</small></div></li>
+    <li><div>We'll email you a link to install the test version.<small>We'll also email once when it's public, and that's it.</small></div></li>
+    <li><div>Keep it installed for 14 days.<small>If something breaks, use the feedback link in the app.</small></div></li>
+  </ol>
+
+  <div class="iphone"><b>iPhone:</b> open <b>mealdeck.in</b> in Safari, then Share → <b>Add to Home Screen</b>.</div>
+
+  <div class="band">
+    <div class="qr"><img src="../assets/qr/site.svg" alt="QR code for mealdeck.in"></div>
+    <div>
+      <div class="cta">Or use the website</div>
+      <div class="url">mealdeck.in</div>
+      <div class="also">Works in any browser.</div>
+    </div>
+  </div>
+  <div class="fine">Built by Bennett students. Not an official Bennett University service.</div>
+</div>
+</body>
+</html>

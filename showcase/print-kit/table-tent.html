@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MealDeck table tent</title>
+<link rel="stylesheet" href="../assets/brand.css">
+<style>
+  /* No cutting: fold the A4 sheet in half along the middle line, print side
+     out, and stand it on the table like a tent. The top half is printed
+     upside down so both faces read the right way up. */
+  @page { size: A4; margin: 0; }
+  html, body { background: #fff; }
+  .sheet { width: 210mm; height: 297mm; display: grid; grid-template-rows: 1fr 1fr; break-after: page; }
+  .face { padding: 12mm 16mm; display: grid; grid-template-columns: 58mm 1fr; gap: 10mm; align-items: center; }
+  .face.flip { transform: rotate(180deg); border-bottom: .3mm dashed #AAB4AE; }
+  .face img.q { width: 58mm; }
+  .k { display: flex; align-items: center; gap: 2.4mm; font-family: var(--display); font-weight: 700; font-size: 5mm; color: var(--deck); }
+  .k img { width: 8mm; border-radius: 1.8mm; }
+  h2 { margin-top: 5mm; font-family: var(--display); font-size: 11mm; line-height: 1; letter-spacing: -.03em; color: var(--deck); }
+  .u { margin-top: 3mm; font-size: 5mm; font-weight: 600; color: var(--deck-2); }
+  p { margin-top: 3.5mm; font-size: 3.8mm; line-height: 1.4; color: var(--muted); }
+  .fold { position: absolute; left: 0; right: 0; top: 148.5mm; text-align: center; font-size: 2.6mm; color: #AAB4AE; transform: translateY(-50%); background: #fff; width: 30mm; margin: auto; }
+  .sheet { position: relative; }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="face flip">
+    <img class="q" src="../assets/qr/mess.svg" alt="QR code for the demo mess screenshots">
+    <div>
+      <div class="k"><img src="../assets/icon.png" alt="">MealDeck</div>
+      <h2>Try the screenshot import</h2>
+      <div class="u">demo.mealdeck.in/demo-mess</div>
+      <p>Save the sample MyCamu screenshots, then open Mess → Fill from MyCamu screenshots. The menu is read on your phone.</p>
+    </div>
+  </div>
+  <div class="face">
+    <img class="q" src="../assets/qr/demo.svg" alt="QR code for demo.mealdeck.in">
+    <div>
+      <div class="k"><img src="../assets/icon.png" alt="">MealDeck</div>
+      <h2>Scan to try it on your phone</h2>
+      <div class="u">demo.mealdeck.in</div>
+      <p>Every campus stall's menu in one place. Search with typos, swipe through Deal me a dish, see what's sold out.</p>
+    </div>
+  </div>
+  <div class="fold">fold here</div>
+</div>
+</body>
+</html>

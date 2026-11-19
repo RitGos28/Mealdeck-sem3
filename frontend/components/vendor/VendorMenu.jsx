@@ -47,7 +47,7 @@ function MenuItemEditor({ item, categoriesId, onChanged }) {
     <form onSubmit={save} className="rounded-2xl border border-[#e1e8dd] bg-white p-4 shadow-sm">
       <div className="mb-4 flex items-center gap-3">
         <div className="relative size-16 shrink-0 overflow-hidden rounded-xl bg-[#e8eee5]">
-          {item.image ? <Image src={item.image} alt="" fill sizes="64px" className="object-cover" /> : <span className="flex size-full items-center justify-center text-xl" aria-hidden="true">🍽️</span>}
+          {item.image ? <Image src={item.image} alt="" fill sizes="64px" className="object-cover" /> : <span className="flex size-full items-center justify-center text-[11px] text-gray-500">No photo</span>}
         </div>
         <label className="min-w-0 text-xs font-bold uppercase tracking-wide text-gray-500">Dish image
           <input className="mt-1 block w-full max-w-xs text-sm font-normal normal-case tracking-normal file:mr-3 file:rounded-lg file:border-0 file:bg-[#e8f2e3] file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-[#315c3d]" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setImageFile(event.target.files?.[0] ?? null)} />
@@ -136,7 +136,7 @@ export default function VendorMenu({ stall, onChanged }) {
           <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={newItem.veg} onChange={(event) => setNewItem({ ...newItem, veg: event.target.checked })} /> Vegetarian</label>
           <button className={primaryButton} disabled={adding}>{adding ? "Adding…" : "Add item"}</button>
         </div>
-        <label className="mt-3 block text-sm font-semibold text-[#315c3d]">Category <span className="font-normal text-gray-500">(optional — each category is its own row on the menu; type a new name to add one)</span>
+        <label className="mt-3 block text-sm font-semibold text-[#315c3d]">Category <span className="font-normal text-gray-500">(optional; type a new one to add it)</span>
           <input className={`${inputClass} mt-1 font-normal`} list={categoriesId} maxLength={40} placeholder="e.g. Kathi Rolls" value={newItem.category} onChange={(event) => setNewItem({ ...newItem, category: event.target.value })} />
         </label>
         {suggestions.length > 0 && (

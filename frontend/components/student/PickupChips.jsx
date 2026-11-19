@@ -11,6 +11,8 @@ const SLOT_MINUTES = 15;
 // Same fallbacks as the backend's SlotService for stalls with no hours set.
 const DEFAULT_OPEN = 8 * 60;
 const DEFAULT_CLOSE = 22 * 60;
+// Chips shown on the band before "Later": ASAP plus the next three times.
+const BAND_CHIPS = 4;
 
 export function readPreferredPickup() {
   try {
@@ -84,9 +86,13 @@ export default function PickupChips({ stalls, variant = "band" }) {
     return () => clearInterval(timer);
   }, []);
 
-  const options = [{ value: ASAP, label: "ASAP" }, ...(now === null ? [] : pickupTimes(stalls, now).map((minute) => ({ value: toValue(minute), label: toLabel(minute) })))];
+  const allOptions = [{ value: ASAP, label: "ASAP" }, ...(now === null ? [] : pickupTimes(stalls, now).map((minute) => ({ value: toValue(minute), label: toLabel(minute) })))];
   // A stored time that has since passed reads as ASAP.
-  const selected = options.some((option) => option.value === value) ? value : ASAP;
+  const selected = allOptions.some((option) => option.value === value) ? value : ASAP;
+  // On the band, ASAP and the next few times; "Later" shows the rest of the day.
+  const [showAll, setShowAll] = useState(false);
+  const short = !panel && !showAll && allOptions.length > BAND_CHIPS + 1;
+  const options = short ? allOptions.filter((option, index) => index < BAND_CHIPS || option.value === selected) : allOptions;
 
   function choose(next) {
     setValue(next);
@@ -134,6 +140,11 @@ export default function PickupChips({ stalls, variant = "band" }) {
             </button>
           );
         })}
+        {short && (
+          <button type="button" onClick={() => setShowAll(true)} className="h-11 shrink-0 rounded-full px-3 text-sm font-semibold whitespace-nowrap text-on-deck underline underline-offset-4 hover:text-white focus-visible:outline-white">
+            Later
+          </button>
+        )}
       </div>
     </div>
   );
