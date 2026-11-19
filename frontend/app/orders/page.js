@@ -103,7 +103,7 @@ export default async function OrdersPage({ searchParams }) {
   const band = (
     <div className="mt-5 md:mx-auto md:max-w-3xl lg:mx-0 lg:max-w-none">
       <h1 className="font-serif text-3xl leading-tight">{title}</h1>
-      <p className="mt-1 text-sm text-on-deck">{preOrders || orders.length > 0 ? "Live updates — we'll show when it's ready" : "Your orders will show up here"}</p>
+      <p className="mt-1 text-sm text-on-deck">{preOrders || orders.length > 0 ? "Updates live. We'll show when it's ready" : "Your orders will show up here"}</p>
     </div>
   );
 

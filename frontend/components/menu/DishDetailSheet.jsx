@@ -83,7 +83,6 @@ export default function DishDetailSheet({ dish, stall, user, cheaper = [], onOpe
           <button type="button" disabled className="flex h-12 w-full items-center justify-center rounded-full bg-deck px-4 font-semibold text-white disabled:opacity-50">
             {stall.name} isn&apos;t taking pre-orders yet
           </button>
-          <p className="mt-2 text-center text-xs text-muted">Order at the counter for now.</p>
           <PreorderAsk stall={stall} className="mt-3 flex flex-col items-center text-center" />
         </div>
       </div>

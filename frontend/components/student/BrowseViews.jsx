@@ -84,19 +84,16 @@ export function CravingGrid({ stalls, demoMode, onOpen }) {
   const cravings = CRAVINGS.map((craving) => ({ craving, summary: cravingSummary(cravingDishes(craving, stalls, demoMode)) })).filter((entry) => entry.summary);
   if (cravings.length === 0) return <p className="py-8 text-center text-muted">Nothing to order right now.</p>;
   return (
-    <>
-      <ArrowGroup className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 lg:gap-3">
-        {cravings.map(({ craving, summary }) => (
-          <li key={craving.id}>
-            <a href={`/?craving=${craving.id}`} onClick={(event) => { event.preventDefault(); onOpen(craving.id); }} className="flex h-[76px] flex-col justify-end rounded-2xl px-3 py-2.5 transition-[filter] hover:brightness-[.97]" style={{ background: craving.tint }}>
-              <span className="font-serif text-lg leading-tight text-ink">{craving.name}</span>
-              <span className="text-xs text-muted">{summary}</span>
-            </a>
-          </li>
-        ))}
-      </ArrowGroup>
-      <p className="mt-3 text-[13px] text-muted">Tap one to see it from every stall, cheapest first.</p>
-    </>
+    <ArrowGroup className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 lg:gap-3">
+      {cravings.map(({ craving, summary }) => (
+        <li key={craving.id}>
+          <a href={`/?craving=${craving.id}`} onClick={(event) => { event.preventDefault(); onOpen(craving.id); }} className="flex h-[76px] flex-col justify-end rounded-2xl px-3 py-2.5 transition-[filter] hover:brightness-[.97]" style={{ background: craving.tint }}>
+            <span className="font-serif text-lg leading-tight text-ink">{craving.name}</span>
+            <span className="text-xs text-muted">{summary}</span>
+          </a>
+        </li>
+      ))}
+    </ArrowGroup>
   );
 }
 

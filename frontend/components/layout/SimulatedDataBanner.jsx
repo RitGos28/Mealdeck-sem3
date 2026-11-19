@@ -9,8 +9,8 @@ export default function SimulatedDataBanner() {
   const info = useStore(demoInfo);
   if (!info.simulatedData) return null;
   return (
-    <p role="note" className="rounded-2xl border border-dashed border-deck bg-mint px-4 py-3 text-sm text-mint-ink">
-      <span className="font-semibold">Demo data.</span> The votes, Deal me a dish keeps and orders on this copy are simulated, and real stalls are shown menu only, as on mealdeck.in.
+    <p role="note" className="rounded-xl border border-dashed border-deck px-3 py-2 text-[13px] text-mint-ink">
+      <span className="font-semibold">Demo data:</span> votes, Deal keeps and orders here are simulated.
     </p>
   );
 }

@@ -261,6 +261,15 @@ public class DemoHistorySeeder {
             }
         }
 
+        // The stalls taking pre-orders stay open round the clock in the demo,
+        // so a visitor never finds the preview stall "Closed now" (the
+        // history above was simulated within normal hours).
+        for (Stall stall : ordering) {
+            stall.setOpenTime(LocalTime.MIDNIGHT);
+            stall.setCloseTime(LocalTime.of(23, 59));
+            stallRepository.save(stall);
+        }
+
         swipeRepository.flush();
         dealLearning.rebuild();
         log.info("SIMULATED demo history: {} students, {} past orders, {} waiting today, {} votes, {} deal swipes, {} sold-out events, {} past mess meals",

@@ -29,8 +29,7 @@ export default function MostLoved({ stalls, onOpenStall }) {
 
   return (
     <section aria-labelledby="most-loved">
-      <h2 id="most-loved" className="font-serif text-xl">Most loved this week</h2>
-      <p className="mb-2.5 text-[13px] text-muted">From students&apos; &ldquo;Amazing&rdquo; votes and Deal me a dish keeps, last 7 days.</p>
+      <h2 id="most-loved" className="mb-2.5 font-serif text-xl">Most loved this week</h2>
       <ul className="-mx-5 flex gap-2.5 overflow-x-auto px-5 pb-1 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 xl:grid-cols-3 [&::-webkit-scrollbar]:hidden">
         {picks.map(({ item, stall, dish }) => (
           <li key={item.id} className="w-64 shrink-0 sm:w-auto">

@@ -78,7 +78,7 @@ export function VoteButtons({ item, user }) {
 
   return (
     <section aria-label={`Rate ${item.name}`}>
-      <h3 className="mb-2 text-sm font-semibold">Had this? <span className="text-xs font-medium text-muted">Only the totals are shown, never who voted.</span></h3>
+      <h3 className="mb-2 text-sm font-semibold">Had this?</h3>
       <div className="flex gap-2">
         {button(true, "Amazing")}
         {button(false, "Not worth it")}

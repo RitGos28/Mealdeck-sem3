@@ -560,10 +560,10 @@ export default function MenuExperience({ stalls, demoMode }) {
           {!isDesktop && <StallTabs stalls={menuStalls} activeId={activeStall.id} onOpen={openStall} />}
           {desktopHeading}
           {activeStall.listingOnly && (
-            <p className="rounded-2xl bg-[#F0F2EF] px-4 py-3 text-sm text-ink">
-              <strong>{activeStall.name} isn&apos;t taking pre-orders on MealDeck yet.</strong> Here&apos;s the menu so you can decide; order at the counter for now.
+            <div className="rounded-2xl bg-[#F0F2EF] px-4 py-3 text-sm text-ink">
+              <strong>Menu only.</strong> {activeStall.name} isn&apos;t taking pre-orders yet; order at the counter.
               {!demoMode && <PreorderAsk stall={activeStall} className="mt-3" />}
-            </p>
+            </div>
           )}
           {filterRow}
           {stallMenu.items.length > 0
@@ -634,14 +634,14 @@ export default function MenuExperience({ stalls, demoMode }) {
           <>
             <DealEntry stalls={menuStalls} demoMode={demoMode} onOpen={openDeal} />
             <button type="button" onClick={openCombos} className="flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl border border-line px-4 py-3 text-left hover:bg-[#F6F8F5]">
-              <span><span className="block font-serif text-lg leading-tight">Combos &amp; meals</span><span className="block text-[13px] text-muted">Mini meals, thalis and combos from every stall, cheapest first</span></span>
+              <span><span className="block font-serif text-lg leading-tight">Combos &amp; meals</span><span className="block text-[13px] text-muted">Thalis and mini meals, cheapest first</span></span>
               <span aria-hidden="true" className="text-xl text-muted">›</span>
             </button>
             <MessCard />
             <OrderAgain stalls={menuStalls} user={user} onAdd={requestAddItem} />
             <MostLoved stalls={menuStalls} onOpenStall={openStall} />
             <section>
-              <SectionTitle aside={`${menuStalls.length} on campus`}>Stalls</SectionTitle>
+              <SectionTitle>Stalls</SectionTitle>
               {menuStalls.length > 0 ? <StallList stalls={menuStalls} demoMode={demoMode} onOpen={openStall} /> : <p className="py-10 text-center text-muted">No stalls yet.</p>}
             </section>
           </>
