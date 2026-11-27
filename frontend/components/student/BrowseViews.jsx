@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useQueueLength } from "../menu/MenuSection";
+import { stallWaits, useStore } from "../../lib/dishSignals";
 import ArrowGroup from "../ArrowGroup";
 import { initials } from "./OrderAgain";
 import { CRAVINGS, cravingDishes, cravingSummary, stallStatus, stallTint, topCategories } from "./browse";
@@ -48,7 +49,10 @@ export function SectionTitle({ children, aside }) {
 function StallRow({ stall, demoMode, onOpen }) {
   const status = stallStatus(stall, demoMode);
   const queueLength = useQueueLength(stall, demoMode);
+  const wait = useStore(stallWaits).find((w) => w.stallId === stall.id);
   const queue = !status.live ? null : queueLength === null ? null : queueLength === 0 ? "No queue" : `${queueLength} in queue`;
+  // A model estimate, only when wait estimates are switched on (local demos).
+  const waitText = status.live && wait ? `about ${Math.round(wait.minutes)} min for a new order${wait.simulated ? " (demo estimate)" : ""}` : null;
   const tags = topCategories(stall);
   return (
     <li>
@@ -60,6 +64,7 @@ function StallRow({ stall, demoMode, onOpen }) {
             <StatusDot status={status} />
           </span>
           <span className="mt-0.5 block text-[13px] text-muted">{stall.items.length} dishes{queue && ` · ${queue}`}</span>
+          {waitText && <span className="mt-0.5 block text-[13px] font-medium text-deck">{waitText}</span>}
           {tags.length > 0 && <span className="mt-0.5 block truncate text-xs text-[#8A968F]">{tags.join(" · ")}</span>}
         </span>
       </a>

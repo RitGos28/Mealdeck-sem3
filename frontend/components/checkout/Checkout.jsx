@@ -6,6 +6,7 @@ import { api, formatTime, toSlotValue } from "../../lib/api";
 import { LiveIndicator, useLiveTopic } from "../../lib/liveQueue";
 import { readPreferredPickup } from "../student/PickupChips";
 import NonVegNotice from "../cart/NonVegNotice";
+import EtaHint from "./EtaHint";
 
 // The optional "Hostel + room" is remembered on this device, so it's
 // there next time. Blocked or unavailable storage just means no memory.
@@ -235,6 +236,14 @@ export default function Checkout({ cartItems, total, user, onBack, onPlaced, lat
                     );
                   })}
                 </div>
+              )}
+              {!pausedStalls[stallId] && (
+                <EtaHint
+                  key={`${entries.map((e) => `${e.item.id}x${e.quantity}`).join(",")}@${picked[stallId] ?? ""}`}
+                  stallId={stallId}
+                  entries={entries}
+                  pickupTime={picked[stallId] ?? null}
+                />
               )}
             </section>
           );
