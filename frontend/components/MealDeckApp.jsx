@@ -9,6 +9,7 @@ import Checkout from "./checkout/Checkout";
 import StudentShell from "./student/StudentShell";
 import PickupChips from "./student/PickupChips";
 import OrderAgain from "./student/OrderAgain";
+import MostLoved from "./student/MostLoved";
 import MessCard from "./student/mess/MessCard";
 import PreorderAsk from "./student/PreorderAsk";
 import ArrowGroup from "./ArrowGroup";
@@ -24,6 +25,8 @@ import DishDetailSheet from "./menu/DishDetailSheet";
 import { BackLink, CravingGrid, SectionTitle, StallList, StallTabs, ViewSwitch, useStallSubtitle } from "./student/BrowseViews";
 import { CRAVINGS, cravingDishes, isDrink, stallOpenNow, stallStatus } from "./student/browse";
 import { DealBody, DealEntry, DealHeading, useDeal } from "./student/deal/DealView";
+import { buildIndex, search as fuzzySearch, suggestion } from "../lib/fuzzySearch";
+import { similarForLess } from "../lib/similarDishes";
 
 // The bag survives the trip to /login and back (ordering needs a login),
 // but only for this tab. Storage can be unavailable (private mode, blocked
@@ -334,7 +337,7 @@ export default function MenuExperience({ stalls, demoMode }) {
   const dealing = !activeStall && !activeCraving && params.has("deal");
   const combos = !activeStall && !activeCraving && !dealing && params.has("combos");
   const view = activeStall ? "stall" : activeCraving ? "craving" : dealing ? "deal" : combos ? "combos" : "home";
-  const deal = useDeal(menuStalls, demoMode, savedVeg);
+  const deal = useDeal(menuStalls, demoMode, savedVeg, me?.role === "STUDENT" && me.dealLearning !== false);
   const stallSubtitle = useStallSubtitle(activeStall, demoMode);
 
   // Demo data has no hours, so every sample stall counts as open.
@@ -350,16 +353,30 @@ export default function MenuExperience({ stalls, demoMode }) {
   const query = search.trim().toLowerCase();
   const filtering = Boolean(query) || diet !== "all" || kind !== "all";
 
+  // Typo-tolerant search (lib/fuzzySearch): a trigram model fitted on the
+  // menu, so "panner tika" still finds Paneer Tikka. hits: item id -> score.
+  const dishIndex = useMemo(() => buildIndex(menuStalls.flatMap((stall) => stall.items)), [menuStalls]);
+  const stallIndex = useMemo(() => buildIndex(menuStalls.map((stall) => ({ id: stall.id, name: stall.name }))), [menuStalls]);
+  const hits = useMemo(() => (query ? fuzzySearch(dishIndex, query) : null), [dishIndex, query]);
+  const dishEntries = useMemo(() => new Map(menuStalls.flatMap((stall) => stall.items.map((item) => [item.id, { item, stall }]))), [menuStalls]);
+  const didYouMean = useMemo(() => (query ? suggestion(dishIndex, query) : null), [dishIndex, query]);
+
   const matches = (item) => (diet === "all" || (diet === "veg") === item.veg)
     && (kind === "all" || (kind === "drinks") === isDrink(item))
-    && item.name.toLowerCase().includes(query);
-  const order = (items) => sort === "relevance" ? items : [...items].sort((a, b) => sort === "price-asc" ? a.price - b.price : b.price - a.price);
+    && (!hits || hits.has(item.id));
+  const order = (items) => sort === "relevance"
+    ? (hits ? [...items].sort((a, b) => (hits.get(b.id) ?? 0) - (hits.get(a.id) ?? 0)) : items)
+    : [...items].sort((a, b) => sort === "price-asc" ? a.price - b.price : b.price - a.price);
 
-  // Home only turns into search results once something is typed.
+  // Home only turns into search results once something is typed. Stalls
+  // with the best match come first.
   const searchResults = view === "home" && query
-    ? menuStalls.map((stall) => ({ ...stall, items: order(stall.items.filter(matches)) })).filter((stall) => stall.items.length > 0)
+    ? menuStalls.map((stall) => ({ ...stall, items: order(stall.items.filter(matches)) }))
+      .filter((stall) => stall.items.length > 0)
+      .sort((a, b) => (hits.get(b.items[0].id) ?? 0) - (hits.get(a.items[0].id) ?? 0))
     : [];
-  const stallMatches = view === "home" && query ? menuStalls.filter((stall) => stall.name.toLowerCase().includes(query)) : [];
+  const stallHits = view === "home" && query ? fuzzySearch(stallIndex, query) : null;
+  const stallMatches = stallHits ? menuStalls.filter((stall) => stallHits.has(stall.id)) : [];
   const stallMenu = activeStall ? { ...activeStall, items: order(filtering ? activeStall.items.filter(matches) : activeStall.items) } : null;
   const cravingList = activeCraving
     ? cravingDishes(activeCraving, menuStalls, demoMode).filter(({ item }) => matches(item)).sort((a, b) => sort === "price-desc" ? b.item.price - a.item.price : a.item.price - b.item.price)
@@ -618,7 +635,10 @@ export default function MenuExperience({ stalls, demoMode }) {
       return (
         <>
           {filterRow}
-          <p className="text-sm text-muted">{dishCount} dish{dishCount === 1 ? "" : "es"} at {searchResults.length} stall{searchResults.length === 1 ? "" : "s"}</p>
+          <p className="text-sm text-muted">
+            {dishCount} dish{dishCount === 1 ? "" : "es"} at {searchResults.length} stall{searchResults.length === 1 ? "" : "s"}
+            {didYouMean && <> · including close matches for <button type="button" onClick={() => setSearch(didYouMean)} className="font-semibold text-deck underline-offset-2 hover:underline">&ldquo;{didYouMean}&rdquo;</button></>}
+          </p>
           {stallMatches.length > 0 && <StallList stalls={stallMatches} demoMode={demoMode} onOpen={openStall} />}
           {searchResults.length > 0
             ? <div>{searchResults.map((stall) => <MenuSection key={stall.id} stall={stall} demoMode={demoMode} cart={cart} onAddToCart={requestAdd} onChangeQuantity={changeQuantity} onView={viewDish} expandAll isDesktop={isDesktop} />)}</div>
@@ -644,6 +664,7 @@ export default function MenuExperience({ stalls, demoMode }) {
             </button>
             <MessCard />
             <OrderAgain stalls={menuStalls} user={user} onAdd={requestAddItem} />
+            <MostLoved stalls={menuStalls} onOpenStall={openStall} />
             <section>
               <SectionTitle aside={`${menuStalls.length} on campus`}>Stalls</SectionTitle>
               {menuStalls.length > 0 ? <StallList stalls={menuStalls} demoMode={demoMode} onOpen={openStall} /> : <p className="py-10 text-center text-muted">No stalls yet.</p>}
@@ -694,7 +715,17 @@ export default function MenuExperience({ stalls, demoMode }) {
               onClose={() => setCustomising(null)}
             />
           )}
-          {viewing && <DishDetailSheet key={viewing.dish.key} dish={viewing.dish} stall={viewing.stall} onClose={() => setViewing(null)} />}
+          {viewing && (
+            <DishDetailSheet
+              key={viewing.dish.key}
+              dish={viewing.dish}
+              stall={viewing.stall}
+              user={user}
+              cheaper={similarForLess(dishIndex, dishEntries, viewing.dish.variants[0].item, viewing.stall)}
+              onOpenStall={(id) => { setViewing(null); openStall(id); }}
+              onClose={() => setViewing(null)}
+            />
+          )}
         </>
       )}
     </StudentShell>

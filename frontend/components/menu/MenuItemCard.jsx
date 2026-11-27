@@ -7,6 +7,7 @@ import { api } from "../../lib/api";
 import Stepper from "../student/Stepper";
 import { initials } from "../student/OrderAgain";
 import { needsSheet } from "../../lib/menuDishes";
+import { SoldOutHint, VoteSummary } from "./DishVotes";
 
 // The Indian veg / non-veg mark: dot for veg, triangle for non-veg.
 export function VegDot({ veg }) {
@@ -93,6 +94,8 @@ export default function MenuItemCard({ item: itemProp, dish, demoMode, quantity 
             : <span className={`text-[15px] font-medium lg:line-clamp-2 lg:text-[13.5px] lg:leading-snug ${available ? "text-ink" : "text-muted"}`}>{name}</span>}
         </div>
         {sub && <p className="mt-0.5 truncate text-[13px] text-muted">{sub}</p>}
+        <VoteSummary itemIds={items.map((candidate) => candidate.id)} className="mt-0.5" />
+        {available && <SoldOutHint itemIds={items.map((candidate) => candidate.id)} className="mt-0.5" />}
         {custom && hint && <p className="mt-0.5 truncate text-[13px] text-mint-ink">{hint}</p>}
         {available ? (
           <div className="mt-0.5 flex flex-wrap items-center gap-x-3">

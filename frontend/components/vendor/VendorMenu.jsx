@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import { api } from "../../lib/api";
 import { formatChoices, parseChoices } from "../../lib/menuDishes";
+import { suggestSections } from "../../lib/sectionSuggest";
 
 const inputClass = "w-full rounded-xl border border-[#dbe5d8] bg-white px-3 py-2 text-sm outline-none focus:border-[#477355] focus:ring-2 focus:ring-[#dbead6]";
 const primaryButton = "rounded-xl bg-[#173725] px-3 py-2 text-sm font-semibold text-white hover:bg-[#28543a] disabled:opacity-50";
@@ -87,6 +88,13 @@ export default function VendorMenu({ stall, onChanged }) {
   // existing ones keeps spellings consistent.
   const categories = [...new Set(stall.items.map((item) => item.category).filter(Boolean))];
   const categoriesId = `categories-${stall.id}`;
+  // Sections this stall's similar dishes are in (lib/sectionSuggest), as one-tap
+  // chips; the vendor always decides. Hidden once one of them is chosen.
+  const suggestions = useMemo(() => {
+    if (newItem.name.trim().length < 3) return [];
+    const found = suggestSections(stall.items, newItem.name);
+    return found.some((s) => s.category === newItem.category.trim()) ? [] : found;
+  }, [stall.items, newItem.name, newItem.category]);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState(null);
 
@@ -131,6 +139,16 @@ export default function VendorMenu({ stall, onChanged }) {
         <label className="mt-3 block text-sm font-semibold text-[#315c3d]">Category <span className="font-normal text-gray-500">(optional — each category is its own row on the menu; type a new name to add one)</span>
           <input className={`${inputClass} mt-1 font-normal`} list={categoriesId} maxLength={40} placeholder="e.g. Kathi Rolls" value={newItem.category} onChange={(event) => setNewItem({ ...newItem, category: event.target.value })} />
         </label>
+        {suggestions.length > 0 && (
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs" aria-live="polite">
+            <span className="text-gray-500">Suggested from your menu:</span>
+            {suggestions.map(({ category }) => (
+              <button key={category} type="button" onClick={() => setNewItem({ ...newItem, category })} className="rounded-full border border-[#dbe5d8] bg-white px-3 py-1 font-semibold text-[#315c3d] hover:border-[#477355]">
+                {category}
+              </button>
+            ))}
+          </div>
+        )}
         <label className="mt-3 block text-sm font-semibold text-[#315c3d]">Choices <span className="font-normal text-gray-500">(optional, free: e.g. bread or dry/gravy; sizes with different prices are separate items like &ldquo;Dish (Half)&rdquo;)</span>
           <input className={`${inputClass} mt-1 font-normal`} placeholder="e.g. Bread: Butter Naan ×1 / Butter Roti ×2; Style: Dry / Gravy" value={newItem.choices} onChange={(event) => setNewItem({ ...newItem, choices: event.target.value })} />
         </label>

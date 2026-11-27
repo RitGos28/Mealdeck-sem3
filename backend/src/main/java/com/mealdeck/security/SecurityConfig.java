@@ -41,6 +41,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/menu-items/*/report").hasRole("STUDENT")
                         .requestMatchers(HttpMethod.POST, "/api/mess/**").hasRole("STUDENT")
                         .requestMatchers("/api/preorder-requests/**", "/api/preorder-requests").hasRole("STUDENT")
+                        .requestMatchers(HttpMethod.POST, "/api/deal/swipes").hasRole("STUDENT")
                         .requestMatchers(HttpMethod.POST, "/api/orders").hasRole("STUDENT")
                         .requestMatchers(HttpMethod.GET, "/api/orders").hasRole("STUDENT")
                         .requestMatchers(HttpMethod.GET, "/api/orders/*").authenticated()

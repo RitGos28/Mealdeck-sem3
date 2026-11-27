@@ -25,21 +25,31 @@ export function dealPool(stalls, filters, demoMode) {
   return pool;
 }
 
-function shuffle(list) {
-  const copy = [...list];
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
+// How much the model's score counts. Every dish keeps a floor weight, so a
+// dish the model doesn't fancy still turns up now and then: the model only
+// learns about dishes people actually get to see.
+const FLOOR = 0.25;
+
+// A random order in which each dish is more likely to come early the higher
+// its weight (weighted sampling without replacement: sort by u^(1/w)).
+// Without scores every dish weighs the same: a plain shuffle.
+function weightedShuffle(list, scores) {
+  return list
+    .map((entry) => {
+      const weight = scores ? FLOOR + (scores[entry.item.id] ?? 0.5) : 1;
+      return { entry, key: Math.random() ** (1 / weight) };
+    })
+    .sort((a, b) => b.key - a.key)
+    .map(({ entry }) => entry);
 }
 
-// A shuffled hand that spreads across stalls and sections: at most three
-// dishes per stall and one per stall section, so ten cards aren't ten
-// noodles from one counter. If the spread rules leave the hand short, the
-// rest is filled from whatever is left.
-export function dealHand(pool, size = HAND_SIZE) {
-  const shuffled = shuffle(pool);
+// A hand that spreads across stalls and sections: at most three dishes per
+// stall and one per stall section, so ten cards aren't ten noodles from one
+// counter. If the spread rules leave the hand short, the rest is filled from
+// whatever is left. `scores` (menu item id -> chance of being kept, from the
+// Deal model) makes likely keeps come up more often.
+export function dealHand(pool, size = HAND_SIZE, scores = null) {
+  const shuffled = weightedShuffle(pool, scores);
   const hand = [];
   const perStall = new Map();
   const sections = new Set();

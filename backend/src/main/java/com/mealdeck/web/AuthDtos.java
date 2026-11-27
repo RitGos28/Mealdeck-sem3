@@ -14,13 +14,19 @@ public class AuthDtos {
 
     /** name: a student's own name, for greeting them; null otherwise. */
     /** vegOnly: a student's "I only eat veg" setting; null for everyone else. */
-    public record MeResponse(String role, String email, Long stallId, String name, Boolean vegOnly) {
+    /** dealLearning: whether Deal me a dish learns from this student's
+     * swipes; null for everyone but students. */
+    public record MeResponse(String role, String email, Long stallId, String name, Boolean vegOnly, Boolean dealLearning) {
         public MeResponse(String role, String email, Long stallId) {
-            this(role, email, stallId, null, null);
+            this(role, email, stallId, null, null, null);
         }
 
         public MeResponse(String role, String email, Long stallId, String name) {
-            this(role, email, stallId, name, null);
+            this(role, email, stallId, name, null, null);
+        }
+
+        public MeResponse(String role, String email, Long stallId, String name, Boolean vegOnly) {
+            this(role, email, stallId, name, vegOnly, null);
         }
     }
 

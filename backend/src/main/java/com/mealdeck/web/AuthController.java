@@ -149,7 +149,8 @@ public class AuthController {
         var student = "STUDENT".equals(role) ? studentService.findByEmail(authentication.getName()) : java.util.Optional.<com.mealdeck.model.Student>empty();
         String name = student.map(s -> s.getName()).orElse(null);
         Boolean vegOnly = student.map(s -> s.isVegOnly()).orElse(null);
-        return new MeResponse(role, authentication.getName(), stallId, name, vegOnly);
+        Boolean dealLearning = student.map(s -> s.isDealLearning()).orElse(null);
+        return new MeResponse(role, authentication.getName(), stallId, name, vegOnly, dealLearning);
     }
 
     /** Authenticates against the shared UserDetailsService, then rejects the

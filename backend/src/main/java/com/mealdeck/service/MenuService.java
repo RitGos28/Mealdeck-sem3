@@ -2,6 +2,7 @@ package com.mealdeck.service;
 
 import com.mealdeck.model.MenuItem;
 import com.mealdeck.model.Report;
+import com.mealdeck.model.SoldOutEvent;
 import com.mealdeck.model.Stall;
 import com.mealdeck.model.Student;
 import com.mealdeck.repository.MenuItemRepository;
@@ -38,6 +39,9 @@ public class MenuService {
     private final ApplicationEventPublisher events;
 
     private final ActivityLogService activityLog;
+    private final com.mealdeck.repository.DishVoteRepository dishVoteRepository;
+    private final com.mealdeck.repository.DealSwipeRepository dealSwipeRepository;
+    private final com.mealdeck.repository.SoldOutEventRepository soldOutEventRepository;
 
     public MenuService(
             StallRepository stallRepository,
@@ -45,7 +49,13 @@ public class MenuService {
             ReportRepository reportRepository,
             StudentRepository studentRepository,
             ApplicationEventPublisher events,
-            ActivityLogService activityLog) {
+            ActivityLogService activityLog,
+            com.mealdeck.repository.DishVoteRepository dishVoteRepository,
+            com.mealdeck.repository.DealSwipeRepository dealSwipeRepository,
+            com.mealdeck.repository.SoldOutEventRepository soldOutEventRepository) {
+        this.soldOutEventRepository = soldOutEventRepository;
+        this.dishVoteRepository = dishVoteRepository;
+        this.dealSwipeRepository = dealSwipeRepository;
         this.activityLog = activityLog;
         this.stallRepository = stallRepository;
         this.menuItemRepository = menuItemRepository;
@@ -80,6 +90,10 @@ public class MenuService {
 
         MenuItem updated = menuItemRepository.findById(menuItemId).orElseThrow();
         if (reportRepository.countDistinctStudentsByMenuItemId(menuItemId) >= REPORT_THRESHOLD) {
+            if (updated.isAvailable()) {
+                // Remembered (anonymously) so "Often sold out by..." can learn from it.
+                soldOutEventRepository.save(new SoldOutEvent(updated, Instant.now(), false));
+            }
             updated.setAvailable(false);
             menuItemRepository.save(updated);
         }
@@ -185,6 +199,9 @@ public class MenuService {
             item.setChoices(MenuChoices.store(request.choices()));
         }
         if (request.available() != null) {
+            if (!request.available() && item.isAvailable()) {
+                soldOutEventRepository.save(new SoldOutEvent(item, Instant.now(), true));
+            }
             item.setAvailable(request.available());
             if (request.available()) {
                 item.setReportCount(0);
@@ -210,6 +227,9 @@ public class MenuService {
     @Transactional
     public void deleteItem(Long stallId, Long itemId) {
         MenuItem item = requireItemOnStall(stallId, itemId);
+        dishVoteRepository.deleteByMenuItemId(item.getId());
+        dealSwipeRepository.deleteByMenuItemId(item.getId());
+        soldOutEventRepository.deleteByMenuItemId(item.getId());
         menuItemRepository.delete(item);
     }
 

@@ -7,6 +7,7 @@ import { api, formatInstant } from "../../../lib/api";
 import { priceText } from "../../../lib/mess";
 import BagSheet from "../../BagSheet";
 import StudentShell from "../StudentShell";
+import MessScreenshotImport from "./MessScreenshotImport";
 
 function Back() {
   return (
@@ -18,9 +19,9 @@ function Back() {
 
 // The add form and the "isn't correct" form are the same box: a list of
 // dishes. The flag form starts from what's there now.
-function MealForm({ meal, flag, onClose, onSaved }) {
+function MealForm({ meal, flag, initialText = "", onClose, onSaved }) {
   const router = useRouter();
-  const [text, setText] = useState(flag ? meal.items.join(", ") : "");
+  const [text, setText] = useState(flag ? meal.items.join(", ") : initialText);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const name = meal.label.toLowerCase();
@@ -70,7 +71,9 @@ function MealForm({ meal, flag, onClose, onSaved }) {
   );
 }
 
-function MealRow({ meal, onAdd, onFlag }) {
+// prediction: { dishes, weeksSeen } from /api/mess/predicted, a guess from
+// the same weekday in past weeks, for a meal nobody has added yet.
+function MealRow({ meal, prediction, weekday, onAdd, onFlag }) {
   const added = meal.items.length > 0;
   return (
     <li className="border-b border-line py-4 last:border-b-0">
@@ -79,6 +82,13 @@ function MealRow({ meal, onAdd, onFlag }) {
         <span className="text-xs text-muted">{priceText(meal.priceInr)}</span>
       </div>
       <p className={`mt-1 text-[15px] ${added ? "" : "text-muted"}`}>{added ? meal.items.join(", ") : "Not added yet"}</p>
+      {!added && prediction && (
+        <div className="mt-2 rounded-xl border border-dashed border-field px-3 py-2">
+          <p className="text-[14px] text-ink"><span className="font-semibold">Probably:</span> {prediction.dishes.join(", ")}</p>
+          <p className="text-xs text-muted">A guess from {weekday ? `the last ${prediction.weeksSeen} ${weekday}s` : "past weeks"}, not today&apos;s confirmed menu.</p>
+          <button type="button" onClick={() => onAdd(meal, prediction.dishes.join(", "))} className="mt-1 min-h-9 text-[13px] font-semibold text-deck hover:underline">Looks right? Check it and add it</button>
+        </div>
+      )}
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
         {added ? (
           <>
@@ -102,7 +112,8 @@ function MealRow({ meal, onAdd, onFlag }) {
 export default function MessPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(false);
-  const [form, setForm] = useState(null); // { meal, flag }
+  const [form, setForm] = useState(null); // { meal, flag, initialText }
+  const [predicted, setPredicted] = useState([]);
 
   const load = useCallback(async () => {
     try {
@@ -111,6 +122,8 @@ export default function MessPage() {
     } catch {
       setError(true);
     }
+    // The guesses are extra: if they don't load, the page works without them.
+    api("/api/mess/predicted").then((result) => setPredicted(Array.isArray(result) ? result : []), () => setPredicted([]));
   }, []);
 
   useEffect(() => {
@@ -129,21 +142,31 @@ export default function MessPage() {
 
   return (
     <StudentShell active="mess" band={band}>
-      {() => (
+      {(user) => (
         <div className="mx-auto max-w-xl">
           {error && <p role="alert" className="rounded-2xl bg-[#fbe9e7] px-4 py-3 text-sm text-danger">Couldn&apos;t load today&apos;s mess menu. Refresh to try again.</p>}
           {!error && !data && <p role="status" className="py-10 text-center text-muted">Loading…</p>}
           {data && (
             <>
+              {data.meals.some((meal) => meal.items.length === 0) && <MessScreenshotImport meals={data.meals} user={user} onSaved={load} />}
               <ul>
-                {data.meals.map((meal) => <MealRow key={meal.meal} meal={meal} onAdd={(m) => setForm({ meal: m, flag: false })} onFlag={(m) => setForm({ meal: m, flag: true })} />)}
+                {data.meals.map((meal) => (
+                  <MealRow
+                    key={meal.meal}
+                    meal={meal}
+                    prediction={predicted.find((p) => p.meal === meal.meal)}
+                    weekday={new Date(`${data.date}T00:00:00`).toLocaleDateString("en-IN", { weekday: "long" })}
+                    onAdd={(m, initialText = "") => setForm({ meal: m, flag: false, initialText })}
+                    onFlag={(m) => setForm({ meal: m, flag: true })}
+                  />
+                ))}
               </ul>
               <p className="mt-4 rounded-2xl bg-mint px-4 py-3 text-[13px] text-mint-ink">
                 Free for hostellers. Menus are added by students and start fresh each morning. When 3 different students say a menu isn&apos;t correct, the most common correction replaces it. A menu marked &ldquo;Checked&rdquo; has been confirmed by an admin.
               </p>
             </>
           )}
-          {form && <MealForm meal={form.meal} flag={form.flag} onClose={() => setForm(null)} onSaved={load} />}
+          {form && <MealForm meal={form.meal} flag={form.flag} initialText={form.initialText} onClose={() => setForm(null)} onSaved={load} />}
         </div>
       )}
     </StudentShell>

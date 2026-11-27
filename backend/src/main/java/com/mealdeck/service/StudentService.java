@@ -32,12 +32,17 @@ public class StudentService {
     private final com.mealdeck.repository.MessMealRepository messMealRepository;
     private final com.mealdeck.repository.PreorderRequestRepository preorderRequestRepository;
     private final com.mealdeck.repository.SurveyResponseRepository surveyResponseRepository;
+    private final com.mealdeck.repository.DishVoteRepository dishVoteRepository;
+    private final DealLearningService dealLearning;
 
     public StudentService(StudentRepository studentRepository, PasswordEncoder passwordEncoder, ReportRepository reportRepository, SignupCodeService signupCodeService, OrderRepository orderRepository, EmailStandingService emailStanding, ActivityLogService activityLog,
             com.mealdeck.repository.MessFlagRepository messFlagRepository, com.mealdeck.repository.MessMealRepository messMealRepository,
             com.mealdeck.repository.PreorderRequestRepository preorderRequestRepository,
-            com.mealdeck.repository.SurveyResponseRepository surveyResponseRepository) {
+            com.mealdeck.repository.SurveyResponseRepository surveyResponseRepository,
+            com.mealdeck.repository.DishVoteRepository dishVoteRepository, DealLearningService dealLearning) {
         this.surveyResponseRepository = surveyResponseRepository;
+        this.dishVoteRepository = dishVoteRepository;
+        this.dealLearning = dealLearning;
         this.preorderRequestRepository = preorderRequestRepository;
         this.messFlagRepository = messFlagRepository;
         this.messMealRepository = messMealRepository;
@@ -151,6 +156,10 @@ public class StudentService {
         messMealRepository.clearSubmitter(id);
         preorderRequestRepository.deleteByStudentId(id);
         surveyResponseRepository.deleteByStudentId(id);
+        // Their Amazing / Not worth it votes go, and so does everything the
+        // Deal model learned from them (it retrains without their swipes).
+        dishVoteRepository.deleteByStudentId(id);
+        dealLearning.forget(id);
         orderRepository.detachStudent(id);
         studentRepository.delete(student);
         activityLog.accountDeleted(id, how);
