@@ -76,10 +76,9 @@ jobs:
 
   deploy:
     needs: test
-    # Off: no self-hosted runner is registered now, so this would wait
-    # forever on every merge. To turn it back on, restore:
-    #   if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    if: false
+    # Runs on the ProLiant's runner (rgproliant), which serves mealdeck.in
+    # through the homeserver tunnel. To pause deploys, set this to false.
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: self-hosted
     # Never two deploys at once; a newer push queues behind a running one.
     concurrency:
